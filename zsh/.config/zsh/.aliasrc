@@ -1,0 +1,55 @@
+alias ls="exa -g -G --icons"
+alias la="ls -a"
+alias g=git
+alias vi=vim
+alias t=tmux
+alias ta="tmux a"
+alias backup="python ~/OneDrive/Back\ Up/backup_script.py"
+alias fin=fzf
+alias cl=clear
+alias f=pcolr
+alias yt=youtube-dl
+alias top=bpytop
+alias clf=clockify-cli
+alias ll="exa -l -g --icons"
+alias lla="ll -a"
+
+# project specific
+alias wo="cd ~/Texol && vim ."
+alias ide="source ~/.config/fish/ide_session.sh"
+alias vim=nvim
+
+
+export EDITOR=nvim
+export LC_CTYPE=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export SHELL=/bin/bash
+
+export PATH=bin:$PATH
+export PATH=~/bin:$PATH
+export PATH=~/.local/bin:$PATH
+export PATH=/usr/local/sbin:$PATH
+export PATH=/usr/local/bin/yarn:$PATH
+
+# Python
+# if command `pyenv` exists, init it
+#status is-interactive; and pyenv init --path | source
+#pyenv init - | source
+
+# NodeJS
+export PATH=node_modules/.bin:$PATH
+export PATH=$HOME/.npm-packages/bin:$PATH
+
+# Go
+set -g GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$PATH
+
+# Composer
+export PATH=$HOME/.composer/vendor/bin:$PATH
+
+# Flutter
+export PATH=$HOME/Utils/flutter/bin:$PATH
+
+# npm
+export PATH=$HOME/.npm-packages/bin:$PATH
+

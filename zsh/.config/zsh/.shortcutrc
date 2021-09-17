@@ -1,0 +1,21 @@
+# Setup fzf
+# ---------
+if [[ ! "$PATH" == */usr/local/opt/fzf/bin* ]]; then
+  export PATH="${PATH:+${PATH}:}/usr/local/opt/fzf/bin"
+fi
+
+# Auto-completion
+# ---------------
+[[ $- == *i* ]] && source "/usr/local/opt/fzf/shell/completion.zsh" 2> /dev/null
+
+# Key bindings
+# ------------
+source "/usr/local/opt/fzf/shell/key-bindings.zsh"
+bindkey -r '^T'
+bindkey '^f' fzf-file-widget
+bindkey '\ex' fzf-cd-widget
+bindkey '^l' autosuggest-accept
+bindkey '\e[A' history-beginning-search-backward
+bindkey '\e[B' history-beginning-search-forward
+
+function mkcd() { mkdir -p "$@" && cd "$_"; }

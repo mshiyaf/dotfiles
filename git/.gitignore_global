@@ -1,0 +1,88 @@
+*.o
+\#*#
+*#
+.#*
+.*~
+*~
+.DS_Store
+*.log
+*.aux
+.zshrc.local
+.python-version
+.netrwhist
+.bundle
+/vendor/bundle
+Gemfile.lock
+node_modules
+bower_components
+fishd.*
+
+# Fish local config
+.config/fish/config-local.fish
+.config/fish/fish_variables.x86_64
+
+### Node ###
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional npm cache directory
+.npm
+
+# Dependency directories
+/node_modules
+/jspm_packages
+/bower_components
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variables file(s)
+.env
+.env.*
+
+#Build generated
+dist/
+build/
+
+# Serverless generated files
+.serverless/
+
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### Vim ###
+*.sw[a-p]
+
+
+### System Files ###
+*.DS_Store
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
