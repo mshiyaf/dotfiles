@@ -1,7 +1,10 @@
 # Enable colors and change prompt
-autoload -U colors && colors
-PS1="%B%{$fg[red]%}[%{$fg[blue]%}%M %{$fg[magenta]%}%~%{$fg[red]%}]%{$reset_color%}$%b "
-
+autoload -U colors && colors 
+# Load version control information
+source $HOME/.config/zsh/utils/zshrc.sh
+# # Config for prompt. PS1 synonym.
+# PROMPT="%B%{$fg[red]%}[%{$fg[blue]%}%~%{$fg[red]%}] $(git_super_status) "
+PROMPT='%{$fg_bold[red]%}[%{$fg_bold[blue]%}%~%{$fg_bold[red]%}] $(git_super_status) '
 # History in cache directory
 HISTSIZE=10000
 SAVEHIST=10000
@@ -62,14 +65,13 @@ lfcd () {
 }
 bindkey -s '^e' 'lfcd\n'
 
-. $HOME/.config/zsh/z/z.sh
+. $HOME/.config/zsh/z.sh
 # Load aliases and shortcuts if existent.
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 [ -f "$HOME/.config/zsh/.shortcutrc" ] && source "$HOME/.config/zsh/.shortcutrc"
 [ -f "$HOME/.config/zsh/.aliasrc" ] && source "$HOME/.config/zsh/.aliasrc"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
 
 source ~/.config/zsh/zsh-notes.plugin.zsh
 source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
