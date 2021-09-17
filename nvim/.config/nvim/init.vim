@@ -13,6 +13,15 @@ syntax enable
 autocmd InsertLeave * set nopaste
 
 let g:netrw_banner=0
+augroup netrw_mapping
+    autocmd!
+    autocmd filetype netrw call NetrwMapping()
+augroup END
+
+function! NetrwMapping()
+    nmap <buffer> l <CR>
+    nmap <buffer> h -<esc>
+endfunction
 
 "}}}
 

@@ -10,7 +10,7 @@ nnoremap x "_x
 
 " Increment/decrement
 nnoremap + <C-a>
-nnoremap - <C-x>
+" nnoremap - <C-x>
 
 " Select all
 nmap <C-a> gg<S-v>G
