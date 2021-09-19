@@ -17,5 +17,6 @@ bindkey '\ex' fzf-cd-widget
 bindkey '^l' autosuggest-accept
 bindkey '\e[A' history-beginning-search-backward
 bindkey '\e[B' history-beginning-search-forward
+bindkey '^o' up-line-or-history
 
 function mkcd() { mkdir -p "$@" && cd "$_"; }

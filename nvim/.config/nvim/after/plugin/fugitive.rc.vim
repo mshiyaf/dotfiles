@@ -6,4 +6,6 @@ if !exists('*fugitive#statusline')
 endif
 
 cnoreabbrev g Git
-cnoreabbrev gopen Gbrowse
+cnoreabbrev gopen GBrowse
+
+autocmd BufRead COMMIT_EDITMSG set spell

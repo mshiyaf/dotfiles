@@ -4,7 +4,7 @@ autoload -U colors && colors
 source $HOME/.config/zsh/utils/zshrc.sh
 # # Config for prompt. PS1 synonym.
 # PROMPT="%B%{$fg[red]%}[%{$fg[blue]%}%~%{$fg[red]%}] $(git_super_status) "
-PROMPT='%{$fg_bold[red]%}[%{$fg_bold[blue]%}%~%{$fg_bold[red]%}] $(git_super_status) '
+PROMPT='%{$fg_bold[red]%}[%{$fg_bold[blue]%}%~%{$fg_bold[red]%}]$(git_super_status) '
 # History in cache directory
 HISTSIZE=10000
 SAVEHIST=10000
