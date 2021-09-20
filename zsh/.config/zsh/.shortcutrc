@@ -11,10 +11,10 @@ fi
 # Key bindings
 # ------------
 source "/usr/local/opt/fzf/shell/key-bindings.zsh"
-t_sessionize(){
+t_s(){
     sh ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
-bindkey -s '^T' 't_sessionize\n' 
+bindkey -s '^T' 't_s\n' 
 bindkey '^f' fzf-file-widget
 bindkey '\ex' fzf-cd-widget
 bindkey '^l' autosuggest-accept
