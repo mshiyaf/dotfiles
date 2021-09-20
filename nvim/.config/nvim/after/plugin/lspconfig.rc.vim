@@ -12,6 +12,8 @@ require'lspconfig'.yamlls.setup{}
 
 require'lspconfig'.tailwindcss.setup{}
 
+require'lspconfig'.pylsp.setup{}
+
 local snippets_paths = function()
     local plugins = { "friendly-snippets" }
     local paths = {}

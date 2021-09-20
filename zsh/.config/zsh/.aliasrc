@@ -35,6 +35,7 @@ export PATH=/usr/local/bin/yarn:$PATH
 # if command `pyenv` exists, init it
 #status is-interactive; and pyenv init --path | source
 #pyenv init - | source
+eval "$(pyenv init -)"
 
 # NodeJS
 export PATH=node_modules/.bin:$PATH
