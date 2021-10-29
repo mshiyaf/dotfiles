@@ -39,6 +39,8 @@ nmap <A-k> mz:m-2<cr>`z
 vmap <A-j> :m'>+<cr>`<my`>mzgv`yo`z
 vmap <A-k> :m'<-2<cr>`>my`<mzgv`yo`z
 
+" tmux-sessionizer
+nnoremap <silent> <C-f> :silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>
 
 nnoremap <F5> :UndotreeToggle<CR>
 

@@ -14,8 +14,8 @@ source "/usr/local/opt/fzf/shell/key-bindings.zsh"
 t_s(){
     sh ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
-bindkey -s '^T' 't_s\n' 
-bindkey '^f' fzf-file-widget
+bindkey -s '^f' 't_s\n' 
+# bindkey '^f' fzf-file-widget
 bindkey '\ex' fzf-cd-widget
 bindkey '^l' autosuggest-accept
 bindkey '\e[A' history-beginning-search-backward
