@@ -6,6 +6,19 @@ require'lspconfig'.clangd.setup {
     root_dir = function() return vim.loop.cwd() end
 }
 
+require'lspconfig'.gopls.setup{
+    on_attach=on_attach,
+    cmd = {"gopls", "serve"},
+    settings = {
+        gopls = {
+            analyses = {
+                unusedparams = true,
+            },
+            staticcheck = true,
+        },
+    },
+}
+
 require'lspconfig'.svelte.setup{}
 
 require'lspconfig'.yamlls.setup{}

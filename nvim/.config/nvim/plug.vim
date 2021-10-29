@@ -27,6 +27,8 @@ Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
 Plug 'godlygeek/tabular'
 Plug 'plasticboy/vim-markdown'
 Plug 'tpope/vim-vinegar'
+Plug 'darrikonn/vim-gofmt', { 'do': ':GoUpdateBinaries' }
+Plug 'jiangmiao/auto-pairs'
 call plug#end()
 "}}}
 
