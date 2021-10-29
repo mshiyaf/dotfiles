@@ -16,7 +16,7 @@ alias lla="ll -a"
 
 # project specific
 alias wo="cd ~/Texol && vim ."
-alias ide="source ~/.config/fish/ide_session.sh"
+alias ide="source ~/Code/dotfiles/zsh/.config/zsh/ide_session.sh"
 alias vim=nvim
 
 
