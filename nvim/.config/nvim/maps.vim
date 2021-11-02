@@ -42,7 +42,7 @@ vmap <A-k> :m'<-2<cr>`>my`<mzgv`yo`z
 " tmux-sessionizer
 nnoremap <silent> <C-f> :silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>
 
-nnoremap <F5> :UndotreeToggle<CR>
+nnoremap <F5> :UndotreeToggle<CR>:UndotreeFocus<CR>
 
 nmap <leader><C-M> <Plug>BujoAddnormal
 nmap <C-BS> <Plug>BujoChecknormal
@@ -50,8 +50,8 @@ nmap <C-BS> <Plug>BujoChecknormal
 " imap <C-M> <Plug>BujoAddinsert
 
 " Open explore
-nnoremap <leader>u :UndotreeShow<CR>
-nnoremap <leader>e :Ex<CR>
+map <leader>z :Goyo<CR>
+nnoremap <leader>u :UndotreeToggle<CR>:UndotreeFocus<CR>
 nnoremap <Leader><CR> :so ~/.config/nvim/init.vim<CR>
 
 "}}}
