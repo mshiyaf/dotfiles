@@ -16,7 +16,6 @@ Plug 'folke/lsp-colors.nvim'
 Plug 'gruvbox-community/gruvbox'
 Plug 'hoob3rt/lualine.nvim'
 Plug 'sbdchd/neoformat'
-" Plug 'mhartington/formatter.nvim'
 Plug 'hrsh7th/nvim-compe'
 Plug 'L3MON4D3/LuaSnip'
 Plug 'rafamadriz/friendly-snippets'
@@ -31,6 +30,7 @@ Plug 'tpope/vim-vinegar'
 Plug 'darrikonn/vim-gofmt', { 'do': ':GoUpdateBinaries' }
 Plug 'jiangmiao/auto-pairs'
 Plug 'junegunn/goyo.vim'
+Plug 'github/copilot.vim'
 
 call plug#end()
 "}}}
