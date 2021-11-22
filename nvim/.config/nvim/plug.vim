@@ -31,6 +31,9 @@ Plug 'darrikonn/vim-gofmt', { 'do': ':GoUpdateBinaries' }
 Plug 'jiangmiao/auto-pairs'
 Plug 'junegunn/goyo.vim'
 Plug 'github/copilot.vim'
+Plug 'mattn/emmet-vim'
+
+Plug 'jwalton512/vim-blade'
 
 call plug#end()
 "}}}

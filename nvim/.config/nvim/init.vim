@@ -31,7 +31,7 @@ endfunction
 " JavaScript
 au BufNewFile,BufRead *.es6 setf javascript
 " TypeScript
-au BufNewFile,BufRead *.tsx setf typescript
+au BufNewFile,BufRead *.tsx setf typescript.tsx
 " Markdown
 au BufNewFile,BufRead *.md set filetype=markdown
 " Flow
