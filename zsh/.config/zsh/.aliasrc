@@ -11,7 +11,7 @@ alias f=pcolr
 alias yt=youtube-dl
 alias top=bpytop
 alias clf=clockify-cli
-alias ll="exa -l -g --icons"
+alias ll="exa -l -g --git --icons"
 alias lla="ll -a"
 
 # project specific

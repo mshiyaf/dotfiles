@@ -34,6 +34,7 @@ Plug 'github/copilot.vim'
 Plug 'mattn/emmet-vim'
 
 Plug 'jwalton512/vim-blade'
+Plug 'ThePrimeagen/git-worktree.nvim'
 
 call plug#end()
 "}}}
