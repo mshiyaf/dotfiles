@@ -33,7 +33,7 @@ set backupskip=/tmp/*,/private/tmp/*
 
 " incremental substitution (neovim)
 if has('nvim')
-  set inccommand=split
+    set inccommand=split
 endif
 
 " Suppress appending <PasteStart> and <PasteEnd> when pasting
@@ -52,8 +52,8 @@ set smartcase
 " Be smart when using tabs ;)
 set smarttab
 " indents
-set tabstop=4 softtabstop=4
-set shiftwidth=4
+set tabstop=2 softtabstop=2
+set shiftwidth=2
 set ai "Auto indent
 set si "Smart indent
 set nowrap "No Wrap lines
@@ -74,21 +74,21 @@ set wildignore+=*/node_modules/*
 
 " For conceal markers.
 if has('conceal')
-  set conceallevel=2 concealcursor=niv
+    set conceallevel=2 concealcursor=niv
 endif
 
 " Add asterisks in block comments
 set formatoptions+=r
 
 if has("unix")
-  let s:uname = system("uname -s")
-  " Do Mac stuff
-  if s:uname == "Darwin\n"
-" Use OSX clipboard to copy and to paste
-    set clipboard+=unnamedplus
-" Copy selected text in visual mode
-"set clipboard+=autoselect
-  endif
+    let s:uname = system("uname -s")
+    " Do Mac stuff
+    if s:uname == "Darwin\n"
+        " Use OSX clipboard to copy and to paste
+        set clipboard+=unnamedplus
+        " Copy selected text in visual mode
+        "set clipboard+=autoselect
+    endif
 endif
 
 set suffixesadd=.js,.es,.jsx,.json,.css,.less,.sass,.styl,.php,.py,.md
