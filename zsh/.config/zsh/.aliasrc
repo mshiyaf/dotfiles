@@ -13,6 +13,7 @@ alias top=bpytop
 alias clf=clockify-cli
 alias ll="exa -l -g --git --icons"
 alias lla="ll -a"
+alias bladeformatter="blade-formatter"
 
 # project specific
 alias wo="cd ~/Texol && vim ."

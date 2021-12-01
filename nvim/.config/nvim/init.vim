@@ -30,6 +30,8 @@ endfunction
 
 " JavaScript
 au BufNewFile,BufRead *.es6 setf javascript
+" JavaScript React
+au BufNewFile,BufRead *.jsx setf javascript.jsx
 " TypeScript
 au BufNewFile,BufRead *.tsx setf typescript.tsx
 " Markdown
@@ -53,8 +55,8 @@ runtime ./plug.vim
 runtime ./maps.vim
 
 "}}}
-  
-"{{{" Extras 
+
+"{{{" Extras
 " ------------------------------------------------------------------------------
 
 set exrc
