@@ -1,4 +1,4 @@
-#files: 926	version: 5.7.1
+#files: 927	version: 5.7.1
 
 _comps=(
 '-' '_precommand'
@@ -89,6 +89,7 @@ _comps=(
 'Mail' '_mail'
 'Mosaic' '_webbrowser'
 'SuSEconfig' '_SUSEconfig'
+'_gh' '_gh'
 'a2dismod' '_a2utils'
 'a2dissite' '_a2utils'
 'a2enmod' '_a2utils'
@@ -551,10 +552,10 @@ _comps=(
 'ggetopt' '_getopt'
 'ggrep' '_grep'
 'ggv' '_gnome-gv'
+'gh' '_gh'
 'ghead' '_head'
 'ghostscript' '_ghostscript'
 'ghostview' '_pspdf'
-'ghq' '_ghq'
 'gid' '_id'
 'ginstall' '_install'
 'git' '_git'
@@ -1638,7 +1639,6 @@ _comps=(
 'zmv' '_zmv'
 'zone' '_hosts'
 'zoneadm' '_zoneadm'
-'zplug' '_zplug'
 'zpool' '_zpool'
 'zpty' '_zpty'
 'zsetattr' '_zattr'
@@ -1764,7 +1764,7 @@ bindkey '^[/' _history-complete-older
 bindkey '^[~' _bash_complete-word
 
 autoload -Uz _brew _brew_services _cargo _crystal _deno \
-            _exa _ghq _heroku _lf _mpv \
+            _exa _gh _heroku _lf _mpv \
             _rg _the_silver_searcher _tig _SUSEconfig _a2ps \
             _a2utils _aap _absolute_command_paths _ack _acpi \
             _acpitool _acroread _adb _add-zle-hook-widget _add-zsh-hook \

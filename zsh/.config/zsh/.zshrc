@@ -53,7 +53,7 @@ bindkey -v '^?' backward-delete-char
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^v' edit-command-line
 
-# Use lf to switch directories and bind it to ctrl-o
+# Use lf to switch directories and bind it to ctrl-e
 lfcd () {
     tmp="$(mktemp)"
     lf -last-dir-path="$tmp" "$@"
