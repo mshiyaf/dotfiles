@@ -13,7 +13,7 @@ set laststatus=2
 set expandtab
 set hidden
 set scrolloff=8
-set colorcolumn=80
+set colorcolumn=101
 set signcolumn=yes
 
 " history related
@@ -33,7 +33,7 @@ set backupskip=/tmp/*,/private/tmp/*
 
 " incremental substitution (neovim)
 if has('nvim')
-    set inccommand=split
+  set inccommand=split
 endif
 
 " Suppress appending <PasteStart> and <PasteEnd> when pasting
@@ -74,21 +74,21 @@ set wildignore+=*/node_modules/*
 
 " For conceal markers.
 if has('conceal')
-    set conceallevel=2 concealcursor=niv
+  set conceallevel=2 concealcursor=niv
 endif
 
 " Add asterisks in block comments
 set formatoptions+=r
 
 if has("unix")
-    let s:uname = system("uname -s")
-    " Do Mac stuff
-    if s:uname == "Darwin\n"
-        " Use OSX clipboard to copy and to paste
-        set clipboard+=unnamedplus
-        " Copy selected text in visual mode
-        "set clipboard+=autoselect
-    endif
+  let s:uname = system("uname -s")
+  " Do Mac stuff
+  if s:uname == "Darwin\n"
+    " Use OSX clipboard to copy and to paste
+    set clipboard+=unnamedplus
+    " Copy selected text in visual mode
+    "set clipboard+=autoselect
+  endif
 endif
 
 set suffixesadd=.js,.es,.jsx,.json,.css,.less,.sass,.styl,.php,.py,.md
