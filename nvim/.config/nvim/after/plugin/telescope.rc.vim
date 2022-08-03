@@ -10,3 +10,4 @@ nnoremap <leader>vb <cmd>Telescope git_bcommits<cr>
 nnoremap <leader>vc <cmd>Telescope git_commits<cr>
 nnoremap <leader>rr <cmd>Telescope lsp_references<cr>
 nnoremap <leader>; :lua require('telescope').extensions.git_worktree.git_worktrees()<cr>
+nnoremap <leader>ww :lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>

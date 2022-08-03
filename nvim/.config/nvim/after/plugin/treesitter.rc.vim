@@ -6,13 +6,13 @@ endif
 lua <<EOF
 require'nvim-treesitter.configs'.setup {
   highlight = {
-    enable = true,
-    disable = {},
+  enable = true,
+  disable = {},
   },
-  indent = {
-    enable = false,
-    disable = {},
-  },
+indent = {
+enable = false,
+disable = {},
+},
   ensure_installed = {
     "tsx",
     "typescript",
@@ -25,13 +25,13 @@ require'nvim-treesitter.configs'.setup {
     "php",
     "json",
     "yaml",
-    "swift",
     "html",
     "css",
     "scss"
-  },
-}
+    },
+  additional_vim_regex_highlighting = false,
+  }
 
-local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
-parser_config.tsx.used_by = { "javascript", "typescript.tsx" }
+-- local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
+-- parser_config.tsx.used_by = { "javascript", "typescript.tsx" }
 EOF

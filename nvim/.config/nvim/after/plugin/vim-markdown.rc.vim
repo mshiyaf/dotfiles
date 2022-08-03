@@ -1,5 +1,6 @@
 " let g:vim_markdown_conceal = 1
 let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_new_list_item_indent = 0
 
 
 " Goyo
@@ -10,10 +11,10 @@ function s:goyo_enter()
 endfunction
 
 function! s:goyo_leave()
- hi Normal guibg=NONE ctermbg=NONE
- if exists('$TMUX')
+  hi Normal guibg=NONE ctermbg=NONE
+  if exists('$TMUX')
     silent !tmux set status on
- endif        
+  endif
 endfunction
 
 autocmd! User GoyoEnter nested call <SID>goyo_enter()

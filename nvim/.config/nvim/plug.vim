@@ -12,10 +12,7 @@ Plug 'szw/vim-maximizer'
 Plug 'mbbill/undotree'
 Plug 'neovim/nvim-lspconfig'
 Plug 'hoob3rt/lualine.nvim'
-
-" Plug 'glepnir/lspsaga.nvim'
 Plug 'tami5/lspsaga.nvim'
-
 Plug 'folke/lsp-colors.nvim'
 Plug 'gruvbox-community/gruvbox'
 Plug 'nvim-treesitter/nvim-treesitter', { 'do': ':TSUpdate' }
@@ -44,6 +41,7 @@ Plug 'hrsh7th/cmp-nvim-lsp'
 Plug 'hrsh7th/cmp-buffer'
 
 Plug 'onsails/lspkind-nvim'
+Plug 'dkarter/bullets.vim'
 
 call plug#end()
 
