@@ -33,7 +33,7 @@ local config = {
         icons_enabled = true,
         component_separators = "",
         section_separators = "",
-        theme = "gruvbox"
+        theme = "solarized_dark"
     },
     sections = {
         -- these are to remove the defaults
