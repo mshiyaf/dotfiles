@@ -1,6 +1,16 @@
 if !exists('g:loaded_lspsaga') | finish | endif
 
 lua << EOF
+require("mason").setup({
+ui = {
+  icons = {
+    package_installed = "✓",
+    package_pending = "➜",
+    package_uninstalled = "✗"
+    }
+  }
+})
+
 local saga = require 'lspsaga'
 
 saga.init_lsp_saga {
@@ -9,7 +19,7 @@ saga.init_lsp_saga {
   hint_sign = '',
   infor_sign = '',
   border_style = "round",
-}
+  }
 
 EOF
 

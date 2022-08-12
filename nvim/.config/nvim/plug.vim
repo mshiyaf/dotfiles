@@ -43,6 +43,7 @@ Plug 'hrsh7th/cmp-buffer'
 Plug 'onsails/lspkind-nvim'
 Plug 'dkarter/bullets.vim'
 
+Plug 'williamboman/mason.nvim'
 call plug#end()
 
 "}}}
