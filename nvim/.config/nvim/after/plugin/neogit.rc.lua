@@ -3,8 +3,8 @@ local nnoremap = require('keymap').nnoremap
 
 neogit.setup {}
 
-nnoremap("<leader>gs", function()
+nnoremap(";gs", function()
     neogit.open({})
 end);
 
-nnoremap("<leader>ga", "<cmd>!git fetch --all<CR>");
+nnoremap(";ga", "<cmd>!git fetch --all<CR>");
