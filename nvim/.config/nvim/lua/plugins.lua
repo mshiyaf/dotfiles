@@ -53,4 +53,5 @@ packer.startup(function(use)
 
     -- use("tpope/vinegar")
     use('ThePrimeagen/git-worktree.nvim')
+    use('mbbill/undotree')
 end)
