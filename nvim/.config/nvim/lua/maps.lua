@@ -2,6 +2,7 @@ local Remap = require("keymap")
 local nnoremap = Remap.nnoremap
 local vnoremap = Remap.vnoremap
 local inoremap = Remap.inoremap
+local nmap = Remap.nmap
 
 local silent = { silent = true }
 
@@ -58,3 +59,9 @@ nnoremap('<C-w><down>', '<C-w>-')
 nnoremap('<leader>m', ':MaximizerToggle<CR>', silent)
 vnoremap('<leader>m', ':MaximizerToggle<CR>gv', silent)
 inoremap('<F3>', '<C-o>:MaximizerToggle<CR>', silent)
+
+-- tmux-sessionizer
+nnoremap('<C-f>', ':silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>', silent)
+
+-- terminal
+nmap('<leader>t', ':terminal<Return>i')
