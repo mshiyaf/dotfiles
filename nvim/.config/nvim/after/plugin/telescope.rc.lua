@@ -16,8 +16,13 @@ telescope.setup {
     defaults = {
         mappings = {
             n = {
-                ["q"] = actions.close
+                ["q"] = actions.close,
+                ["<C-e>"] = actions.select_tab,
+                ["l"] = actions.select_default
             },
+            i = {
+                ["<C-e>"] = actions.select_tab
+            }
         },
     },
     extensions = {
@@ -36,6 +41,9 @@ telescope.setup {
                     ["N"] = fb_actions.create,
                     ["h"] = fb_actions.goto_parent_dir,
                     ["."] = fb_actions.toggle_hidden,
+                    -- ["l"] = function()
+                    --     vim.actions.select_default
+                    -- end,
                     ["/"] = function()
                         vim.cmd('startinsert')
                     end
