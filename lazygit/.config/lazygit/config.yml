@@ -1,0 +1,27 @@
+git:
+  paging:
+    colorArg: always
+    pager: delta --dark --paging=never
+  branchLogCmd: "git log --graph --name-status --pretty=format:\"%C(red)%h %C(reset)(%cd) %C(green)%an %Creset%s %C(yellow)%d%Creset\" --date=relative"
+gui:
+  theme:
+    lightTheme: false # For terminals with a light background
+    activeBorderColor:
+      - white
+      - bold
+    inactiveBorderColor:
+      - green
+    optionsTextColor:
+      - blue
+    selectedLineBgColor:
+      - reverse
+    selectedRangeBgColor:
+      - blue
+    cherryPickedCommitBgColor:
+      - blue
+    cherryPickedCommitFgColor:
+      - cyan
+refresher:
+  refreshInterval: 3
+os:
+  editCommand: "nvim"
