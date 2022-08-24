@@ -43,7 +43,6 @@ packer.startup(function(use)
 	use("nvim-telescope/telescope-file-browser.nvim")
 	use("windwp/nvim-autopairs")
 	use("windwp/nvim-ts-autotag")
-	--  use 'norcalli/nvim-colorizer.lua'
 	use("folke/zen-mode.nvim")
 	--  use({
 	--    "iamcco/markdown-preview.nvim",
@@ -54,12 +53,13 @@ packer.startup(function(use)
 
 	use("lewis6991/gitsigns.nvim")
 	use("dinhhuy258/git.nvim") -- For git blame & browse
-	-- use("TimUntersberger/neogit")
+	use("tpope/vim-fugitive")
 
 	use("tpope/vim-commentary") -- Comment lines
 	use("szw/vim-maximizer") -- Toggle window maximization
 
-	-- use'tpope/vinegar'
+	-- use("tpope/vinegar")
+	use("akinsho/toggleterm.nvim")
 	use("ThePrimeagen/git-worktree.nvim") -- Git worktree implementation in telescope
 	use("mbbill/undotree")
 end)

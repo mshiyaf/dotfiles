@@ -66,7 +66,7 @@ nnoremap("<C-f>", ":silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessi
 
 -- terminal
 nmap("<leader>t", ":terminal<Return>i")
-nnoremap(";l", ":lua _LAZYGIT_TOGGLE()<cr>")
+nnoremap(";gg", ":G <cr>")
 
 -- undotree
 nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
