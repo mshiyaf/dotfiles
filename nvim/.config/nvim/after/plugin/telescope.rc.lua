@@ -33,6 +33,12 @@ telescope.setup({
 			-- disables netrw and use telescope-file-browser in its place
 			hijack_netrw = true,
 			hidden = true,
+			cwd = telescope_buffer_dir(),
+			respect_gitignore = false,
+			grouped = true,
+			previewer = false,
+			initial_mode = "normal",
+			layout_config = { height = 40 },
 			mappings = {
 				-- your custom insert mode mappings
 				["i"] = {
@@ -60,15 +66,16 @@ telescope.setup({
 telescope.load_extension("file_browser")
 
 vim.keymap.set("n", "<leader>f", function()
-	builtin.find_files(
-		-- {
-		-- no_ignore = false,
-		-- hidden = true,
-		-- }
-	)
+	builtin.find_files({
+		hidden = true,
+	})
 end)
 vim.keymap.set("n", "<leader>g", function()
-	builtin.live_grep()
+	builtin.live_grep({
+		additional_args = function()
+			return { "--hidden" }
+		end,
+	})
 end)
 vim.keymap.set("n", "<leader>b", function()
 	builtin.buffers()
