@@ -65,7 +65,7 @@ inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 nnoremap("<C-f>", ":silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
 -- terminal
-nmap("<leader>t", ":terminal<Return>i")
+-- nmap("<leader>t", ":terminal<Return>i")
 nnoremap(";gg", ":G <cr>")
 
 -- undotree
