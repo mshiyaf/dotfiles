@@ -70,3 +70,8 @@ nnoremap(";gg", ":G <cr>")
 
 -- undotree
 nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
+
+-- move between qf list
+nnoremap("<leader>c", ":cclose<CR>")
+nnoremap("<leader>n", ":cnext<CR>")
+nnoremap("<leader>p", ":cprev<CR>")
