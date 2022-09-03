@@ -10,9 +10,9 @@ fi
 
 # Key bindings
 # ------------
-source "/usr/local/opt/fzf/shell/key-bindings.zsh"
+source "$HOME/.fzf/shell/key-bindings.zsh"
 t_s(){
-    sh ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
+    ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
 bindkey -s '^f' 't_s\n' 
 # bindkey '^f' fzf-file-widget

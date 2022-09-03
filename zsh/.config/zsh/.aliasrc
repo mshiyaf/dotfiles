@@ -19,7 +19,7 @@ alias ssh='TERM=xterm-256color ssh'
 
 # project specific
 alias wo="cd ~/Texol && vim ."
-alias ide="source ~/Code/dotfiles/zsh/.config/zsh/ide_session.sh"
+alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
 alias vim=nvim
 
 
