@@ -62,4 +62,7 @@ packer.startup(function(use)
 	use("akinsho/toggleterm.nvim")
 	use("ThePrimeagen/git-worktree.nvim") -- Git worktree implementation in telescope
 	use("mbbill/undotree")
+
+	use("mong8se/actually.nvim")
+	-- use("levouh/tint.nvim")
 end)
