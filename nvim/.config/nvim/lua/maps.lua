@@ -2,7 +2,8 @@ local Remap = require("keymap")
 local nnoremap = Remap.nnoremap
 local vnoremap = Remap.vnoremap
 local inoremap = Remap.inoremap
-local nmap = Remap.nmap
+local xnoremap = Remap.xnoremap
+-- local nmap = Remap.nmap
 
 local silent = { silent = true }
 
@@ -21,6 +22,7 @@ nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
 -- Don't yank with x
 nnoremap("x", '"_x')
 nnoremap("<leader>d", '"_x')
+xnoremap("<leader>p", '"_dP')
 
 -- Increment/decrement
 nnoremap("+", "<C-a>")
