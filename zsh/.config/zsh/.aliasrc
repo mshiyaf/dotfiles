@@ -1,6 +1,7 @@
 alias ls="exa -g -G --icons"
 alias la="ls -a"
 alias g=git
+alias python=python3
 alias vi=vim
 alias t=tmux
 alias ta="tmux a"
