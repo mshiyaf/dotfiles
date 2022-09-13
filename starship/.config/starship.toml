@@ -1,3 +1,9 @@
+[directory]
+truncation_symbol = ".../"
+
+[sudo]
+disabled = false
+
 [battery]
 full_symbol = "🔋"
 charging_symbol = "🔌"
@@ -19,12 +25,7 @@ style = "bold yellow"
 ahead = "⇡×${count}"
 behind = "⇣×${count}"
 diverged = "⇕⇡${ahead_count}⇣${behind_count}"
-untracked = "?×${count}"
-modified = "!×${count}"
-staged = "+×${count}"
-renamed = "»×${count}"
-deleted = "✘×${count}"
-format = "\\[$all_status$ahead_behind\\] "
+format = "$all_status$ahead_behind "
 
 [package]
 disabled = true
