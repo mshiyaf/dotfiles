@@ -16,6 +16,16 @@ local fb_actions = require("telescope").extensions.file_browser.actions
 
 telescope.setup({
 	defaults = {
+		prompt_prefix = " ",
+		selection_caret = "  ",
+		entry_prefix = "  ",
+		sorting_strategy = "ascending",
+		layout_strategy = "horizontal",
+		layout_config = {
+			horizontal = {
+				prompt_position = "top",
+			},
+		},
 		mappings = {
 			n = {
 				["q"] = actions.close,
@@ -29,7 +39,6 @@ telescope.setup({
 	},
 	extensions = {
 		file_browser = {
-			theme = "dropdown",
 			-- disables netrw and use telescope-file-browser in its place
 			hijack_netrw = true,
 			hidden = true,
@@ -38,7 +47,7 @@ telescope.setup({
 			grouped = true,
 			previewer = false,
 			initial_mode = "normal",
-			layout_config = { height = 40 },
+			layout_config = { height = 30, width = 55 },
 			mappings = {
 				-- your custom insert mode mappings
 				["i"] = {
@@ -51,9 +60,6 @@ telescope.setup({
 					["N"] = fb_actions.create,
 					["h"] = fb_actions.goto_parent_dir,
 					["."] = fb_actions.toggle_hidden,
-					-- ["l"] = function()
-					--     vim.actions.select_default
-					-- end,
 					["/"] = function()
 						vim.cmd("startinsert")
 					end,
@@ -80,9 +86,6 @@ end)
 vim.keymap.set("n", "<leader>b", function()
 	builtin.buffers()
 end)
--- vim.keymap.set('n', '<leader>t', function()
---     builtin.help_tags()
--- end)
 vim.keymap.set("n", ";;", function()
 	builtin.resume()
 end)
@@ -98,7 +101,7 @@ vim.keymap.set("n", "-", function()
 		grouped = true,
 		previewer = false,
 		initial_mode = "normal",
-		layout_config = { height = 40 },
+		layout_config = { height = 30 },
 	})
 end)
 
