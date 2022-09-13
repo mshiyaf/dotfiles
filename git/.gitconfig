@@ -46,6 +46,8 @@
   user = mshiyaf
 [diff]
   tool = nvimdiff
+[merge]
+  tool = nvimdiff
 [difftool "nvimdiff"]
   cmd = nvim -d \"$LOCAL\" \"$REMOTE\"
   path =
