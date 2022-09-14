@@ -6,13 +6,6 @@ git:
 gui:
   theme:
     lightTheme: false # For terminals with a light background
-    activeBorderColor:
-      - white
-      - bold
-    inactiveBorderColor:
-      - green
-    optionsTextColor:
-      - blue
     selectedLineBgColor:
       - reverse
     selectedRangeBgColor:
