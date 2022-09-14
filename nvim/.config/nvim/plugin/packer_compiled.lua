@@ -114,11 +114,6 @@ _G.packer_plugins = {
     path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/git-worktree.nvim",
     url = "https://github.com/ThePrimeagen/git-worktree.nvim"
   },
-  ["git.nvim"] = {
-    loaded = true,
-    path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/git.nvim",
-    url = "https://github.com/dinhhuy258/git.nvim"
-  },
   ["gitsigns.nvim"] = {
     loaded = true,
     path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/gitsigns.nvim",

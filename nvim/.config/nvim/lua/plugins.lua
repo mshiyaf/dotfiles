@@ -9,10 +9,6 @@ vim.cmd([[packadd packer.nvim]])
 packer.startup(function(use)
 	use("wbthomason/packer.nvim")
 	use("folke/tokyonight.nvim")
-	-- use({
-	-- 	"svrana/neosolarized.nvim",
-	-- 	requires = { "tjdevries/colorbuddy.nvim" },
-	-- })
 	use("nvim-lualine/lualine.nvim") -- Statusline
 
 	use("nvim-lua/plenary.nvim") -- Common utilities
@@ -50,10 +46,8 @@ packer.startup(function(use)
 	--    run = function() vim.fn["mkdp#util#install"]() end,
 	--  })
 	use("akinsho/nvim-bufferline.lua")
-	-- use 'github/copilot.vim'
 
 	use("lewis6991/gitsigns.nvim")
-	use("dinhhuy258/git.nvim") -- For git blame & browse
 	use("tpope/vim-fugitive")
 
 	use("tpope/vim-commentary") -- Comment lines
@@ -65,5 +59,4 @@ packer.startup(function(use)
 	use("mbbill/undotree")
 
 	use("mong8se/actually.nvim")
-	-- use("levouh/tint.nvim")
 end)

@@ -22,6 +22,7 @@ nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
 -- Don't yank with x
 nnoremap("x", '"_x')
 nnoremap("<leader>d", '"_x')
+-- Also paste to another reg
 xnoremap("<leader>p", '"_dP')
 
 -- Increment/decrement
@@ -66,7 +67,9 @@ inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
+-- git-fugitive
 nnoremap(";gg", ":G <cr>")
+nnoremap(";gd", ":Gvdiffsplit <cr>")
 
 -- undotree
 nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
