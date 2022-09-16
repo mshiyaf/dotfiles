@@ -59,4 +59,11 @@ packer.startup(function(use)
 	use("mbbill/undotree")
 
 	use("mong8se/actually.nvim")
+
+	use({
+		"folke/which-key.nvim",
+		config = function()
+			require("which-key").setup({})
+		end,
+	})
 end)
