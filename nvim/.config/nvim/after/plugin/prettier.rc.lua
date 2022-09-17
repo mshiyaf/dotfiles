@@ -14,6 +14,9 @@ prettier.setup({
 		"json",
 		"scss",
 		"less",
+		"graphql",
+		"yaml",
+		"markdown",
 	},
 	cli_options = {
 		semi = true,
