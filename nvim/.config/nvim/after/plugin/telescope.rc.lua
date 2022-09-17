@@ -19,13 +19,6 @@ telescope.setup({
 		prompt_prefix = " ",
 		selection_caret = "  ",
 		entry_prefix = "  ",
-		sorting_strategy = "ascending",
-		layout_strategy = "horizontal",
-		layout_config = {
-			horizontal = {
-				prompt_position = "top",
-			},
-		},
 		mappings = {
 			n = {
 				["q"] = actions.close,
@@ -40,6 +33,14 @@ telescope.setup({
 	extensions = {
 		file_browser = {
 			-- disables netrw and use telescope-file-browser in its place
+			sorting_strategy = "ascending",
+			layout_strategy = "horizontal",
+			layout_config = {
+				horizontal = {
+					prompt_position = "top",
+					width = 55,
+				},
+			},
 			hijack_netrw = true,
 			hidden = true,
 			cwd = telescope_buffer_dir(),
@@ -47,7 +48,6 @@ telescope.setup({
 			grouped = true,
 			previewer = false,
 			initial_mode = "normal",
-			layout_config = { height = 30, width = 55 },
 			mappings = {
 				-- your custom insert mode mappings
 				["i"] = {
