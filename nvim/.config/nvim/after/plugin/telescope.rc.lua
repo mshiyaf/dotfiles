@@ -24,9 +24,11 @@ telescope.setup({
 				["q"] = actions.close,
 				["<C-e>"] = actions.select_tab,
 				["l"] = actions.select_default,
+				["<C-s>"] = actions.select_vertical,
 			},
 			i = {
 				["<C-e>"] = actions.select_tab,
+				["<C-s>"] = actions.select_vertical,
 			},
 		},
 	},
@@ -88,9 +90,6 @@ vim.keymap.set("n", "<leader>b", function()
 end)
 vim.keymap.set("n", ";;", function()
 	builtin.resume()
-end)
-vim.keymap.set("n", "<leader>e", function()
-	builtin.diagnostics()
 end)
 vim.keymap.set("n", "-", function()
 	telescope.extensions.file_browser.file_browser({
