@@ -60,9 +60,11 @@ nnoremap("<C-w><right>", "<C-w>>")
 nnoremap("<C-w><up>", "<C-w>+")
 nnoremap("<C-w><down>", "<C-w>-")
 nnoremap("<leader>=", "<C-w>=")
-nnoremap("<leader>m", ":MaximizerToggle<CR>", silent)
-vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
+-- nnoremap("<leader>m", ":MaximizerToggle<CR>", silent)
+-- vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
 inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
+
+nnoremap("<leader>m", "<Cmd>WindowsMaximaze<CR>")
 
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)

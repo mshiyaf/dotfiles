@@ -61,9 +61,24 @@ packer.startup(function(use)
 	use("mong8se/actually.nvim")
 
 	use({
-		"folke/which-key.nvim",
+		"anuvyklack/windows.nvim",
+		requires = {
+			"anuvyklack/middleclass",
+			-- "anuvyklack/animation.nvim",
+		},
 		config = function()
-			require("which-key").setup({})
+			vim.o.winwidth = 10
+			vim.o.winminwidth = 10
+			vim.o.equalalways = false
+			require("windows").setup()
 		end,
 	})
+
+	use("lukas-reineke/indent-blankline.nvim")
+	-- use({
+	-- 	"folke/which-key.nvim",
+	-- 	config = function()
+	-- 		require("which-key").setup({})
+	-- 	end,
+	-- })
 end)
