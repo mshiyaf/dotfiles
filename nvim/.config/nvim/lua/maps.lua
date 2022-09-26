@@ -23,7 +23,7 @@ nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
 nnoremap("x", '"_x')
 nnoremap("<leader>d", '"_x')
 -- Also paste to another reg
-xnoremap("<leader>p", '"_dP')
+xnoremap("P", '"_dP')
 
 -- Increment/decrement
 nnoremap("+", "<C-a>")
@@ -64,7 +64,7 @@ nnoremap("<leader>=", "<C-w>=")
 -- vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
 inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 
-nnoremap("<leader>m", "<Cmd>WindowsMaximaze<CR>")
+nnoremap("<leader>m", "<Cmd>WindowsMaximize<CR>")
 
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
