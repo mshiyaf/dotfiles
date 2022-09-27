@@ -40,7 +40,7 @@ telescope.setup({
 			layout_config = {
 				horizontal = {
 					prompt_position = "top",
-					width = 55,
+					width = 65,
 				},
 			},
 			hijack_netrw = true,
@@ -107,4 +107,4 @@ end)
 require("telescope").load_extension("git_worktree")
 
 nnoremap("<leader>;", ":lua require('telescope').extensions.git_worktree.git_worktrees()<cr>")
-nnoremap("<leader>ww", ":lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>")
+nnoremap("<leader>cw", ":lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>")
