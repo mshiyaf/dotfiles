@@ -3,7 +3,7 @@ require("keymap")
 require("set")
 require("highlights")
 require("maps")
-require("macos")
+require("windows")
 require("plugins")
 
 local has = function(x)
