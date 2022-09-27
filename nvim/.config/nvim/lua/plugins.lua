@@ -75,10 +75,12 @@ packer.startup(function(use)
 	})
 
 	use("lukas-reineke/indent-blankline.nvim")
-	-- use({
-	-- 	"folke/which-key.nvim",
-	-- 	config = function()
-	-- 		require("which-key").setup({})
-	-- 	end,
-	-- })
+	use("kyazdani42/nvim-tree.lua")
+
+	use({
+		"goolord/alpha-nvim",
+		config = function()
+			require("alpha").setup(require("alpha.themes.startify").config)
+		end,
+	})
 end)

@@ -16,6 +16,8 @@ local silent = { silent = true }
 --   end
 -- })
 
+nnoremap("-", ":NvimTreeToggle<CR>")
+
 -- Reload vim config
 nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
 
