@@ -83,4 +83,7 @@ packer.startup(function(use)
 			require("alpha").setup(require("alpha.themes.startify").config)
 		end,
 	})
+
+	-- use("dstein64/vim-startuptime")
+	use("RRethy/vim-illuminate")
 end)
