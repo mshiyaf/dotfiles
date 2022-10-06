@@ -86,4 +86,5 @@ packer.startup(function(use)
 
 	-- use("dstein64/vim-startuptime")
 	use("RRethy/vim-illuminate")
+	use("jwalton512/vim-blade")
 end)
