@@ -220,11 +220,6 @@ _G.packer_plugins = {
     path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/popup.nvim",
     url = "https://github.com/nvim-lua/popup.nvim"
   },
-  ["telescope-file-browser.nvim"] = {
-    loaded = true,
-    path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/telescope-file-browser.nvim",
-    url = "https://github.com/nvim-telescope/telescope-file-browser.nvim"
-  },
   ["telescope-ui-select.nvim"] = {
     loaded = true,
     path = "/home/mshiyaf/.local/share/nvim/site/pack/packer/start/telescope-ui-select.nvim",
