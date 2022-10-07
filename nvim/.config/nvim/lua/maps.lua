@@ -67,14 +67,12 @@ nnoremap("<leader>m", ":MaximizerToggle<CR>", silent)
 vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
 inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 
--- nnoremap("<leader>m", "<Cmd>WindowsMaximize<CR>")
-
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
 -- git-fugitive
 nnoremap(";gg", ":G <cr>")
-nnoremap(";gd", ":Gvdiffsplit <cr>")
+nnoremap(";gd", ":DiffviewOpen <cr>")
 
 -- undotree
 nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
