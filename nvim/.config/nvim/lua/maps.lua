@@ -8,15 +8,16 @@ local xnoremap = Remap.xnoremap
 local silent = { silent = true }
 
 -- Change netrw default mappings
--- vim.api.nvim_create_autocmd("filetype", {
---   pattern = "netrw",
---   callback = function()
---     vim.keymap.set('n','l','<CR>',{remap = true, buffer = true})
---     vim.keymap.set('n','h','-<esc>',{remap = true, buffer = true})
---   end
--- })
+vim.api.nvim_create_autocmd("filetype", {
+	pattern = "netrw",
+	callback = function()
+		vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+		vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+	end,
+})
 
-nnoremap("-", ":NvimTreeToggle<CR>")
+-- nnoremap("-", ":NvimTreeToggle<CR>")
+nnoremap("-", ":Explore<CR>")
 
 -- Reload vim config
 nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
@@ -62,11 +63,11 @@ nnoremap("<C-w><right>", "<C-w>>")
 nnoremap("<C-w><up>", "<C-w>+")
 nnoremap("<C-w><down>", "<C-w>-")
 nnoremap("<leader>=", "<C-w>=")
--- nnoremap("<leader>m", ":MaximizerToggle<CR>", silent)
--- vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
+nnoremap("<leader>m", ":MaximizerToggle<CR>", silent)
+vnoremap("<leader>m", ":MaximizerToggle<CR>gv", silent)
 inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 
-nnoremap("<leader>m", "<Cmd>WindowsMaximize<CR>")
+-- nnoremap("<leader>m", "<Cmd>WindowsMaximize<CR>")
 
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)

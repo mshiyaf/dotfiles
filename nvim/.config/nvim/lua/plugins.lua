@@ -10,6 +10,7 @@ packer.startup(function(use)
 	use("wbthomason/packer.nvim")
 	use("folke/tokyonight.nvim")
 	use("nvim-lualine/lualine.nvim") -- Statusline
+	use("tpope/vim-vinegar")
 
 	use("nvim-lua/plenary.nvim") -- Common utilities
 	use("nvim-lua/popup.nvim") -- Common utilities
@@ -60,22 +61,22 @@ packer.startup(function(use)
 
 	use("mong8se/actually.nvim")
 
-	use({
-		"anuvyklack/windows.nvim",
-		requires = {
-			"anuvyklack/middleclass",
-			-- "anuvyklack/animation.nvim",
-		},
-		config = function()
-			vim.o.winwidth = 10
-			vim.o.winminwidth = 10
-			vim.o.equalalways = false
-			require("windows").setup()
-		end,
-	})
+	-- use({
+	-- 	"anuvyklack/windows.nvim",
+	-- 	requires = {
+	-- 		"anuvyklack/middleclass",
+	-- 		-- "anuvyklack/animation.nvim",
+	-- 	},
+	-- 	config = function()
+	-- 		vim.o.winwidth = 10
+	-- 		vim.o.winminwidth = 10
+	-- 		vim.o.equalalways = false
+	-- 		require("windows").setup()
+	-- 	end,
+	-- })
 
 	use("lukas-reineke/indent-blankline.nvim")
-	use("kyazdani42/nvim-tree.lua")
+	-- use("kyazdani42/nvim-tree.lua")
 
 	use({
 		"goolord/alpha-nvim",
