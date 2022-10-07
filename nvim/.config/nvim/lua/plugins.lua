@@ -8,6 +8,8 @@ vim.cmd([[packadd packer.nvim]])
 
 packer.startup(function(use)
 	use("wbthomason/packer.nvim")
+	use("lewis6991/impatient.nvim") -- Load lua modules faster
+
 	use("folke/tokyonight.nvim")
 	use("nvim-lualine/lualine.nvim") -- Statusline
 	use("tpope/vim-vinegar")
@@ -27,7 +29,6 @@ packer.startup(function(use)
 
 	use("neovim/nvim-lspconfig") -- LSP
 	use("jose-elias-alvarez/null-ls.nvim") -- Use Neovim as a language server to inject LSP diagnostics, code actions, and more via Lua
-	use("MunifTanjim/prettier.nvim") -- Prettier plugin for Neovim's built-in LSP client
 	use("williamboman/mason.nvim")
 	use("williamboman/mason-lspconfig.nvim")
 
@@ -42,41 +43,23 @@ packer.startup(function(use)
 	use("windwp/nvim-autopairs")
 	use("windwp/nvim-ts-autotag")
 	use("folke/zen-mode.nvim")
-	--  use({
-	--    "iamcco/markdown-preview.nvim",
-	--    run = function() vim.fn["mkdp#util#install"]() end,
-	--  })
+
 	use("akinsho/nvim-bufferline.lua")
 
+	-- Git
 	use("lewis6991/gitsigns.nvim")
 	use("tpope/vim-fugitive")
+	use("ThePrimeagen/git-worktree.nvim")
+	use("sindrets/diffview.nvim")
 
 	use("tpope/vim-commentary") -- Comment lines
 	use("szw/vim-maximizer") -- Toggle window maximization
 
-	-- use("tpope/vinegar")
 	use("akinsho/toggleterm.nvim")
-	use("ThePrimeagen/git-worktree.nvim") -- Git worktree implementation in telescope
 	use("mbbill/undotree")
-
 	use("mong8se/actually.nvim")
 
-	-- use({
-	-- 	"anuvyklack/windows.nvim",
-	-- 	requires = {
-	-- 		"anuvyklack/middleclass",
-	-- 		-- "anuvyklack/animation.nvim",
-	-- 	},
-	-- 	config = function()
-	-- 		vim.o.winwidth = 10
-	-- 		vim.o.winminwidth = 10
-	-- 		vim.o.equalalways = false
-	-- 		require("windows").setup()
-	-- 	end,
-	-- })
-
 	use("lukas-reineke/indent-blankline.nvim")
-	-- use("kyazdani42/nvim-tree.lua")
 
 	use({
 		"goolord/alpha-nvim",
@@ -88,4 +71,5 @@ packer.startup(function(use)
 	-- use("dstein64/vim-startuptime")
 	use("RRethy/vim-illuminate")
 	use("jwalton512/vim-blade")
+	use("nvim-telescope/telescope-ui-select.nvim")
 end)

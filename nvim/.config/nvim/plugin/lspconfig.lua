@@ -15,10 +15,10 @@ local function config(_config)
 		capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities()),
 		on_attach = function(client)
 			if client.name == "tsserver" then
-				client.resolved_capabilities.document_formatting = false
+				client.server_capabilities.document_formatting = false
 			end
 			if client.name == "sumneko_lua" then
-				client.resolved_capabilities.document_formatting = false
+				client.server_capabilities.document_formatting = false
 			end
 			nnoremap("gi", function()
 				vim.lsp.buf.implementation()
@@ -38,19 +38,10 @@ local function config(_config)
 			nnoremap("]d", function()
 				vim.diagnostic.goto_prev()
 			end)
-			nnoremap("<leader>vca", function()
-				vim.lsp.buf.code_action()
-			end)
-			nnoremap("<leader>vrr", function()
-				vim.lsp.buf.references()
-			end)
-			nnoremap("<leader>vrn", function()
-				vim.lsp.buf.rename()
-			end)
 			inoremap("<C-h>", function()
 				vim.lsp.buf.signature_help()
 			end)
-			vim.cmd([[ command! Format execute 'lua vim.lsp.buf.formatting()' ]])
+			vim.cmd([[ command! Format execute 'lua vim.lsp.buf.format({async = true})' ]])
 		end,
 	}, _config or {})
 end
@@ -84,8 +75,6 @@ protocol.CompletionItemKind = {
 }
 
 nvim_lsp.eslint.setup(config())
-
-nvim_lsp.flow.setup(config())
 
 nvim_lsp.tsserver.setup(config())
 
