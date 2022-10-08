@@ -27,6 +27,7 @@ require("tokyonight").setup({
 	--- function will be called with a Highlights and ColorScheme table
 	---@param hl Highlights
 	---@param c ColorScheme
+	-- for borderless telescope
 	on_highlights = function(hl, c)
 		local prompt = "#2d3149"
 		hl.TelescopeNormal = {

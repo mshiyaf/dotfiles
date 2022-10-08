@@ -71,4 +71,17 @@ packer.startup(function(use)
 	use("RRethy/vim-illuminate")
 	use("jwalton512/vim-blade")
 	use("nvim-telescope/telescope-ui-select.nvim")
+	use({
+		"SmiteshP/nvim-navic",
+		requires = "neovim/nvim-lspconfig",
+	})
+	use({
+		"kylechui/nvim-surround",
+		tag = "*", -- Use for stability; omit to use `main` branch for the latest features
+		config = function()
+			require("nvim-surround").setup({
+				-- Configuration here, or leave empty to use defaults
+			})
+		end,
+	})
 end)

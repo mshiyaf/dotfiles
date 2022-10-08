@@ -1,7 +1,13 @@
 --vim.lsp.set_log_level("debug")
 local Remap = require("keymap")
+local breadcrumbs = require("breadcrumbs")
 local nnoremap = Remap.nnoremap
 local inoremap = Remap.inoremap
+
+local status_ok, navic = pcall(require, "nvim-navic")
+if not status_ok then
+	return
+end
 
 local status, nvim_lsp = pcall(require, "lspconfig")
 if not status then
@@ -13,12 +19,15 @@ local protocol = require("vim.lsp.protocol")
 local function config(_config)
 	return vim.tbl_deep_extend("force", {
 		capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities()),
-		on_attach = function(client)
+		on_attach = function(client, bufnr)
 			if client.name == "tsserver" then
 				client.server_capabilities.document_formatting = false
 			end
 			if client.name == "sumneko_lua" then
 				client.server_capabilities.document_formatting = false
+			end
+			if client.server_capabilities.documentSymbolProvider then
+				navic.attach(client, bufnr)
 			end
 			nnoremap("gi", function()
 				vim.lsp.buf.implementation()
@@ -47,32 +56,34 @@ local function config(_config)
 end
 
 protocol.CompletionItemKind = {
-	"", -- Text
-	"", -- Method
-	"", -- Function
-	"", -- Constructor
-	"", -- Field
-	"", -- Variable
-	"", -- Class
-	"ﰮ", -- Interface
-	"", -- Module
-	"", -- Property
-	"", -- Unit
+	"", -- Text
+	"", -- Method
+	"", -- Function
+	"", -- Constructor
+	"", -- Field
+	"", -- Variable
+	"", -- Class
+	"", -- Interface
+	"", -- Module
+	"", -- Property
+	"", -- Unit
 	"", -- Value
-	"", -- Enum
-	"", -- Keyword
-	"﬌", -- Snippet
-	"", -- Color
-	"", -- File
-	"", -- Reference
-	"", -- Folder
+	"", -- Enum
+	"", -- Keyword
+	"", -- Snippet
+	"", -- Color
+	"", -- File
+	"", -- Reference
+	"", -- Folder
 	"", -- EnumMember
-	"", -- Constant
-	"", -- Struct
+	"", -- Constant
+	"", -- Struct
 	"", -- Event
-	"ﬦ", -- Operator
-	"", -- TypeParameter
+	"", -- Operator
+	"", -- TypeParameter
 }
+
+nvim_lsp.clangd.setup(config())
 
 nvim_lsp.eslint.setup(config())
 
@@ -103,6 +114,8 @@ nvim_lsp.sumneko_lua.setup(config({
 }))
 
 nvim_lsp.tailwindcss.setup(config())
+
+breadcrumbs.setup()
 
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
 	underline = true,

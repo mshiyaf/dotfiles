@@ -115,28 +115,28 @@ ins_left({
 })
 
 -- Inactive mid section
-ins_left_inactive({
-	function()
-		return "%="
-	end,
-})
+-- ins_left_inactive({
+-- 	function()
+-- 		return "%="
+-- 	end,
+-- })
 
-ins_left_inactive({
-	"diagnostics",
-	sources = { "nvim_lsp" },
-	symbols = { error = " ", warn = " ", info = " " },
-	diagnostics_color = {
-		color_error = { fg = colors.red },
-		color_warn = { fg = colors.yellow },
-		color_info = { fg = colors.cyan },
-	},
-})
+-- ins_left_inactive({
+-- 	"diagnostics",
+-- 	sources = { "nvim_lsp" },
+-- 	symbols = { error = " ", warn = " ", info = " " },
+-- 	diagnostics_color = {
+-- 		color_error = { fg = colors.red },
+-- 		color_warn = { fg = colors.yellow },
+-- 		color_info = { fg = colors.cyan },
+-- 	},
+-- })
 
-ins_left_inactive({
-	"filename",
-	cond = conditions.buffer_not_empty,
-	color = { fg = colors.violet },
-})
+-- ins_left_inactive({
+-- 	"filename",
+-- 	cond = conditions.buffer_not_empty,
+-- 	color = { fg = colors.violet },
+-- })
 
 -- Add components to right sections
 
