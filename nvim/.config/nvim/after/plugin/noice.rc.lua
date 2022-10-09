@@ -1,0 +1,14 @@
+-- local noice = require("noice")
+
+-- noice.setup({
+-- 	cmdline = {
+-- 		enabled = false,
+-- 		view = "cmdline",
+-- 	},
+-- 	messages = {
+-- 		enabled = false,
+-- 	},
+-- 	notify = {
+-- 		enabled = true,
+-- 	},
+-- })
