@@ -3,7 +3,7 @@ local nnoremap = Remap.nnoremap
 local vnoremap = Remap.vnoremap
 local inoremap = Remap.inoremap
 local xnoremap = Remap.xnoremap
--- local nmap = Remap.nmap
+local nmap = Remap.nmap
 
 local silent = { silent = true }
 
@@ -22,10 +22,16 @@ nnoremap("-", ":Explore<CR>")
 -- Reload vim config
 nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
 
--- Don't yank with x
+-- yank to system clipboard
+nnoremap("<leader>y", '"*y')
+vnoremap("<leader>y", '"*y')
+nmap("<leader>Y", '"*Y')
+
+-- Don't yank with x and d
 nnoremap("x", '"_x')
-nnoremap("<leader>d", '"_x')
--- Also paste to another reg
+nnoremap("<leader>d", '"_d')
+vnoremap("<leader>d", '"_d')
+-- Also during paste, delete to another reg
 xnoremap("P", '"_dP')
 
 -- Increment/decrement
