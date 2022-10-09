@@ -84,4 +84,5 @@ packer.startup(function(use)
 			})
 		end,
 	})
+	-- use("simrat39/inlay-hints.nvim")
 end)

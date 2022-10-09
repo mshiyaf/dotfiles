@@ -4,8 +4,10 @@ local breadcrumbs = require("breadcrumbs")
 local nnoremap = Remap.nnoremap
 local inoremap = Remap.inoremap
 
-local status_ok, navic = pcall(require, "nvim-navic")
-if not status_ok then
+-- require("inlay-hints").setup()
+
+local status_navic, navic = pcall(require, "nvim-navic")
+if not status_navic then
 	return
 end
 
@@ -21,6 +23,7 @@ local function config(_config)
 		capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities()),
 		on_attach = function(client, bufnr)
 			if client.name == "tsserver" then
+				-- require("inlay-hints").on_attach(client, bufnr)
 				client.server_capabilities.document_formatting = false
 			end
 			if client.name == "sumneko_lua" then
@@ -87,7 +90,32 @@ nvim_lsp.clangd.setup(config())
 
 nvim_lsp.eslint.setup(config())
 
-nvim_lsp.tsserver.setup(config())
+nvim_lsp.tsserver.setup(config({
+	-- settings = {
+	-- 	typescript = {
+	-- 		inlayHints = {
+	-- 			includeInlayParameterNameHints = "all",
+	-- 			includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+	-- 			includeInlayFunctionParameterTypeHints = true,
+	-- 			includeInlayVariableTypeHints = false,
+	-- 			includeInlayPropertyDeclarationTypeHints = true,
+	-- 			includeInlayFunctionLikeReturnTypeHints = true,
+	-- 			includeInlayEnumMemberValueHints = true,
+	-- 		},
+	-- 	},
+	-- 	javascript = {
+	-- 		inlayHints = {
+	-- 			includeInlayParameterNameHints = "all",
+	-- 			includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+	-- 			includeInlayFunctionParameterTypeHints = true,
+	-- 			includeInlayVariableTypeHints = false,
+	-- 			includeInlayPropertyDeclarationTypeHints = true,
+	-- 			includeInlayFunctionLikeReturnTypeHints = true,
+	-- 			includeInlayEnumMemberValueHints = true,
+	-- 		},
+	-- 	},
+	-- },
+}))
 
 nvim_lsp.sourcekit.setup(config())
 

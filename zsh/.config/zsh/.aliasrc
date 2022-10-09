@@ -49,7 +49,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 
 # Go
 export GOPATH=$HOME/go
-export GOROOT="/usr/local/opt/go/libexec"
+export GOROOT="/usr/local/go/bin"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
 
 # Composer
