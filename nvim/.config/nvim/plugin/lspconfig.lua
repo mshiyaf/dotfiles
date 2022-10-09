@@ -29,6 +29,9 @@ local function config(_config)
 			if client.name == "sumneko_lua" then
 				client.server_capabilities.document_formatting = false
 			end
+			if client.name == "intelephense" then
+				client.server_capabilities.document_formatting = false
+			end
 			if client.server_capabilities.documentSymbolProvider then
 				navic.attach(client, bufnr)
 			end
@@ -116,6 +119,8 @@ nvim_lsp.tsserver.setup(config({
 	-- 	},
 	-- },
 }))
+
+nvim_lsp.intelephense.setup(config())
 
 nvim_lsp.sourcekit.setup(config())
 

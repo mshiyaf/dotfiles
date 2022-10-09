@@ -25,5 +25,6 @@ null_ls.setup({
 		formatting.stylua,
 		formatting.blade_formatter,
 		formatting.prettierd,
+		formatting.phpcsfixer,
 	},
 })
