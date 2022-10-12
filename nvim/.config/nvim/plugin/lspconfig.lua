@@ -38,23 +38,17 @@ local function config(_config)
 			nnoremap("gi", function()
 				vim.lsp.buf.implementation()
 			end)
+			nnoremap("gd", function()
+				vim.lsp.buf.definition()
+			end)
 			nnoremap("gD", function()
 				vim.lsp.buf.declaration()
 			end)
-			nnoremap("<leader>vws", function()
-				vim.lsp.buf.workspace_symbol()
-			end)
-			nnoremap("<leader>vd", function()
-				vim.diagnostic.open_float()
-			end)
-			nnoremap("[d", function()
-				vim.diagnostic.goto_next()
-			end)
-			nnoremap("]d", function()
-				vim.diagnostic.goto_prev()
-			end)
 			inoremap("<C-h>", function()
 				vim.lsp.buf.signature_help()
+			end)
+			nnoremap("<leader>vws", function()
+				vim.lsp.buf.workspace_symbol()
 			end)
 			vim.cmd([[ command! Format execute 'lua vim.lsp.buf.format({async = true})' ]])
 		end,
@@ -93,32 +87,7 @@ nvim_lsp.clangd.setup(config())
 
 nvim_lsp.eslint.setup(config())
 
-nvim_lsp.tsserver.setup(config({
-	-- settings = {
-	-- 	typescript = {
-	-- 		inlayHints = {
-	-- 			includeInlayParameterNameHints = "all",
-	-- 			includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-	-- 			includeInlayFunctionParameterTypeHints = true,
-	-- 			includeInlayVariableTypeHints = false,
-	-- 			includeInlayPropertyDeclarationTypeHints = true,
-	-- 			includeInlayFunctionLikeReturnTypeHints = true,
-	-- 			includeInlayEnumMemberValueHints = true,
-	-- 		},
-	-- 	},
-	-- 	javascript = {
-	-- 		inlayHints = {
-	-- 			includeInlayParameterNameHints = "all",
-	-- 			includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-	-- 			includeInlayFunctionParameterTypeHints = true,
-	-- 			includeInlayVariableTypeHints = false,
-	-- 			includeInlayPropertyDeclarationTypeHints = true,
-	-- 			includeInlayFunctionLikeReturnTypeHints = true,
-	-- 			includeInlayEnumMemberValueHints = true,
-	-- 		},
-	-- 	},
-	-- },
-}))
+nvim_lsp.tsserver.setup(config())
 
 nvim_lsp.intelephense.setup(config())
 
@@ -128,17 +97,13 @@ nvim_lsp.sumneko_lua.setup(config({
 	settings = {
 		Lua = {
 			runtime = {
-				-- Tell the language server which version of Lua you're using (most likely LuaJIT in the case of Neovim)
 				version = "LuaJIT",
-				-- Setup your lua path
 				path = vim.split(package.path, ";"),
 			},
 			diagnostics = {
-				-- Get the language server to recognize the `vim` global
 				globals = { "vim" },
 			},
 			workspace = {
-				-- Make the server aware of Neovim runtime files
 				library = vim.api.nvim_get_runtime_file("", true),
 				checkThirdParty = false,
 			},

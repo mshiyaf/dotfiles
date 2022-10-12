@@ -53,11 +53,7 @@ vim.opt.wildignore:append({
 })
 
 vim.opt.isfname:append("@-@")
-
 vim.opt.cmdheight = 1
-
 vim.opt.updatetime = 50
-
 vim.opt.shortmess:append("c")
-
 vim.g.mapleader = " "

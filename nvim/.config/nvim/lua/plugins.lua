@@ -26,6 +26,7 @@ packer.startup(function(use)
 
 	use("saadparwaiz1/cmp_luasnip")
 	use("L3MON4D3/LuaSnip")
+	use("rafamadriz/friendly-snippets")
 
 	use("neovim/nvim-lspconfig") -- LSP
 	use("jose-elias-alvarez/null-ls.nvim") -- Use Neovim as a language server to inject LSP diagnostics, code actions, and more via Lua
@@ -51,7 +52,6 @@ packer.startup(function(use)
 	use("ThePrimeagen/git-worktree.nvim")
 	use("sindrets/diffview.nvim")
 
-	use("tpope/vim-commentary") -- Comment lines
 	use("szw/vim-maximizer") -- Toggle window maximization
 
 	use("akinsho/toggleterm.nvim")
@@ -94,4 +94,6 @@ packer.startup(function(use)
 	-- 		"rcarriga/nvim-notify",
 	-- 	},
 	-- })
+	use("numToStr/Comment.nvim")
+	use("JoosepAlviste/nvim-ts-context-commentstring")
 end)
