@@ -76,10 +76,6 @@ inoremap("<F3>", "<C-o>:MaximizerToggle<CR>", silent)
 -- tmux-sessionizer
 nnoremap("<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
--- git-fugitive
-nnoremap(";gg", ":G <cr>")
-nnoremap(";gd", ":DiffviewOpen <cr>")
-
 -- undotree
 nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
 

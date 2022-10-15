@@ -43,7 +43,7 @@ end)
 vim.keymap.set("n", "<leader>b", function()
 	builtin.buffers()
 end)
-vim.keymap.set("n", ";;", function()
+vim.keymap.set("n", "<leader>t", function()
 	builtin.resume()
 end)
 
