@@ -17,6 +17,7 @@ alias lla="ll -a"
 alias bladeformatter="blade-formatter"
 alias lg="lazygit"
 alias ssh='TERM=xterm-256color ssh'
+alias open='explorer.exe'
 
 # project specific
 alias wo="cd ~/Texol && vim ."
