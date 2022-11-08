@@ -18,6 +18,7 @@ alias bladeformatter="blade-formatter"
 alias lg="lazygit"
 alias ssh='TERM=xterm-256color ssh'
 alias open='explorer.exe'
+alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
 
 # project specific
 alias wo="cd ~/Texol && vim ."
@@ -61,4 +62,18 @@ export PATH=$HOME/Utils/flutter/bin:$PATH
 
 # npm
 export PATH=$HOME/.npm-packages/bin:$PATH
+
+# java
+# export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export PATH=$PATH:$JAVA_HOME/bin
+
+# android
+export ANDROID_SDK_ROOT=$HOME/android-sdk
+export ANDROID_HOME=$ANDROID_SDK_ROOT
+export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
+export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+export WSL_HOST=$(tail -1 /etc/resolv.conf | cut -d' ' -f2)
+export ADB_SERVER_SOCKET=tcp:$WSL_HOST:5037
 
