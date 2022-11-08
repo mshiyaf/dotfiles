@@ -42,7 +42,7 @@ packer.startup(function(use)
 	use("kyazdani42/nvim-web-devicons") -- File icons
 	use("nvim-telescope/telescope.nvim")
 	use("windwp/nvim-autopairs")
-	use("windwp/nvim-ts-autotag")
+	use({ "windwp/nvim-ts-autotag", after = "nvim-treesitter" })
 	use("folke/zen-mode.nvim")
 
 	use("akinsho/nvim-bufferline.lua")
@@ -104,4 +104,6 @@ packer.startup(function(use)
 			vim.fn["mkdp#util#install"]()
 		end,
 	})
+	use("PatschD/zippy.nvim")
+	-- use("pineapplegiant/spaceduck")
 end)

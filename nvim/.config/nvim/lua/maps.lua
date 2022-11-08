@@ -20,7 +20,7 @@ vim.api.nvim_create_autocmd("filetype", {
 nnoremap("-", ":Explore<CR>")
 
 -- Reload vim config
-nnoremap("<Leader><CR>", ":so ~/.config/nvim/init.lua<CR>")
+nnoremap("<Leader><CR>", ":source %<CR>")
 
 -- yank to system clipboard
 nnoremap("<leader>y", '"*y')
@@ -35,8 +35,8 @@ vnoremap("<leader>d", '"_d')
 xnoremap("P", '"_dP')
 
 -- Increment/decrement
-nnoremap("+", "<C-a>")
-nnoremap("_", "<C-x>")
+-- nnoremap("+", "<C-a>")
+-- nnoremap("_", "<C-x>")
 
 -- Select all
 nnoremap("<C-a>", "gg<S-v>G")
@@ -83,3 +83,11 @@ nnoremap("<F4>", ":UndotreeToggle<CR>:UndotreeFocus<CR>")
 nnoremap("<leader>c", ":cclose<CR>")
 nnoremap("<leader>n", ":cnext<CR>")
 nnoremap("<leader>p", ":cprev<CR>")
+
+-- console with more details
+nnoremap("<leader>lg", "<cmd>lua require('zippy').insert_print()<CR>")
+
+-- formatting (null-ls)
+nnoremap("<leader>vf", function()
+	vim.lsp.buf.format({ async = true })
+end)
