@@ -1,7 +1,7 @@
 git:
   paging:
     colorArg: always
-    pager: delta --dark --line-numbers --side-by-side --paging=never
+    pager: delta --dark --line-numbers --paging=never
   branchLogCmd: "git log --graph --name-status --pretty=format:\"%C(red)%h %C(reset)(%cd) %C(green)%an %Creset%s %C(yellow)%d%Creset\" --date=relative"
 gui:
   theme:
