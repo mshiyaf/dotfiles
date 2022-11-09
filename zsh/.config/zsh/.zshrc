@@ -27,14 +27,13 @@ plugins=(
     git
     zsh-autosuggestions
     zsh-syntax-highlighting
+    vi-mode
 )
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
-# vim mode
-bindkey -v
 export KEYTIMEOUT=1
 
 # Change cursor shape for different vi modes.
@@ -65,7 +64,7 @@ bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 bindkey -v '^?' backward-delete-char
 
-# Edit line in vim with ctrl-e:
+# Edit line in vim with ctrl-v:
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^v' edit-command-line
 

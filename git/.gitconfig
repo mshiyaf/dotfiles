@@ -3,10 +3,10 @@
   name = mshiyaf
   email = mshiyaf@gmail.com
 [core]
-  excludesfile = /Users/mshiyaf/.gitignore_global
+  excludesfile = /home/shiyaf/.gitignore_global
   editor = nvim
 [commit]
-  ; template = /Users/mshiyaf/.stCommitMsg
+  ; template = /home/shiyaf/.stCommitMsg
 [color]
   status = auto
   diff = auto

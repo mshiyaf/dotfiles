@@ -23,9 +23,9 @@ nnoremap("-", ":Explore<CR>")
 nnoremap("<Leader><CR>", ":source %<CR>")
 
 -- yank to system clipboard
-nnoremap("<leader>y", '"*y')
-vnoremap("<leader>y", '"*y')
-nmap("<leader>Y", '"*Y')
+nnoremap("<leader>y", '"+y')
+vnoremap("<leader>y", '"+y')
+nmap("<leader>Y", '"+Y')
 
 -- Don't yank with x and d
 nnoremap("x", '"_x')
