@@ -11,6 +11,7 @@ packer.startup(function(use)
 	use("lewis6991/impatient.nvim") -- Load lua modules faster
 
 	use("folke/tokyonight.nvim")
+	use({ "catppuccin/nvim", as = "catppuccin" })
 	use("nvim-lualine/lualine.nvim") -- Statusline
 	use("tpope/vim-vinegar")
 
