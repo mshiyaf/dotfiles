@@ -35,6 +35,12 @@ local function config(_config)
 			if client.server_capabilities.documentSymbolProvider then
 				navic.attach(client, bufnr)
 			end
+			if client.textDocument then
+				client.textDocument.foldingRange = {
+					dynamicRegistration = false,
+					lineFoldingOnly = true,
+				}
+			end
 			nnoremap("gi", function()
 				vim.lsp.buf.implementation()
 			end)

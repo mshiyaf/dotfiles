@@ -24,7 +24,7 @@ ts.setup({
 		"css",
 		"html",
 		"lua",
-        "sql"
+		"sql",
 	},
 	autotag = {
 		enable = true,

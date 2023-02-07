@@ -91,3 +91,7 @@ nnoremap("<leader>lg", "<cmd>lua require('zippy').insert_print()<CR>")
 nnoremap("<leader>vf", function()
 	vim.lsp.buf.format({ async = true })
 end)
+
+-- Using ufo provider need remap `zR` and `zM`. If Neovim is 0.6.1, remap yourself
+nnoremap("zR", require("ufo").openAllFolds)
+nnoremap("zM", require("ufo").closeAllFolds)

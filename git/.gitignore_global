@@ -47,8 +47,8 @@ yarn-error.log*
 .env
 
 #Build generated
-dist/
-build/
+/dist
+/build
 
 # Serverless generated files
 .serverless/

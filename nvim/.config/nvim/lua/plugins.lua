@@ -10,7 +10,7 @@ packer.startup(function(use)
 	use("wbthomason/packer.nvim")
 	use("lewis6991/impatient.nvim") -- Load lua modules faster
 
-	use("folke/tokyonight.nvim")
+	-- use("folke/tokyonight.nvim")
 	use({ "catppuccin/nvim", as = "catppuccin" })
 	use("nvim-lualine/lualine.nvim") -- Statusline
 	use("tpope/vim-vinegar")
@@ -69,7 +69,6 @@ packer.startup(function(use)
 		end,
 	})
 
-	-- use("dstein64/vim-startuptime")
 	use("RRethy/vim-illuminate")
 	use("jwalton512/vim-blade")
 	use("nvim-telescope/telescope-ui-select.nvim")
@@ -86,16 +85,6 @@ packer.startup(function(use)
 			})
 		end,
 	})
-	-- use("simrat39/inlay-hints.nvim")
-	-- use({
-	-- 	"folke/noice.nvim",
-	-- 	event = "VimEnter",
-	-- 	requires = {
-	-- 		-- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
-	-- 		"MunifTanjim/nui.nvim",
-	-- 		"rcarriga/nvim-notify",
-	-- 	},
-	-- })
 	use("numToStr/Comment.nvim")
 	use("JoosepAlviste/nvim-ts-context-commentstring")
 
@@ -106,5 +95,6 @@ packer.startup(function(use)
 		end,
 	})
 	use("PatschD/zippy.nvim")
-	-- use("pineapplegiant/spaceduck")
+
+	use({ "kevinhwang91/nvim-ufo", requires = "kevinhwang91/promise-async" })
 end)
