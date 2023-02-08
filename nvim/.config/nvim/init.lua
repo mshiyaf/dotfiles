@@ -1,9 +1,3 @@
-require("base")
-require("keymap")
-require("set")
-require("highlights")
-require("maps")
-require("plugins")
-require("impatient")
+require("mshiyaf")
 
 -- vim.opt.clipboard:append({ "unnamedplus" })
