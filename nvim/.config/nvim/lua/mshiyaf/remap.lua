@@ -2,11 +2,11 @@ local silent = { silent = true }
 
 -- Change netrw default mappings
 vim.api.nvim_create_autocmd("filetype", {
-    pattern = "netrw",
-    callback = function()
-        vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
-        vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
-    end,
+	pattern = "netrw",
+	callback = function()
+		vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+		vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+	end,
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
@@ -86,7 +86,7 @@ vim.keymap.set("n", "<leader>p", "<cmd>cprev<CR>")
 vim.keymap.set("n", "<leader>lg", "<cmd>lua require('zippy').insert_print()<CR>")
 
 -- formatting
-vim.keymap.set("n", "<leader>vf", vim.lsp.buf.format)
+vim.keymap.set("n", "<leader>vf", "<cmd>NullFormat<CR>")
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
