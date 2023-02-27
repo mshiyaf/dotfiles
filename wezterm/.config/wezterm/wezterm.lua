@@ -10,7 +10,7 @@ local window_padding = {
 return {
 	disable_default_key_bindings = false,
     font = wezterm.font 'CaskaydiaCove Nerd Font',
-	font_size = 16,
+	font_size = 14,
 	use_fancy_tab_bar = true,
 	hide_tab_bar_if_only_one_tab = true,
 	tab_max_width = 50,
