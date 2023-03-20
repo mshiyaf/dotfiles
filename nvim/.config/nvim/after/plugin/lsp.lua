@@ -129,14 +129,15 @@ null_ls.setup({
 		null_ls.builtins.formatting.blade_formatter,
 		null_ls.builtins.formatting.phpcsfixer,
 		null_ls.builtins.formatting.fixjson,
+		null_ls.builtins.formatting.gofmt,
 	},
 })
 
-require("mason-null-ls").setup({
-	ensure_installed = nil,
-	automatic_installation = true,
-	automatic_setup = false,
-})
+-- require("mason-null-ls").setup({
+-- 	ensure_installed = nil,
+-- 	automatic_installation = true,
+-- 	automatic_setup = false,
+-- })
 
 vim.diagnostic.config({
 	virtual_text = true,

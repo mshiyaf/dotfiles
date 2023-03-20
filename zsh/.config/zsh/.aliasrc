@@ -19,6 +19,8 @@ alias lg="lazygit"
 alias ssh='TERM=xterm-256color ssh'
 alias open='explorer.exe'
 alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
+alias smysql='sudo service mysql start'
+alias spsql='sudo service postgresql start'
 
 # project specific
 alias wo="cd ~/Texol && vim ."
