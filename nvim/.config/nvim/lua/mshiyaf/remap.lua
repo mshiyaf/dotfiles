@@ -97,3 +97,21 @@ vim.keymap.set("n", "zM", require("ufo").closeAllFolds)
 
 -- git
 vim.keymap.set("n", "<leader>r", vim.cmd.Git)
+
+-- dap
+vim.keymap.set("n", "<leader>dui", "<cmd>lua require('dapui').toggle()<CR>")
+vim.keymap.set("n", "<leader>ds", ":Telescope dap frames<CR>")
+vim.keymap.set("n", "<leader>dc", ":Telescope dap commands<CR>")
+vim.keymap.set("n", "<leader>db", ":Telescope dap list_breakpoints<CR>")
+vim.keymap.set("n", "<leader>dh", function()
+	require("dap").toggle_breakpoint()
+end)
+vim.keymap.set({ "n", "t" }, "<A-j>", function()
+	require("dap").step_over()
+end)
+vim.keymap.set({ "n", "t" }, "<A-h>", function()
+	require("dap").continue()
+end)
+vim.keymap.set("n", "<leader>di", function()
+	require("dap.ui.widgets").hover()
+end)

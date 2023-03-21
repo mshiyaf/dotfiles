@@ -53,6 +53,19 @@ return require("packer").startup(function(use)
 		},
 	})
 
+	-- debugging
+	use("mfussenegger/nvim-dap")
+	use("leoluz/nvim-dap-go")
+	use("rcarriga/nvim-dap-ui")
+	-- use("theHamsta/nvim-dap-virtual-text")
+	use("nvim-telescope/telescope-dap.nvim")
+	use({ "mxsdev/nvim-dap-vscode-js", require = { "mfussenegger/nvim-dap" } })
+	use({
+		"microsoft/vscode-js-debug",
+		opt = true,
+		run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out",
+	})
+
 	use({
 		"jose-elias-alvarez/null-ls.nvim",
 		"jay-babu/mason-null-ls.nvim",

@@ -45,6 +45,7 @@ vim.keymap.set("n", "<leader>t", function()
 end)
 
 require("telescope").load_extension("git_worktree")
+require('telescope').load_extension('dap')
 
 vim.keymap.set("n", "<leader>;", ":lua require('telescope').extensions.git_worktree.git_worktrees()<cr>")
 vim.keymap.set("n", "<leader>cw", ":lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>")
