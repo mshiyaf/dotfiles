@@ -126,4 +126,7 @@ return require("packer").startup(function(use)
 	})
 	use("PatschD/zippy.nvim")
 	use({ "kevinhwang91/nvim-ufo", requires = "kevinhwang91/promise-async" })
+
+	-- github copilot
+	use("github/copilot.vim")
 end)
