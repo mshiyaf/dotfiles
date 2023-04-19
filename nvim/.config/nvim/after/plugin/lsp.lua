@@ -130,6 +130,7 @@ null_ls.setup({
 		null_ls.builtins.formatting.phpcsfixer,
 		null_ls.builtins.formatting.fixjson,
 		null_ls.builtins.formatting.gofmt,
+		null_ls.builtins.formatting.sqlfluff,
 	},
 })
 
