@@ -10,7 +10,7 @@ fi
 
 # Key bindings
 # ------------
-source "/usr/share/fzf/shell/key-bindings.zsh"
+source "/usr/share/fzf/key-bindings.zsh"
 t_s(){
     ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
