@@ -3,6 +3,8 @@ if not status then
 	return
 end
 
+	local opts = { buffer = bufnr, remap = false }
+
 saga.setup({
 	server_filetype_map = {
 		typescript = "typescript",
@@ -12,7 +14,8 @@ saga.setup({
 		enable_in_insert = false,
 	},
 	symbol_in_winbar = {
-		folder_level = 3,
+		folder_level = 1,
 		color_mode = false,
 	},
 })
+
