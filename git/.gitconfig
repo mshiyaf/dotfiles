@@ -5,7 +5,6 @@
 [core]
   excludesfile = /home/shiyaf/.gitignore_global
   editor = nvim
-  autocrlf = true
 [commit]
   ; template = /home/shiyaf/.stCommitMsg
 [color]
