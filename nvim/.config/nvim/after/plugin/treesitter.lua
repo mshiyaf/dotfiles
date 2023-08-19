@@ -13,7 +13,7 @@ ts.setup({
 		disable = {},
 	},
 	ensure_installed = {
-        "help",
+        "vimdoc",
 		"tsx",
 		"javascript",
 		"typescript",

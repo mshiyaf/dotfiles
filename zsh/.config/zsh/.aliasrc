@@ -71,10 +71,16 @@ export PATH="$PATH:$HOME/flutter/bin"
 export PATH=$HOME/.npm-packages/bin:$PATH
 
 # java
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-17.0.6.0.10-1.fc37.x86_64
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 export PATH=$PATH:$JAVA_HOME/bin
 
 # android
 export ANDROID_SDK_ROOT=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
 export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+
+# fathoora
+export FATOORA_HOME="$HOME/code/fathoora/zatca-einvoicing-sdk-235-R3.2.1/Apps"
+export PATH=$PATH:$FATOORA_HOME
+export SDK_CONFIG="$HOME/code/fathoora/zatca-einvoicing-sdk-235-R3.2.1/Configuration/config.json"
+

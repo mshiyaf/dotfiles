@@ -60,11 +60,11 @@ return require("packer").startup(function(use)
 	-- use("theHamsta/nvim-dap-virtual-text")
 	use("nvim-telescope/telescope-dap.nvim")
 	use({ "mxsdev/nvim-dap-vscode-js", require = { "mfussenegger/nvim-dap" } })
-	use({
-		"microsoft/vscode-js-debug",
-		opt = true,
-		run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out",
-	})
+	-- use({
+	-- 	"microsoft/vscode-js-debug",
+	-- 	opt = true,
+	-- 	run = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out",
+	-- })
 
 	use({
 		"jose-elias-alvarez/null-ls.nvim",
@@ -85,7 +85,7 @@ return require("packer").startup(function(use)
 
 	-- Git
 	use("lewis6991/gitsigns.nvim")
-	use("tpope/vim-fugitive")
+	-- use("tpope/vim-fugitive")
 	use("ThePrimeagen/git-worktree.nvim")
 	use("sindrets/diffview.nvim")
 
