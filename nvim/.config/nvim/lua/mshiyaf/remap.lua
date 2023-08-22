@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd("filetype", {
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
-vim.keymap.set("n", "-", ":Explore<CR>")
+vim.keymap.set("n", "-", ":Explore<CR>", { silent = true })
 
 -- Reload vim config
 vim.keymap.set("n", "<Leader><CR>", ":source %<CR>")
