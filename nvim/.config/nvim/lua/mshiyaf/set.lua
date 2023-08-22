@@ -29,7 +29,7 @@ vim.opt.backupskip = { "/tmp/*", "/private/tmp/*" }
 
 vim.opt.shell = "zsh"
 vim.opt.inccommand = "split"
-vim.opt.lazyredraw = true
+-- vim.opt.lazyredraw = true
 vim.opt.incsearch = true
 vim.opt.hlsearch = false
 vim.opt.ignorecase = true -- Case insensitive searching UNLESS /C or capital in search

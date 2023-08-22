@@ -2,11 +2,11 @@ local silent = { silent = true }
 
 -- Change netrw default mappings
 vim.api.nvim_create_autocmd("filetype", {
-	pattern = "netrw",
-	callback = function()
-		vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
-		vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
-	end,
+    pattern = "netrw",
+    callback = function()
+        vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+        vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+    end,
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
@@ -86,7 +86,12 @@ vim.keymap.set("n", "<leader>p", "<cmd>cprev<CR>")
 vim.keymap.set("n", "<leader>lg", "<cmd>lua require('zippy').insert_print()<CR>")
 
 -- formatting
-vim.keymap.set("n", "<leader>vf", "<cmd>NullFormat<CR>")
+vim.keymap.set("n", "<leader>vf",
+    function()
+        vim.lsp.buf.format({
+            timeout_ms = 5000,
+        })
+    end)
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
@@ -104,14 +109,34 @@ vim.keymap.set("n", "<leader>ds", ":Telescope dap frames<CR>")
 vim.keymap.set("n", "<leader>dc", ":Telescope dap commands<CR>")
 vim.keymap.set("n", "<leader>db", ":Telescope dap list_breakpoints<CR>")
 vim.keymap.set("n", "<leader>dh", function()
-	require("dap").toggle_breakpoint()
+    require("dap").toggle_breakpoint()
 end)
 vim.keymap.set({ "n", "t" }, "<A-j>", function()
-	require("dap").step_over()
+    require("dap").step_over()
 end)
 vim.keymap.set({ "n", "t" }, "<A-h>", function()
-	require("dap").continue()
+    require("dap").continue()
 end)
 vim.keymap.set("n", "<leader>di", function()
-	require("dap.ui.widgets").hover()
+    require("dap.ui.widgets").hover()
 end)
+
+-- trouble
+vim.keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>",
+    { silent = true, noremap = true }
+)
+vim.keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>",
+    { silent = true, noremap = true }
+)
+vim.keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>",
+    { silent = true, noremap = true }
+)
+vim.keymap.set("n", "<leader>xl", "<cmd>TroubleToggle loclist<cr>",
+    { silent = true, noremap = true }
+)
+vim.keymap.set("n", "<leader>xq", "<cmd>TroubleToggle quickfix<cr>",
+    { silent = true, noremap = true }
+)
+vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>",
+    { silent = true, noremap = true }
+)
