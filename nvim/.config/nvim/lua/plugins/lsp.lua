@@ -3,9 +3,9 @@ return {
     branch = "v2.x",
     dependencies = {
         -- LSP Support
-        { "neovim/nvim-lspconfig" },       -- Required
-        { "williamboman/mason.nvim" },     -- Optional
-        { "williamboman/mason-lspconfig.nvim" }, -- Optional
+        { "neovim/nvim-lspconfig" },
+        { "williamboman/mason.nvim" },
+        { "williamboman/mason-lspconfig.nvim" },
 
         -- Autocompletion
         { "hrsh7th/nvim-cmp" },
@@ -32,6 +32,7 @@ return {
             "tailwindcss",
             "eslint",
             "gopls",
+            "lua_ls",
         })
 
         lsp.configure("lua_ls", {
@@ -48,8 +49,8 @@ return {
         local cmp_mappings = lsp.defaults.cmp_mappings({
             ["<C-p>"] = cmp.mapping.select_prev_item(cmp_select),
             ["<C-n>"] = cmp.mapping.select_next_item(cmp_select),
-            ["<C-y>"] = cmp.mapping.confirm({ select = true }),
             ["<C-Space>"] = cmp.mapping.complete(),
+            ['<CR>'] = cmp.mapping.confirm({ select = true }),
         })
 
         cmp_mappings["<Tab>"] = nil
@@ -88,7 +89,9 @@ return {
             vim.keymap.set("n", "gi", function()
                 vim.lsp.buf.implementation()
             end, opts)
-            -- vim.keymap.set("n", "K", "<cmd>Lspsaga hover_doc<cr>", { buffer = bufnr, silent = true, remap = false })
+            vim.keymap.set("n", "<leader>K", function()
+                vim.lsp.buf.hover()
+            end, opts)
             vim.keymap.set("n", "<leader>vws", function()
                 vim.lsp.buf.workspace_symbol()
             end, opts)
@@ -101,8 +104,6 @@ return {
             vim.keymap.set("n", "]d", function()
                 vim.diagnostic.goto_prev()
             end, opts)
-            -- vim.keymap.set("n", "<leader>vwd", "<cmd>Lspsaga show_workspace_diagnostics<CR>", opts)
-            -- vim.keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<cr>", opts)
             vim.keymap.set("n", "<leader>ca", function()
                 vim.lsp.buf.code_action()
             end, opts)

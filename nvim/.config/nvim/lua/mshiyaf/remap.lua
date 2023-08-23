@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd("filetype", {
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
-vim.keymap.set("n", "-", ":Explore<CR>")
+vim.keymap.set("n", "-", ":Explore<CR>", { silent = true })
 
 -- Reload vim config
 vim.keymap.set("n", "<Leader><CR>", ":source %<CR>")
@@ -95,10 +95,6 @@ vim.keymap.set("n", "<leader>vf",
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
-
--- Using ufo provider need remap `zR` and `zM`. If Neovim is 0.6.1, remap yourself
-vim.keymap.set("n", "zR", require("ufo").openAllFolds)
-vim.keymap.set("n", "zM", require("ufo").closeAllFolds)
 
 -- git
 vim.keymap.set("n", "<leader>r", vim.cmd.Git)
