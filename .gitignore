@@ -1,4 +1,6 @@
 zsh/.config/zsh/.zcompcache/
+zsh/.config/zsh/.zcompdump*
+zsh/.config/zsh/.zsh_history
+*.zcompdump*
 lazygit/.config/lazygit/state.yml
-*.zcompdump-*
 nvim/.config/nvim/plugin/packer_compiled.lua
