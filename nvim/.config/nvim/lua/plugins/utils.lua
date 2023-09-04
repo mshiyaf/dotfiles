@@ -29,12 +29,11 @@ return {
             vim.keymap.set("n", "<C-w>o", "<cmd>ZenMode<cr>", { silent = true })
         end,
     },
-
     {
         "kylechui/nvim-surround",
         version = "*",
         config = function()
             require("nvim-surround").setup({})
         end,
-    },
+    }
 }

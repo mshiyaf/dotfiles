@@ -118,6 +118,13 @@ return {
             end, opts)
         end)
 
+        lsp.set_sign_icons({
+            error = '✘',
+            warn = '▲',
+            hint = '⚑',
+            info = '»'
+        })
+
         lsp.setup()
 
         vim.diagnostic.config({
