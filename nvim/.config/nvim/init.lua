@@ -1,7 +1,7 @@
 require("mshiyaf")
 
 if vim.g.neovide then
-    vim.o.guifont = "CaskaydiaCove NF:h10"
+    vim.o.guifont = "CaskaydiaCove NF:h12"
     vim.g.neovide_padding_top = 0
     vim.g.neovide_padding_bottom = 0
     vim.g.neovide_padding_right = 0
