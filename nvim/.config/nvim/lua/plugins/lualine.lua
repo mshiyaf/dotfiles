@@ -36,7 +36,7 @@ return {
                 icons_enabled = true,
                 component_separators = "",
                 section_separators = "",
-                theme = "catppuccin",
+                theme = "onedark",
                 globalstatus = false,
                 disabled_filetypes = {
                     statusline = {

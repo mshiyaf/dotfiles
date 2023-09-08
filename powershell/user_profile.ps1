@@ -37,6 +37,9 @@ Set-Alias grep findstr
 Set-Alias cl clear
 Set-Alias tig 'C:\Program Files\Git\usr\bin\tig.exe'
 Set-Alias less 'C:\Program Files\Git\usr\bin\less.exe'
+function notes {
+    nvim -c 'cd C:\Users\shiya\OneDrive\notes' C:\Users\shiya\OneDrive\notes
+}
 
 # Alias - Git
 Set-Alias lg lazygit
