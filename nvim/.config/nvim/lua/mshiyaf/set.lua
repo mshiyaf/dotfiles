@@ -23,7 +23,11 @@ vim.opt.spell = false
 -- history related
 vim.opt.swapfile = false
 vim.opt.backup = false
-vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
+if vim.fn.has('win32') == 1 then
+    vim.opt.directory = "C:\\Users\\shiya\\AppData\\Local\\nvim-data\\swapdir"
+else
+    vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
+end
 vim.opt.undofile = true
 vim.opt.backupskip = { "/tmp/*", "/private/tmp/*" }
 
