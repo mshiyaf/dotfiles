@@ -139,5 +139,5 @@ vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>",
 
 -- if windows cd to onedrive notes and open netrw
 if vim.fn.has("win32") == 1 then
-    vim.keymap.set("n", "<leader>nn", ":cd ~/OneDrive/notes<CR>:Explore<CR>")
+    vim.keymap.set("n", "<leader>nn", "<cmd>cd ~/OneDrive/notes<CR><cmd>Explore<CR>")
 end
