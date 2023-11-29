@@ -2,6 +2,8 @@
 [user]
   name = mshiyaf
   email = mshiyaf@gmail.com
+[url "ssh://git@github.com/"]
+  insteadOf = https://github.com/
 [core]
   excludesfile = /home/shiyaf/.gitignore_global
   editor = nvim

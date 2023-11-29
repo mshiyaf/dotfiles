@@ -2,18 +2,18 @@ local silent = { silent = true }
 
 -- Change netrw default mappings
 vim.api.nvim_create_autocmd("filetype", {
-    pattern = "netrw",
-    callback = function()
-        vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
-        vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
-    end,
+	pattern = "netrw",
+	callback = function()
+		vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+		vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+	end,
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
-vim.keymap.set("n", "-", ":Explore<CR>", { silent = true })
+vim.keymap.set("n", "-", "<cmd>Explore<CR>", { silent = true })
 
 -- Reload vim config
-vim.keymap.set("n", "<Leader><CR>", ":source %<CR>")
+vim.keymap.set("n", "<Leader><CR>", "<cmd>source %<CR>")
 
 -- yank to system clipboard
 vim.keymap.set("n", "<leader>y", '"+y')
@@ -34,25 +34,28 @@ vim.keymap.set("x", "P", '"_dP')
 -- Select all
 vim.keymap.set("n", "<C-a>", "gg<S-v>G")
 -- Move a selected line of text using ALT+[jk]
-vim.keymap.set("v", "<A-j>", ":m '>+1<CR>gv=gv")
-vim.keymap.set("v", "<A-k>", ":m '<-2<CR>gv=gv")
--- vim.keymap.set("n", "<A-j>", ":m '>+1<CR>gv=gv mz:m+<cr>`z")
+vim.keymap.set("v", "<A-j>", "<cmd>m '>+1<CR>gv=gv")
+vim.keymap.set("v", "<A-k>", "<cmd>m '<-2<CR>gv=gv")
+-- vim.keymap.set("n", "<A-j>", "<cmd>m '>+1<CR>gv=gv mz:m+<cr>`z")
 --
 
-vim.keymap.set("n", "J", "mzJ`z")
+vim.keymap.set("n", "J", "mzJ`z") -- keeps cursor position the same
 vim.keymap.set("n", "<C-d>", "<C-d>zz")
 vim.keymap.set("n", "<C-u>", "<C-u>zz")
+-- center the screen to the search result
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
 vim.keymap.set("n", "Q", "<nop>")
 
 -- New tab
-vim.keymap.set("n", "te", ":tabedit<CR>", silent)
+vim.keymap.set("n", "te", "<Cmd>tabedit<CR>", silent)
+vim.keymap.set("n", "<leader>e", "<Cmd>tabNext<CR>", silent)
+vim.keymap.set("n", "<leader>w", "<Cmd>tabprevious<CR>", silent)
 
 -- Split window
-vim.keymap.set("n", "ss", ":split<CR><C-w>w", silent)
-vim.keymap.set("n", "sv", ":vsplit<CR><C-w>w", silent)
+vim.keymap.set("n", "ss", "<cmd>split<CR><C-w>w", silent)
+vim.keymap.set("n", "sv", "<cmd>vsplit<CR><C-w>w", silent)
 
 -- Move window
 vim.keymap.set("n", "<Space>j", "<C-w>w")
@@ -67,12 +70,12 @@ vim.keymap.set("n", "<C-w><right>", "<C-w>>")
 vim.keymap.set("n", "<C-w><up>", "<C-w>+")
 vim.keymap.set("n", "<C-w><down>", "<C-w>-")
 vim.keymap.set("n", "<leader>=", "<C-w>=")
-vim.keymap.set("n", "<leader>m", ":MaximizerToggle<CR>", silent)
-vim.keymap.set("v", "<leader>m", ":MaximizerToggle<CR>gv", silent)
-vim.keymap.set("i", "<F3>", "<C-o>:MaximizerToggle<CR>", silent)
+vim.keymap.set("n", "<leader>m", "<cmd>MaximizerToggle<CR>", silent)
+vim.keymap.set("v", "<leader>m", "<cmd>MaximizerToggle<CR>gv", silent)
+vim.keymap.set("i", "<F3>", "<C-o><cmd>MaximizerToggle<CR>", silent)
 
 -- tmux-sessionizer
-vim.keymap.set("n", "<C-f>", ":silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
+vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
 -- undotree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
@@ -85,14 +88,6 @@ vim.keymap.set("n", "<leader>p", "<cmd>cprev<CR>")
 -- console with more details
 vim.keymap.set("n", "<leader>lg", "<cmd>lua require('zippy').insert_print()<CR>")
 
--- formatting
-vim.keymap.set("n", "<leader>vf",
-    function()
-        vim.lsp.buf.format({
-            timeout_ms = 5000,
-        })
-    end)
-
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 
@@ -101,43 +96,34 @@ vim.keymap.set("n", "<leader>r", vim.cmd.Git)
 
 -- dap
 vim.keymap.set("n", "<leader>dt", "<cmd>lua require('dapui').toggle()<CR>")
-vim.keymap.set("n", "<leader>ds", ":Telescope dap frames<CR>")
-vim.keymap.set("n", "<leader>dc", ":Telescope dap commands<CR>")
-vim.keymap.set("n", "<leader>db", ":Telescope dap list_breakpoints<CR>")
+vim.keymap.set("n", "<leader>ds", "<cmd>Telescope dap frames<CR>")
+vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<CR>")
+vim.keymap.set("n", "<leader>db", "<cmd>Telescope dap list_breakpoints<CR>")
 vim.keymap.set("n", "<leader>dh", function()
-    require("dap").toggle_breakpoint()
+	require("dap").toggle_breakpoint()
 end)
 vim.keymap.set({ "n", "t" }, "<A-j>", function()
-    require("dap").step_over()
+	require("dap").step_over()
 end)
 vim.keymap.set({ "n", "t" }, "<F9>", function()
-    require("dap").continue()
+	require("dap").continue()
 end)
 vim.keymap.set("n", "<leader>di", function()
-    require("dap.ui.widgets").hover()
+	require("dap.ui.widgets").hover()
 end)
 
 -- trouble
-vim.keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>",
-    { silent = true, noremap = true }
-)
-vim.keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>",
-    { silent = true, noremap = true }
-)
-vim.keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>",
-    { silent = true, noremap = true }
-)
-vim.keymap.set("n", "<leader>xl", "<cmd>TroubleToggle loclist<cr>",
-    { silent = true, noremap = true }
-)
-vim.keymap.set("n", "<leader>xq", "<cmd>TroubleToggle quickfix<cr>",
-    { silent = true, noremap = true }
-)
-vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>",
-    { silent = true, noremap = true }
-)
+vim.keymap.set("n", "<leader>xx", "<cmd>TroubleToggle<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "<leader>xw", "<cmd>TroubleToggle workspace_diagnostics<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "<leader>xd", "<cmd>TroubleToggle document_diagnostics<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "<leader>xl", "<cmd>TroubleToggle loclist<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "<leader>xq", "<cmd>TroubleToggle quickfix<cr>", { silent = true, noremap = true })
+vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>", { silent = true, noremap = true })
 
 -- if windows cd to onedrive notes and open netrw
 if vim.fn.has("win32") == 1 then
-    vim.keymap.set("n", "<leader>nn", "<cmd>cd ~/OneDrive/notes<CR><cmd>Explore<CR>")
+	vim.keymap.set("n", "<leader>nn", "<cmd>cd ~/OneDrive/notes<CR><cmd>Explore<CR>")
 end
+
+-- zen mode
+vim.keymap.set("n", "<C-w>o", "<cmd>ZenMode<cr>", { silent = true })

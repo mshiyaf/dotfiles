@@ -21,6 +21,7 @@ alias open='explorer.exe'
 alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
 alias smysql='sudo service mysql start'
 alias spsql='sudo service postgresql start'
+alias pn=pnpm
 
 # project specific
 alias wo="cd ~/Texol && vim ."
@@ -59,6 +60,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 export GOPATH=$HOME/go
 export GOROOT="/usr/local/go"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
 
 # Composer
 export PATH=$HOME/.composer/vendor/bin:$PATH

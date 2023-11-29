@@ -23,37 +23,36 @@ vim.opt.spell = false
 -- history related
 vim.opt.swapfile = false
 vim.opt.backup = false
-if vim.fn.has('win32') == 1 then
-    vim.opt.directory = "C:\\Users\\shiya\\AppData\\Local\\nvim-data\\swapdir"
+if vim.fn.has("win32") == 1 then
+	vim.opt.directory = "C:\\Users\\shiya\\AppData\\Local\\nvim-data\\swapdir"
 else
-    vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
+	vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
 end
 vim.opt.undofile = true
 vim.opt.backupskip = { "/tmp/*", "/private/tmp/*" }
 
 vim.opt.shell = "zsh"
 vim.opt.inccommand = "split"
--- vim.opt.lazyredraw = true
 vim.opt.incsearch = true
 vim.opt.hlsearch = false
 vim.opt.ignorecase = true -- Case insensitive searching UNLESS /C or capital in search
 vim.opt.smartcase = true
 vim.opt.smarttab = true
-vim.opt.shiftwidth = 4
-vim.opt.tabstop = 4
-vim.opt.softtabstop = 4
+vim.opt.shiftwidth = 2
+vim.opt.tabstop = 2
+vim.opt.softtabstop = 2
 vim.opt.breakindent = true
-vim.opt.wrap = false -- No Wrap lines
+-- vim.opt.wrap = false          -- No Wrap lines
 vim.opt.backspace = { "start", "eol", "indent" }
 vim.opt.path:append({ "**" }) -- Finding files - Search down into subfolders
 vim.opt.wildignore:append({
-    "*/node_modules/*",
-    "*.pyc",
-    "*_build/*",
-    "**/coverage/*",
-    "**/android/*",
-    "**/ios/*",
-    "**/.git/*",
+	"*/node_modules/*",
+	"*.pyc",
+	"*_build/*",
+	"**/coverage/*",
+	"**/android/*",
+	"**/ios/*",
+	"**/.git/*",
 })
 
 vim.opt.isfname:append("@-@")
@@ -76,3 +75,7 @@ vim.opt.winblend = 0
 vim.opt.wildoptions = "pum"
 vim.opt.pumblend = 5
 vim.opt.background = "dark"
+
+vim.cmd("cnoreabbrev g Git")
+vim.cmd("cnoreabbrev dg DiffviewOpen")
+vim.cmd("cnoreabbrev dc DiffviewClose")
