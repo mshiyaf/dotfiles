@@ -23,6 +23,10 @@ alias smysql='sudo service mysql start'
 alias spsql='sudo service postgresql start'
 alias pn=pnpm
 
+resetdate() {
+    sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z"
+}
+
 # project specific
 alias wo="cd ~/Texol && vim ."
 alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"

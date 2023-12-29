@@ -40,10 +40,6 @@ return {
 				autotag = {
 					enable = true,
 				},
-				context_commentstring = {
-					enable = true,
-					enable_autocmd = false,
-				},
 			})
 
 			local parser_config = require("nvim-treesitter.parsers").get_parser_configs()

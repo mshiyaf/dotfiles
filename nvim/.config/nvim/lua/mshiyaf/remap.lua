@@ -122,7 +122,11 @@ vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>", { silent = tr
 
 -- if windows cd to onedrive notes and open netrw
 if vim.fn.has("win32") == 1 then
-	vim.keymap.set("n", "<leader>nn", "<cmd>cd ~/OneDrive/notes<CR><cmd>Explore<CR>")
+	vim.keymap.set(
+		"n",
+		"<leader>nn",
+		"<cmd>cd  C:/Users/shiya/iCloudDrive/iCloud~md~obsidian/second brain<CR><cmd>Explore<CR>"
+	)
 end
 
 -- zen mode
