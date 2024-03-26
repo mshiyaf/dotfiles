@@ -15,7 +15,6 @@ return {
 				sources = { { name = "crates" } },
 			})
 			crates.show()
-			require("core.utils").load_mappings("crates")
 		end,
 	},
 	{
