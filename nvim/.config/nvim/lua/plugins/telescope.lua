@@ -45,8 +45,11 @@ return {
 		vim.keymap.set("n", "<leader>b", function()
 			builtin.buffers()
 		end)
-		vim.keymap.set("n", "<leader>t", function()
+		vim.keymap.set("n", "<leader>r", function()
 			builtin.resume()
+		end)
+		vim.keymap.set("n", "<leader>t", function()
+			builtin.commands()
 		end)
 
 		require("telescope").load_extension("git_worktree")
