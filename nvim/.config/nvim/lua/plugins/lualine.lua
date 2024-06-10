@@ -36,7 +36,29 @@ return {
                 icons_enabled = true,
                 component_separators = "",
                 section_separators = "",
-                theme = "catppuccin",
+                theme = "onedark",
+                globalstatus = false,
+                disabled_filetypes = {
+                    statusline = {
+                        "NvimTree",
+                        "dap-repl",
+                        "dapui_scopes",
+                        "dapui_breakpoints",
+                        "dapui_stacks",
+                        "dapui_watches",
+                        "dapui_repl",
+                        "dapui_expressions",
+                        "dapui_sessions",
+                        "dapui_console",
+                        "Outline",
+                        "Trouble",
+                        "help",
+                        "startify",
+                        "dashboard",
+                        "lspinfo",
+                        "TelescopePrompt",
+                        "TelescopeResults", }
+                },
             },
             sections = {
                 -- these are to remove the defaults
@@ -45,21 +67,6 @@ return {
                 lualine_y = { "progress" },
                 lualine_z = { "location" },
                 -- These will be filled later
-                lualine_c = {},
-                lualine_x = {
-                    {
-                        require("noice").api.statusline.mode.get,
-                        cond = require("noice").api.statusline.mode.has,
-                        color = { fg = "#ff9e64" },
-                    }
-                },
-            },
-            inactive_sections = {
-                -- these are to remove the defaults
-                lualine_a = {},
-                lualine_v = {},
-                lualine_y = {},
-                lualine_z = {},
                 lualine_c = {},
                 lualine_x = {},
             },

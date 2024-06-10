@@ -12,13 +12,20 @@ alias f=pcolr
 alias yt=youtube-dl
 alias top=btop
 alias clf=clockify-cli
-alias ll="exa -l -g --git --icons"
+alias ll="exa -l -g --icons"
 alias lla="ll -a"
 alias bladeformatter="blade-formatter"
 alias lg="lazygit"
 alias ssh='TERM=xterm-256color ssh'
 alias open='explorer.exe'
 alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
+alias smysql='sudo service mysql start'
+alias spsql='sudo service postgresql start'
+alias pn=pnpm
+
+resetdate() {
+    sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z"
+}
 
 # project specific
 alias wo="cd ~/Texol && vim ."
@@ -57,6 +64,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 export GOPATH=$HOME/go
 export GOROOT="/usr/local/go"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
+export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
 
 # Composer
 export PATH=$HOME/.composer/vendor/bin:$PATH
@@ -69,10 +77,16 @@ export PATH="$PATH:$HOME/flutter/bin"
 export PATH=$HOME/.npm-packages/bin:$PATH
 
 # java
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-17.0.6.0.10-1.fc37.x86_64
+export JAVA_HOME=/usr/lib/jvm/jdk-21-oracle-x64
 export PATH=$PATH:$JAVA_HOME/bin
 
 # android
 export ANDROID_SDK_ROOT=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
 export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+
+# fathoora
+export FATOORA_HOME="$HOME/code/fathoora/zatca-einvoicing-sdk-235-R3.2.1/Apps"
+export PATH=$PATH:$FATOORA_HOME
+export SDK_CONFIG="$HOME/code/fathoora/zatca-einvoicing-sdk-235-R3.2.1/Configuration/config.json"
+

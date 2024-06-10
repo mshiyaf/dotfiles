@@ -25,16 +25,16 @@ return {
 		})
 		local builtin = require("telescope.builtin")
 
-		-- vim.keymap.set("n", "<leader>f", function()
-		--     builtin.find_files({
-		--         hidden = true,
-		--     })
-		-- end)
 		vim.keymap.set("n", "<leader>f", function()
-			builtin.git_files({
-				show_untracked = true,
+			builtin.find_files({
+				hidden = true,
 			})
 		end)
+		-- vim.keymap.set("n", "<leader>f", function()
+		-- 	builtin.git_files({
+		-- 		show_untracked = true,
+		-- 	})
+		-- end)
 		vim.keymap.set("n", "<leader>g", function()
 			builtin.live_grep({
 				-- additional_args = function()
@@ -45,15 +45,22 @@ return {
 		vim.keymap.set("n", "<leader>b", function()
 			builtin.buffers()
 		end)
-		vim.keymap.set("n", "<leader>t", function()
+		vim.keymap.set("n", "<leader>r", function()
 			builtin.resume()
+		end)
+		vim.keymap.set("n", "<leader>t", function()
+			builtin.commands()
 		end)
 
 		require("telescope").load_extension("git_worktree")
 		require("telescope").load_extension("dap")
 
-		vim.keymap.set("n", "<leader>;", ":lua require('telescope').extensions.git_worktree.git_worktrees()<cr>")
-		vim.keymap.set("n", "<leader>cw", ":lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>")
+		vim.keymap.set("n", "<leader>;", "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<cr>")
+		vim.keymap.set(
+			"n",
+			"<leader>cw",
+			"<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<cr>"
+		)
 
 		require("telescope").load_extension("git_worktree")
 

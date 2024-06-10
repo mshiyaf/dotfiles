@@ -77,10 +77,6 @@ return {
                     lineFoldingOnly = true,
                 }
             end
-            -- if client.name == "intelephense" or client.name == "sumneko_lua" or client.name == "tsserver" then
-            --     client.server_capabilities.documentFormattingProvider = false
-            --     client.server_capabilities.documentFormattingRangeProvider = false
-            -- end
             local opts = { buffer = bufnr, remap = false }
 
             vim.keymap.set("n", "gd", function()
@@ -89,19 +85,16 @@ return {
             vim.keymap.set("n", "gi", function()
                 vim.lsp.buf.implementation()
             end, opts)
-            vim.keymap.set("n", "<leader>K", function()
-                vim.lsp.buf.hover()
-            end, opts)
             vim.keymap.set("n", "<leader>vws", function()
                 vim.lsp.buf.workspace_symbol()
             end, opts)
             vim.keymap.set("n", "<leader>vd", function()
                 vim.diagnostic.open_float()
             end, opts)
-            vim.keymap.set("n", "[d", function()
+            vim.keymap.set("n", "d]", function()
                 vim.diagnostic.goto_next()
             end, opts)
-            vim.keymap.set("n", "]d", function()
+            vim.keymap.set("n", "d[", function()
                 vim.diagnostic.goto_prev()
             end, opts)
             vim.keymap.set("n", "<leader>ca", function()
@@ -117,6 +110,13 @@ return {
                 vim.lsp.buf.signature_help()
             end, opts)
         end)
+
+        lsp.set_sign_icons({
+            error = '✘',
+            warn = '▲',
+            hint = '⚑',
+            info = '»'
+        })
 
         lsp.setup()
 

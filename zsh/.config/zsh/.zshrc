@@ -85,11 +85,29 @@ bindkey -s '^e' 'lfcd\n'
 . $HOME/.config/zsh/z.sh
 
 # Load aliases and shortcuts if existent.
+export NVM_DIR="$HOME/.config/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [ -f "$HOME/.config/zsh/.shortcutrc" ] && source "$HOME/.config/zsh/.shortcutrc"
 [ -f "$HOME/.config/zsh/.aliasrc" ] && source "$HOME/.config/zsh/.aliasrc"
 
-source /usr/share/nvm/init-nvm.sh
 source ~/.config/zsh/zsh-notes.plugin.zsh
 eval "$(starship init zsh)"
 
+
+# pnpm
+export PNPM_HOME="/home/mshiyaf/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
+# composer
+export PATH="$HOME/.config/composer/vendor/bin:$PATH"
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
