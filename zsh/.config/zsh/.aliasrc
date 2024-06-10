@@ -1,4 +1,4 @@
-alias ls="exa -g -G --icons"
+alias ls="eza -g -G --icons"
 alias la="ls -a"
 alias g=git
 alias python=python3
@@ -12,7 +12,7 @@ alias f=pcolr
 alias yt=youtube-dl
 alias top=btop
 alias clf=clockify-cli
-alias ll="exa -l -g --icons"
+alias ll="eza -l -g --icons"
 alias lla="ll -a"
 alias bladeformatter="blade-formatter"
 alias lg="lazygit"
@@ -52,9 +52,9 @@ export PATH=~/.cargo/bin:$PATH
 
 # Python
 # if command `pyenv` exists, init it
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init --path)"
+# export PYENV_ROOT="$HOME/.pyenv"
+# command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init --path)"
 
 # NodeJS
 export PATH=node_modules/.bin:$PATH
@@ -62,7 +62,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 
 # Go
 export GOPATH=$HOME/go
-export GOROOT="/usr/local/go"
+export GOROOT="/usr/lib/go"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
 export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
 

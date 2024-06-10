@@ -30,6 +30,7 @@ plugins=(
     zsh-autosuggestions
     zsh-syntax-highlighting
     vi-mode
+    asdf
 )
 
 source $ZSH/oh-my-zsh.sh

@@ -1,18 +1,10 @@
 # Setup fzf
 # ---------
-if [[ ! "$PATH" == */usr/local/opt/fzf/bin* ]]; then
-  export PATH="${PATH:+${PATH}:}/usr/local/opt/fzf/bin"
-fi
+source <(fzf --zsh)
 
-# Auto-completion
-# ---------------
-[[ $- == *i* ]] && source "/usr/local/opt/fzf/shell/completion.zsh" 2> /dev/null
 
-# Key bindings
-# ------------
-source "/usr/share/doc/fzf/examples/key-bindings.zsh"
 t_s(){
-    ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
+    ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
 bindkey -s '^f' 't_s\n' 
 # bindkey '^f' fzf-file-widget
