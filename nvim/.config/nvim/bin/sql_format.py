@@ -11,8 +11,8 @@ result = sqlparse.format(contents
                          , reindent=True
                          , output_format='sql'
                          , indent_after_first=True
-                         , wrap_after=80
-                         , comma_first=True
+                         , wrap_after=70
+                         , comma_first=False
                          )
 
 for identifier in range(10):
