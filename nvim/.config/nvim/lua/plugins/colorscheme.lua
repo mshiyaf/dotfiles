@@ -1,12 +1,60 @@
 return {
-	{
-		"navarasu/onedark.nvim",
-		config = function()
-			require("onedark").setup({
-				style = "warmer",
-				transparent = false,
-			})
-			vim.cmd([[colorscheme onedark]])
-		end,
-	},
+	-- {
+	-- 	"loctvl842/monokai-pro.nvim",
+	-- 	config = function()
+	-- 		require("monokai-pro").setup({
+	-- 			transparent_background = false,
+	-- 			styles = {
+	-- 				comment = { italic = true },
+	-- 				keyword = { italic = true }, -- any other keyword
+	-- 				type = { italic = true }, -- (preferred) int, long, char, etc
+	-- 				storageclass = { italic = true }, -- static, register, volatile, etc
+	-- 				structure = { italic = true }, -- struct, union, enum, etc
+	-- 				parameter = { italic = true }, -- parameter pass in function
+	-- 				annotation = { italic = true },
+	-- 				tag_attribute = { italic = true }, -- attribute of tag in reactjs
+	-- 			},
+	-- 			filter = "pro",
+	-- 			inc_search = "background", -- "background" | "underline"
+	-- 			background_clear = {
+	-- 				-- "float_win",
+	-- 				"toggleterm",
+	-- 				"telescope",
+	-- 				-- "which-key",
+	-- 				"renamer",
+	-- 				"notify",
+	-- 				-- "nvim-tree",
+	-- 				-- "neo-tree",
+	-- 				-- "bufferline", -- better used if background of `neo-tree` or `nvim-tree` is cleared
+	-- 			}, -- "float_win", "togg
+	-- 			plugins = {
+	-- 				bufferline = {
+	-- 					underline_selected = false,
+	-- 					underline_visible = false,
+	-- 				},
+	-- 				indent_blankline = {
+	-- 					context_highlight = "default", -- default | pro
+	-- 					context_start_underline = false,
+	-- 				},
+	-- 			},
+	-- 		})
+	-- 		vim.cmd([[colorscheme monokai-pro]])
+	-- 	end,
+	-- },
+	"navarasu/onedark.nvim",
+	config = function()
+		require("onedark").setup({
+			style = "warmer",
+			transparent = false,
+			code_style = {
+				comments = "italic",
+				keywords = "italic",
+				parameter = "italic",
+				strings = "none",
+				variables = "none",
+				structure = "italic",
+			},
+		})
+		vim.cmd([[colorscheme onedark]])
+	end,
 }
