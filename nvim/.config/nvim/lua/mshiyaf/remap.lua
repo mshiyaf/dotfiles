@@ -2,11 +2,11 @@ local silent = { silent = true }
 
 -- Change netrw default mappings
 vim.api.nvim_create_autocmd("filetype", {
-	pattern = "netrw",
-	callback = function()
-		vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
-		vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
-	end,
+  pattern = "netrw",
+  callback = function()
+    vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+    vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+  end,
 })
 
 -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
@@ -42,10 +42,12 @@ vim.keymap.set("v", "<A-k>", "<cmd>m '<-2<CR>gv=gv")
 vim.keymap.set("n", "J", "mzJ`z") -- keeps cursor position the same
 vim.keymap.set("n", "<C-d>", "<C-d>zz")
 vim.keymap.set("n", "<C-u>", "<C-u>zz")
+
 -- center the screen to the search result
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
+-- disable Ex mode
 vim.keymap.set("n", "Q", "<nop>")
 
 -- New tab
@@ -57,12 +59,12 @@ vim.keymap.set("n", "<leader>w", "<Cmd>tabprevious<CR>", silent)
 vim.keymap.set("n", "ss", "<cmd>split<CR><C-w>w", silent)
 vim.keymap.set("n", "sv", "<cmd>vsplit<CR><C-w>w", silent)
 
--- Move window
-vim.keymap.set("n", "<Space>j", "<C-w>w")
-vim.keymap.set("n", "sh", "<C-w>h")
-vim.keymap.set("n", "sk", "<C-w>k")
-vim.keymap.set("n", "sj", "<C-w>j")
-vim.keymap.set("n", "sl", "<C-w>l")
+-- Move window -- INFO: disabling to use default vim keybindings
+-- vim.keymap.set("n", "<Space>j", "<C-w>w")
+-- vim.keymap.set("n", "sh", "<C-w>h")
+-- vim.keymap.set("n", "sk", "<C-w>k")
+-- vim.keymap.set("n", "sj", "<C-w>j")
+-- vim.keymap.set("n", "sl", "<C-w>l")
 
 -- Resize window
 vim.keymap.set("n", "<C-w><left>", "<C-w><")
@@ -75,7 +77,7 @@ vim.keymap.set("v", "<leader>m", "<cmd>MaximizerToggle<CR>gv", silent)
 vim.keymap.set("i", "<F3>", "<C-o><cmd>MaximizerToggle<CR>", silent)
 
 -- tmux-sessionizer
-vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
+vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
 -- undotree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
@@ -97,16 +99,16 @@ vim.keymap.set("n", "<leader>ds", "<cmd>Telescope dap frames<CR>")
 vim.keymap.set("n", "<leader>dc", "<cmd>Telescope dap commands<CR>")
 vim.keymap.set("n", "<leader>db", "<cmd>Telescope dap list_breakpoints<CR>")
 vim.keymap.set("n", "<leader>dh", function()
-	require("dap").toggle_breakpoint()
+  require("dap").toggle_breakpoint()
 end)
 vim.keymap.set({ "n", "t" }, "<A-j>", function()
-	require("dap").step_over()
+  require("dap").step_over()
 end)
 vim.keymap.set({ "n", "t" }, "<F9>", function()
-	require("dap").continue()
+  require("dap").continue()
 end)
 vim.keymap.set("n", "<leader>di", function()
-	require("dap.ui.widgets").hover()
+  require("dap.ui.widgets").hover()
 end)
 
 -- trouble
@@ -119,11 +121,11 @@ vim.keymap.set("n", "gR", "<cmd>TroubleToggle lsp_references<cr>", { silent = tr
 
 -- if windows cd to onedrive notes and open netrw
 if vim.fn.has("win32") == 1 then
-	vim.keymap.set(
-		"n",
-		"<leader>nn",
-		"<cmd>cd  C:/Users/shiya/iCloudDrive/iCloud~md~obsidian/second brain<CR><cmd>Explore<CR>"
-	)
+  vim.keymap.set(
+    "n",
+    "<leader>nn",
+    "<cmd>cd  C:/Users/shiya/iCloudDrive/iCloud~md~obsidian/second brain<CR><cmd>Explore<CR>"
+  )
 end
 
 -- zen mode

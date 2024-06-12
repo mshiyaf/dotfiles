@@ -24,9 +24,9 @@ vim.opt.spell = false
 vim.opt.swapfile = false
 vim.opt.backup = false
 if vim.fn.has("win32") == 1 then
-	vim.opt.directory = "C:\\Users\\shiya\\AppData\\Local\\nvim-data\\swapdir"
+  vim.opt.directory = "C:\\Users\\shiya\\AppData\\Local\\nvim-data\\swapdir"
 else
-	vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
+  vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
 end
 vim.opt.undofile = true
 vim.opt.backupskip = { "/tmp/*", "/private/tmp/*" }
@@ -34,7 +34,7 @@ vim.opt.backupskip = { "/tmp/*", "/private/tmp/*" }
 vim.opt.shell = "zsh"
 vim.opt.inccommand = "split"
 vim.opt.incsearch = true
-vim.opt.hlsearch = false
+vim.opt.hlsearch = true
 vim.opt.ignorecase = true -- Case insensitive searching UNLESS /C or capital in search
 vim.opt.smartcase = true
 vim.opt.smarttab = true
@@ -46,13 +46,13 @@ vim.opt.breakindent = true
 vim.opt.backspace = { "start", "eol", "indent" }
 vim.opt.path:append({ "**" }) -- Finding files - Search down into subfolders
 vim.opt.wildignore:append({
-	"*/node_modules/*",
-	"*.pyc",
-	"*_build/*",
-	"**/coverage/*",
-	"**/android/*",
-	"**/ios/*",
-	"**/.git/*",
+  "*/node_modules/*",
+  "*.pyc",
+  "*_build/*",
+  "**/coverage/*",
+  "**/android/*",
+  "**/ios/*",
+  "**/.git/*",
 })
 
 vim.opt.isfname:append("@-@")
@@ -63,7 +63,7 @@ vim.g.mapleader = " "
 
 -- fold
 vim.o.foldcolumn = "1" -- '0' is not bad
-vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+vim.o.foldlevel = 99   -- Using ufo provider need a large value, feel free to decrease the value
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
 vim.o.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]

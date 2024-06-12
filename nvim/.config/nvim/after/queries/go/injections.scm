@@ -1,8 +1,5 @@
-(call_expression
-  (selector_expression
-    operand: (identifier) @operand
-    field: (field_identifier) @field (#contains? @field "QueryRow" "Exec" "Query" ))
-  (argument_list
-    (raw_string_literal) @sql
-)
+(expression_list
+  (raw_string_literal) @sql
+    (#match? @sql "(SELECT|UPDATE|INSERT|DELETE|CREATE|ALTER|DROP|WITH)" )
+    (#not-match? @sql "%" )
 )
