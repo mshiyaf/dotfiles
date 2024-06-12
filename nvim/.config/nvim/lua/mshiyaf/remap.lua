@@ -1,16 +1,16 @@
 local silent = { silent = true }
 
--- Change netrw default mappings
-vim.api.nvim_create_autocmd("filetype", {
-  pattern = "netrw",
-  callback = function()
-    vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
-    vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
-  end,
-})
-
--- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
-vim.keymap.set("n", "-", "<cmd>Explore<CR>", { silent = true })
+-- -- Change netrw default mappings
+-- vim.api.nvim_create_autocmd("filetype", {
+--   pattern = "netrw",
+--   callback = function()
+--     vim.keymap.set("n", "l", "<CR>", { remap = true, buffer = true })
+--     vim.keymap.set("n", "h", "-<esc>", { remap = true, buffer = true })
+--   end,
+-- })
+--
+-- -- vim.keymap.set("n", "-", ":NvimTreeToggle<CR>")
+-- vim.keymap.set("n", "-", "<cmd>Explore<CR>", { silent = true })
 
 -- Reload vim config
 vim.keymap.set("n", "<Leader><CR>", "<cmd>source %<CR>")
