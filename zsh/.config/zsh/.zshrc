@@ -114,3 +114,6 @@ export SDKMAN_DIR="$HOME/.sdkman"
 
 # mise activate config
 eval "$(/usr/bin/mise activate zsh)"
+
+export ATAC_MAIN_DIR="$HOME/atac"
+export ATAC_KEY_BINDINGS="$HOME/.config/atac/key_bindings.toml"
