@@ -77,7 +77,7 @@ vim.keymap.set("v", "<leader>m", "<cmd>MaximizerToggle<CR>gv", silent)
 vim.keymap.set("i", "<F3>", "<C-o><cmd>MaximizerToggle<CR>", silent)
 
 -- tmux-sessionizer
-vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
+vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
 
 -- undotree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)

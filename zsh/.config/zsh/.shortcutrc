@@ -4,9 +4,9 @@ source <(fzf --zsh)
 
 
 t_s(){
-    ~/Code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
+    ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
-bindkey -s '^f' 't_s\n' 
+bindkey -s '^f' 't_s\n'
 # bindkey '^f' fzf-file-widget
 bindkey '\ex' fzf-cd-widget
 bindkey '^l' autosuggest-accept
