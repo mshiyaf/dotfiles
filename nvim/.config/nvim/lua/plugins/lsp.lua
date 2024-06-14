@@ -36,15 +36,14 @@ return {
       "eslint",
       "gopls",
       "goimports",
-      "lua_ls",
       "isort",
-      "lua-language-server",
+      "lua_ls",
       "prettier",
       "prettierd",
-      "rust-analyzer",
+      "rust_analyzer",
       "sql-formatter",
-      "tailwindcss-language-server",
-      "typescript-language-server"
+      "tailwindcss",
+      "tsserver"
     })
 
 
