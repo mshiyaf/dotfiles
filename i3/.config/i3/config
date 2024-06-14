@@ -128,28 +128,28 @@ set $ws9 "9"
 set $ws10 "10"
 
 # switch to workspace
-bindsym $mod+u workspace number $ws1
-bindsym $mod+i workspace number $ws2
-bindsym $mod+o workspace number $ws3
-bindsym $mod+p workspace number $ws4
-bindsym $mod+m workspace number $ws5
-bindsym $mod+comma workspace number $ws6
-bindsym $mod+period workspace number $ws7
-bindsym $mod+slash workspace number $ws8
-# bindsym $mod+period workspace number $ws9
-# bindsym $mod+slash workspace number $ws10
+bindsym $mod+y workspace number $ws1
+bindsym $mod+u workspace number $ws2
+bindsym $mod+i workspace number $ws3
+bindsym $mod+o workspace number $ws4
+bindsym $mod+p workspace number $ws5
+bindsym $mod+n workspace number $ws6
+bindsym $mod+m workspace number $ws7
+bindsym $mod+coma workspace number $ws8
+bindsym $mod+period workspace number $ws9
+bindsym $mod+slash workspace number $ws10
 
 # move focused container to workspace
-bindsym $mod+Shift+u move container to workspace number $ws1
-bindsym $mod+Shift+i move container to workspace number $ws2
-bindsym $mod+Shift+o move container to workspace number $ws3
-bindsym $mod+Shift+p move container to workspace number $ws4
-bindsym $mod+Shift+m move container to workspace number $ws5
-bindsym $mod+Shift+comma move container to workspace number $ws6
-bindsym $mod+Shift+period move container to workspace number $ws7
-bindsym $mod+Shift+slash move container to workspace number $ws8
-# bindsym $mod+Shift+9 move container to workspace number $ws9
-# bindsym $mod+Shift+0 move container to workspace number $ws10
+bindsym $mod+Shift+y move container to workspace number $ws1
+bindsym $mod+Shift+u move container to workspace number $ws2
+bindsym $mod+Shift+i move container to workspace number $ws3
+bindsym $mod+Shift+o move container to workspace number $ws4
+bindsym $mod+Shift+p move container to workspace number $ws5
+bindsym $mod+Shift+n move container to workspace number $ws6
+bindsym $mod+Shift+m move container to workspace number $ws7
+bindsym $mod+Shift+comma move container to workspace number $ws8
+bindsym $mod+Shift+period move container to workspace number $ws9
+bindsym $mod+Shift+slash move container to workspace number $ws10
 
 # reload the configuration file
 bindsym $mod+Shift+c reload
