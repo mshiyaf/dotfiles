@@ -31,7 +31,7 @@ return {
     formatters = {
       sql_formatter = {
         exe = "sql-formatter",
-        args = { "--language", "postgresql" },
+        args = { "--language", "postgresql", "--config", '{"keywordCase": "upper"}' },
       },
 
     },
