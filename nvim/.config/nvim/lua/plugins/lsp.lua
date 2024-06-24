@@ -28,20 +28,20 @@ return {
 
     lsp.ensure_installed({
       "tsserver",
-      "black",
-      "delve",
-      "eslint-lsp eslint",
+      -- "black",
+      -- "delve",
+      -- "eslint-lsp eslint",
       "rust_analyzer",
       "tailwindcss",
       "eslint",
       "gopls",
-      "goimports",
-      "isort",
+      -- "goimports",
+      -- "isort",
       "lua_ls",
-      "prettier",
-      "prettierd",
+      -- "prettier",
+      -- "prettierd",
       "rust_analyzer",
-      "sql-formatter",
+      -- "sql-formatter",
       "tailwindcss",
       "tsserver"
     })
