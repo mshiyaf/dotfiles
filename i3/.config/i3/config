@@ -64,6 +64,9 @@ bindcode $mod+40 exec "rofi -modi drun,run -show drun"
 # .desktop file. It is a wrapper around dmenu, so you need that installed.
 # bindcode $mod+40 exec --no-startup-id i3-dmenu-desktop
 
+# Launch rofi with clipboard history using greenclip
+bindsym $mod+v exec rofi -modi "clipboard:greenclip print" -show clipboard -run-command '{cmd}'
+
 # change focus
 bindsym $mod+h focus left
 bindsym $mod+j focus down

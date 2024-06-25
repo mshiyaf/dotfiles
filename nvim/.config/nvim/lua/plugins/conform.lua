@@ -26,6 +26,7 @@ return {
       html = { { "prettierd", "prettier" } },
       go = { "goimports", "gofmt" },
       sql = { "sql_formatter" },
+      java = { "google-java-format" },
       ["_"] = { "trim_whitespace" },
     },
     formatters = {
