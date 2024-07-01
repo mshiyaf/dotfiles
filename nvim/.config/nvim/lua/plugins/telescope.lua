@@ -5,10 +5,6 @@ return {
     local actions = require("telescope.actions")
     require("telescope").setup({
       defaults = {
-        -- borderchars = { "█", " ", "▀", "█", "█", " ", " ", "▀" },
-        prompt_prefix = " ",
-        selection_caret = "  ",
-        entry_prefix = "  ",
         mappings = {
           n = {
             ["q"] = actions.close,
@@ -21,17 +17,24 @@ return {
             ["<C-s>"] = actions.select_vertical,
           },
         },
+        prompt_prefix = "   ",
+        -- selection_caret = "  ",
+        file_sorter = require("telescope.sorters").get_fuzzy_file,
+        file_ignore_patterns = { "node_modules", "vendor", ".git", ".cache" },
+        generic_sorter = require("telescope.sorters").get_generic_fuzzy_sorter,
+        path_display = { "truncate" },
+        winblend = 0
       },
     })
     local builtin = require("telescope.builtin")
 
     vim.keymap.set("n", "<leader>f", function()
-      builtin.find_files({
+      builtin.git_files({
         hidden = true,
       })
     end)
     -- vim.keymap.set("n", "<leader>f", function()
-    -- 	builtin.git_files({
+    -- 	builtin.find_files({
     -- 		show_untracked = true,
     -- 	})
     -- end)
