@@ -41,22 +41,24 @@ return {
   -- 		vim.cmd([[colorscheme monokai-pro]])
   -- 	end,
   -- },
-  -- "navarasu/onedark.nvim",
-  -- config = function()
-  -- 	require("onedark").setup({
-  -- 		style = "warmer",
-  -- 		transparent = false,
-  -- 		code_style = {
-  -- 			comments = "italic",
-  -- 			keywords = "italic",
-  -- 			parameter = "italic",
-  -- 			strings = "none",
-  -- 			variables = "none",
-  -- 			structure = "italic",
-  -- 		},
-  -- 	})
-  -- 	vim.cmd([[colorscheme onedark]])
-  -- end,
+  -- {
+  --   "navarasu/onedark.nvim",
+  --   config = function()
+  --     require("onedark").setup({
+  --       style = "warmer",
+  --       transparent = false,
+  --       code_style = {
+  --         comments = "italic",
+  --         keywords = "italic",
+  --         parameter = "italic",
+  --         strings = "none",
+  --         variables = "none",
+  --         structure = "italic",
+  --       },
+  --     })
+  --     vim.cmd([[colorscheme onedark]])
+  --   end,
+  -- }
   {
     "rose-pine/neovim",
     name = "rose-pine",
@@ -75,7 +77,7 @@ return {
 
         styles = {
           bold = true,
-          italic = true,
+          -- italic = true,
           transparency = false,
         },
 
@@ -109,10 +111,13 @@ return {
           h5 = "pine",
           h6 = "foam",
         },
-
+        disable_italics = true,
         highlight_groups = {
-          -- Comment = { fg = "foam" },
-          -- VertSplit = { fg = "muted", bg = "muted" },
+          Comment = { italic = true },
+          Keyword = { italic = true },
+          Parameter = { italic = true },
+          Constant = { italic = true },
+          Structure = { italic = true },
         },
 
         before_highlight = function(group, highlight, palette)
@@ -129,8 +134,8 @@ return {
       })
       vim.cmd([[colorscheme rose-pine]])
     end,
-    -- -- vim.cmd("colorscheme rose-pine-main")
-    -- -- vim.cmd("colorscheme rose-pine-moon")
-    -- -- vim.cmd("colorscheme rose-pine-dawn")
+    -- vim.cmd("colorscheme rose-pine-main")
+    -- vim.cmd("colorscheme rose-pine-moon")
+    -- vim.cmd("colorscheme rose-pine-dawn")
   },
 }

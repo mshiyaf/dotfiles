@@ -46,8 +46,6 @@ return {
       "tsserver"
     })
 
-
-
     lsp.configure("lua_ls", {
       settings = {
         Lua = {

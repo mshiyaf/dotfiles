@@ -8,7 +8,10 @@ return {
     },
     config = function()
       require("go").setup({
-        lsp_codelens = false,
+        lsp_inlay_hints = {
+          enable = true,
+          style = "inlay",
+        },
       })
     end,
     event = { "CmdlineEnter" },
