@@ -26,6 +26,7 @@ return {
         winblend = 0
       },
     })
+
     local builtin = require("telescope.builtin")
 
     vim.keymap.set("n", "<leader>f", function()
@@ -68,34 +69,35 @@ return {
     require("telescope").load_extension("git_worktree")
 
     local Worktree = require("git-worktree")
-    -- local Job = require('plenary.job')
-
-    -- op = Operations.Switch, Operations.Create, Operations.Delete
-    -- metadata = table of useful values (structure dependent on op)
-    --      Switch
-    --          path = path you switched to
-    --          prev_path = previous worktree path
-    --      Create
-    --          path = path where worktree created
-    --          branch = branch name
-    --          upstream = upstream remote name
-    --      Delete
-    --          path = path where worktree deleted
-
     Worktree.on_tree_change(function(op, metadata)
       if op == Worktree.Operations.Switch then
         print("Switched from " .. metadata.prev_path .. " to " .. metadata.path)
       end
     end)
 
-    -- @todo
-    -- Worktree.on_tree_change(function(op, path, upstream)
-    -- if op == Worktree.Operations.Create then
-    --     -- Job:new({
-    --     --     "npm","install"
-    --     -- })
-    --     print("Created new worktree" .. metadata.path)
-    -- end
-    -- end)
+
+    local harpoon = require('harpoon')
+    harpoon:setup({})
+
+    -- basic telescope configuration
+    local conf = require("telescope.config").values
+    local function toggle_telescope(harpoon_files)
+      local file_paths = {}
+      for _, item in ipairs(harpoon_files.items) do
+        table.insert(file_paths, item.value)
+      end
+
+      require("telescope.pickers").new({}, {
+        prompt_title = "Harpoon",
+        finder = require("telescope.finders").new_table({
+          results = file_paths,
+        }),
+        previewer = conf.file_previewer({}),
+        sorter = conf.generic_sorter({}),
+      }):find()
+    end
+
+    vim.keymap.set("n", "<C-e>", function() toggle_telescope(harpoon:list()) end,
+      { desc = "Open harpoon window" })
   end,
 }

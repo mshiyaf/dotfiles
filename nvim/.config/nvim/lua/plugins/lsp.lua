@@ -117,7 +117,7 @@ return {
       vim.keymap.set("n", "<leader>vrn", function()
         vim.lsp.buf.rename()
       end, opts)
-      vim.keymap.set("n", "<C-h>", function()
+      vim.keymap.set("n", "gh", function()
         vim.lsp.buf.signature_help()
       end, opts)
     end)
