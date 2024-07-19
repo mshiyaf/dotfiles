@@ -30,7 +30,10 @@ resetdate() {
 # project specific
 alias wo="cd ~/Texol && vim ."
 alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
+
+# vim related
 alias vim=nvim
+alias lvim="NVIM_APPNAME=lazyvim nvim"
 
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
