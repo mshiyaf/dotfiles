@@ -135,14 +135,6 @@ return {
     -- Add components to right sections
 
     ins_right({
-      "o:encoding",
-      fmt = string.lower,
-      cond = conditions.hide_in_width,
-      color = { fg = colors.green },
-      padding = { left = 0, right = 1 },
-    })
-
-    ins_right({
       "filetype",
       icons_enabled = true,
       color = { fg = colors.green },
