@@ -31,8 +31,8 @@ resetdate() {
 alias wo="cd ~/Texol && vim ."
 alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
 
-# vim related
-alias vim=nvim
+# vim related (use nvim for neovim and vim for lazyvim)
+alias vim=lvim
 alias lvim="NVIM_APPNAME=lvim nvim"
 
 export XDG_CONFIG_HOME="$HOME/.config"
@@ -65,7 +65,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 
 # Go
 export GOPATH=$HOME/go
-export GOROOT="/usr/lib/go"
+export GOROOT="/usr/local/go"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
 export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
 
