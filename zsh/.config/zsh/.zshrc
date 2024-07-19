@@ -111,9 +111,3 @@ export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-
-# mise activate config
-eval "$(/usr/bin/mise activate zsh)"
-
-export ATAC_MAIN_DIR="$HOME/atac"
-export ATAC_KEY_BINDINGS="$HOME/.config/atac/key_bindings.toml"
