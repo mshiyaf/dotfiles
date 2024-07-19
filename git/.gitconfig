@@ -1,9 +1,7 @@
 # This is Git's per-user configuration file.
 [user]
-  name = mshiyaf
-  email = mshiyaf@gmail.com
-[url "ssh://git@github.com/"]
-  insteadOf = https://github.com/
+  name = shiyaf
+  email = shiyaf@texolworld.com
 [core]
   excludesfile = /home/shiyaf/.gitignore_global
   editor = nvim
