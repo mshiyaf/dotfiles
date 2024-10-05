@@ -2,22 +2,29 @@ alias ls="eza -g -G --icons"
 alias la="ls -a"
 alias g=git
 # alias python=python3
-alias vi=vim
+# alias vi=vim
 alias t=tmux
 alias ta="tmux a"
-alias backup="python ~/OneDrive/Back\ Up/backup_script.py"
+# alias backup="python ~/OneDrive/Back\ Up/backup_script.py"
 alias fin=fzf
 alias cl=clear
-alias f=pcolr
 alias yt=youtube-dl
 alias top=btop
-alias clf=clockify-cli
 alias ll="eza -l -g --icons"
 alias lla="ll -a"
 alias bladeformatter="blade-formatter"
 alias lg="lazygit"
 alias ssh='TERM=xterm-256color ssh'
-alias open='explorer.exe'
+if [[ "$(uname)" == "Linux" ]]; then
+  if grep -qi microsoft /proc/version; then
+    # This is WSL
+    alias open='explorer.exe'
+  else
+    # This is native Linux
+    alias open='thunar'
+  fi
+fi
+
 alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
 alias smysql='sudo service mysql start'
 alias spsql='sudo service postgresql start'
@@ -51,7 +58,7 @@ export PATH=/usr/local/sbin:$PATH
 export PATH=/usr/local/bin/yarn:$PATH
 
 # Cargo
-export PATH=~/.cargo/bin:$PATH
+# export PATH=~/.cargo/bin:$PATH
 
 # Python
 # if command `pyenv` exists, init it

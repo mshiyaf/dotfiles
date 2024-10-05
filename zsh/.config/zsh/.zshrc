@@ -1,30 +1,10 @@
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="robbyrussell"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
 
 source ~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
 plugins=(
     git
     zsh-autosuggestions
@@ -35,7 +15,7 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
+eval "$(zoxide init zsh)"
 
 export KEYTIMEOUT=1
 
@@ -71,20 +51,6 @@ bindkey -v '^?' backward-delete-char
 autoload edit-command-line; zle -N edit-command-line
 bindkey '^v' edit-command-line
 
-# Use lf to switch directories and bind it to ctrl-e
-lfcd () {
-    tmp="$(mktemp)"
-    lf -last-dir-path="$tmp" "$@"
-    if [ -f "$tmp" ]; then
-        dir="$(cat "$tmp")"
-        rm -f "$tmp"
-        [ -d "$dir" ] && [ "$dir" != "$(pwd)" ] && cd "$dir"
-    fi
-}
-bindkey -s '^e' 'lfcd\n'
-
-. $HOME/.config/zsh/z.sh
-
 # Load aliases and shortcuts if existent.
 export NVM_DIR="$HOME/.config/nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
@@ -93,10 +59,6 @@ export NVM_DIR="$HOME/.config/nvm"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [ -f "$HOME/.config/zsh/.shortcutrc" ] && source "$HOME/.config/zsh/.shortcutrc"
 [ -f "$HOME/.config/zsh/.aliasrc" ] && source "$HOME/.config/zsh/.aliasrc"
-
-source ~/.config/zsh/zsh-notes.plugin.zsh
-eval "$(starship init zsh)"
-
 
 # pnpm
 export PNPM_HOME="/home/mshiyaf/.local/share/pnpm"

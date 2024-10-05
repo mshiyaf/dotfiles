@@ -6,12 +6,16 @@ source <(fzf --zsh)
 t_s(){
     ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }
+
+zle -N fzf-file-widget
+
 bindkey -s '^f' 't_s\n'
-# bindkey '^f' fzf-file-widget
-bindkey '\ex' fzf-cd-widget
+bindkey -M vicmd '\ef' fzf-file-widget
+bindkey -M viins '\ef' fzf-file-widget
+
 bindkey '^l' autosuggest-accept
 bindkey '\e[A' history-beginning-search-backward
 bindkey '\e[B' history-beginning-search-forward
-bindkey '^o' up-line-or-history
+# bindkey '^o' up-line-or-history
 
 function mkcd() { mkdir -p "$@" && cd "$_"; }
