@@ -82,6 +82,7 @@ export PATH=$HOME/.composer/vendor/bin:$PATH
 # Flutter
 export PATH=$HOME/Utils/flutter/bin:$PATH
 export PATH="$PATH:$HOME/flutter/bin"
+export PATH=$HOME/dev/flutter/bin:$PATH
 
 # npm
 export PATH=$HOME/.npm-packages/bin:$PATH
@@ -97,3 +98,5 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
 
 # goland
 export PATH=$PATH:/opt/GoLand-2024.1.4/bin
+
+export PATH=$PATH:/opt/Mattermost
