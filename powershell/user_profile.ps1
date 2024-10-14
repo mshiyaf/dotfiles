@@ -10,7 +10,7 @@ function OnViModeChange {
     }
 }
 Set-PSReadLineOption -ViModeIndicator Script -ViModeChangeHandler $Function:OnViModeChange
-# Set-PSReadLineOption -BellStyle None
+Set-PSReadLineOption -BellStyle None
 # Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
 Set-PSReadLineOption -PredictionSource History
 Set-PSReadLineOption -PredictionViewStyle ListView
@@ -21,14 +21,16 @@ Set-PSReadLineKeyHandler -Chord Tab -Function Complete
 # Icons
 # Import-Module -Name Terminal-Icons
 
-# Default Prompt
-# oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\tokyonight_storm.omp.json" | Invoke-Expression
 # Prompt
-oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/bubbles.omp.json" | Invoke-Expression
+#oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/bubbles.omp.json" | Invoke-Expression
+#oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/the-unnamed.omp.json" | Invoke-Expression
+#oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/nordtron.omp.json" | Invoke-Expression
+#oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/atomicBit.omp.json" | Invoke-Expression
+oh-my-posh init pwsh --config "C:/Users/shiya/.config/powershell/hul10.omp.json" | Invoke-Expression
 
 # Fzf
-# Import-Module PSFzf
-# Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory 'Ctrl+r'
+#Import-Module PSFzf
+#Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory 'Ctrl+r'
 
 # Alias
 Set-Alias vim nvim
