@@ -15,8 +15,6 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-eval "$(zoxide init zsh)"
-
 export KEYTIMEOUT=1
 
 # Change cursor shape for different vi modes.
@@ -74,3 +72,5 @@ export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+eval "$(zoxide init zsh)"
