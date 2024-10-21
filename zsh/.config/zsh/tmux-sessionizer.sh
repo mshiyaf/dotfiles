@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 
+# decalare the files to search for
+file_list=(~/notes ~/code ~/code/dotfiles ~/dev/texol ~/dev/sprdh ~/dev/personal)
+
+# Create a new array to store valid directories
+valid_files=()
+
+# Check if the directories exist and add to the valid_files list
+for file in "${file_list[@]}"; do
+  if [[ -d $file ]]; then
+    valid_files+=("$file")
+  fi
+done
+
 if [[ $# -eq 1 ]]; then
   selected=$1
 else
-  selected=$(find ~ ~/code ~/code/dotfiles ~/dev/texol ~/dev/sprdh ~/dev/personal -mindepth 1 -maxdepth 2 -type d | fzf)
+  selected=$(find "${valid_files[@]}" -mindepth 1 -maxdepth 2 -type d | fzf)
 fi
 
 if [[ -z $selected ]]; then
