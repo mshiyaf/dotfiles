@@ -4,3 +4,4 @@ zsh/.config/zsh/.zsh_history
 *.zcompdump*
 lazygit/.config/lazygit/state.yml
 nvim/.config/nvim/plugin/packer_compiled.lua
+btop/.config/btop/btop.log

@@ -167,6 +167,9 @@ bindsym $mod+Shift+e exec --no-startup-id rofi -dmenu -p "You pressed the exit s
 # i3lock with black screen
 bindsym $mod2+l exec "i3lock -c 000000"
 
+# call flameshot for screenshot with clipping mode
+bindsym $mod2+s exec flameshot gui
+
 # resize window (you can also use the mouse for that)
 mode "resize" {
         # These bindings trigger as soon as you enter the resize mode
