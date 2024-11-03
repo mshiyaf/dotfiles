@@ -19,8 +19,7 @@ return {
 	enable_tab_bar = false,
 	window_decorations = "RESIZE",
 	window_padding = window_padding,
-	window_background_opacity = 0,
-	win32_system_backdrop = "Mica",
+	window_background_opacity = 1,
 
 	clean_exit_codes = { 130 },
 	audible_bell = "Disabled",
