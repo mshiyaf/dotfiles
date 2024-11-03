@@ -9,7 +9,7 @@ local window_padding = {
 
 return {
 	disable_default_key_bindings = false,
-	font = wezterm.font("VictorMono Nerd Font"),
+	font = wezterm.font("JetBrainsMono Nerd Font"),
 	font_size = 10,
 	use_fancy_tab_bar = true,
 	tab_max_width = 50,
