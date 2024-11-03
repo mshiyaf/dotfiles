@@ -119,4 +119,3 @@ g_ControlRepeatDetected := false
 
 !Left::Send {Home}
 !+Left::Send {Shift Down}{Home}{Shift Up}
-!Backspace::Send {Shift Down}{Home}{Delete}{Shift Up}
