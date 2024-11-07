@@ -53,6 +53,16 @@ tiling_drag modifier titlebar
 # start a terminal
 bindsym $mod+Return exec kitty
 
+# Assign applications to specific workspaces
+for_window [class="Google-chrome"] move to workspace $ws1
+for_window [class="kitty"] move to workspace $ws2
+for_window [class="DBeaver"] move to workspace $ws3
+for_window [class="Postman"] move to workspace $ws4
+for_window [class="Mattermost"] move to workspace $ws5
+for_window [class="Anydesk"] move to workspace $ws6
+
+bindsym $mod+bracketleft exec --no-startup-id ~/code/dotfiles/i3/.config/i3/workspace_launcher.sh
+
 # kill focused window
 bindsym $mod+Shift+q kill
 
