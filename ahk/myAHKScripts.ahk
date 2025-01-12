@@ -108,14 +108,3 @@ g_ControlRepeatDetected := false
 ~*^F12::
     g_AbortSendEsc := true
     return
-
-
-;--------------------------------
-;alt motions like mac
-;--------------------------------
-
-!Right::Send {End}
-!+Right::Send {Shift Down}{End}{Shift Up}
-
-!Left::Send {Home}
-!+Left::Send {Shift Down}{Home}{Shift Up}
