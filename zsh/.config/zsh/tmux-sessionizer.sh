@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # decalare the files to search for
-file_list=(~/notes ~/code ~/code/dotfiles ~/dev/texol ~/dev/sprdh ~/dev/personal)
+file_list=(~/notes ~/code ~/code/dotfiles ~/dev/texol ~/dev/sprdh ~/dev/personal ~)
 
 # Create a new array to store valid directories
 valid_files=()
