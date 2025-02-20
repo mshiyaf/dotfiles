@@ -74,3 +74,8 @@ export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
 eval "$(zoxide init zsh)"
+
+. "$HOME/.local/share/../bin/env"
+
+# bun completions
+[ -s "/home/mshiyaf/.bun/_bun" ] && source "/home/mshiyaf/.bun/_bun"
