@@ -31,9 +31,8 @@ ethernet _first_ {
         format_down = "E: down"
 }
 
-
 disk "/" {
-        format = "S: %avail"
+        format = "S: %used/%total (%avail)"
 }
 
 load {
@@ -41,7 +40,7 @@ load {
 }
 
 memory {
-        format = "M: U: %used | A: %available | T: %total"
+        format = "M: %used/%total (%available)"
         threshold_degraded = "1G"
         format_degraded = "MEMORY < %available"
 }
