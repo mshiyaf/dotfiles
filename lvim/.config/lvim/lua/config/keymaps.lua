@@ -6,4 +6,9 @@
 local silent = { silent = true }
 
 -- tmux-sessionizer
-vim.keymap.set("n", "<C-f>", "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>", silent)
+vim.keymap.set(
+    "n",
+    "<C-f>",
+    "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>",
+    silent
+)
