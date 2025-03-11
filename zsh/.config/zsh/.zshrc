@@ -57,25 +57,9 @@ export NVM_DIR="$HOME/.config/nvm"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [ -f "$HOME/.config/zsh/.shortcutrc" ] && source "$HOME/.config/zsh/.shortcutrc"
 [ -f "$HOME/.config/zsh/.aliasrc" ] && source "$HOME/.config/zsh/.aliasrc"
-
-# pnpm
-export PNPM_HOME="/home/mshiyaf/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-
-# composer
-export PATH="$HOME/.config/composer/vendor/bin:$PATH"
-
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+[ -f "$HOME/.config/zsh/.exports" ] && source "$HOME/.config/zsh/.exports"
 
 eval "$(zoxide init zsh)"
-
-. "$HOME/.local/share/../bin/env"
 
 # bun completions
 [ -s "/home/mshiyaf/.bun/_bun" ] && source "/home/mshiyaf/.bun/_bun"

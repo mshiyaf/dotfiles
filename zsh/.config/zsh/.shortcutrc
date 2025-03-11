@@ -1,3 +1,6 @@
+# vim: filetype=zsh
+
+
 # Setup fzf
 # ---------
 source <(fzf --zsh)

@@ -1,3 +1,5 @@
+# vim: filetype=zsh
+
 alias ls="eza -g -G --icons"
 alias la="ls -a"
 alias g=git
@@ -41,62 +43,3 @@ alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
 # vim related (use nvim for neovim and vim for lazyvim)
 alias vim=lvim
 alias lvim="NVIM_APPNAME=lvim nvim"
-
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_DATA_HOME="$HOME/.local/share"
-
-export OPENCV_VIDEOIO_PRIORITY_INTEL_MFX=0
-
-export EDITOR=nvim
-export LC_CTYPE=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
-export PATH=bin:$PATH
-export PATH=~/bin:$PATH
-export PATH=~/.local/bin:$PATH
-export PATH=/usr/local/sbin:$PATH
-export PATH=/usr/local/bin/yarn:$PATH
-
-# Cargo
-export PATH=~/.cargo/bin:$PATH
-
-# Python
-# if command `pyenv` exists, init it
-# export PYENV_ROOT="$HOME/.pyenv"
-# command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-# eval "$(pyenv init --path)"
-
-# NodeJS
-export PATH=node_modules/.bin:$PATH
-export PATH=$HOME/.npm-packages/bin:$PATH
-
-# Go
-export GOPATH=$HOME/go
-export GOROOT="/usr/local/go"
-export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
-export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
-
-# Composer
-export PATH=$HOME/.composer/vendor/bin:$PATH
-
-# Flutter
-export PATH=$HOME/Utils/flutter/bin:$PATH
-export PATH="$PATH:$HOME/flutter/bin"
-export PATH=$HOME/dev/flutter/bin:$PATH
-
-# npm
-export PATH=$HOME/.npm-packages/bin:$PATH
-
-# java
-export JAVA_HOME=/usr/lib/jvm/jdk-21-oracle-x64
-export PATH=$PATH:$JAVA_HOME/bin
-
-# android
-export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
-export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
-
-# goland
-export PATH=$PATH:/opt/GoLand-2024.1.4/bin
-
-export PATH=$PATH:/opt/Mattermost
