@@ -12,6 +12,23 @@ if not save_folder:exists() then
     save_folder:mkdir({ parents = true })
 end
 
+-- Import keymaps.lua
+local keymaps = require("config.keymaps")
+
+-- Create a function to set the custom keymaps
+local function setup_custom_keymaps()
+    -- Get the custom keymaps
+    local custom_keymaps = keymaps.setup_codecompanion_keymaps()
+
+    -- Set the custom keymaps
+    for _, keymap in ipairs(custom_keymaps) do
+        vim.keymap.set("n", keymap[1], keymap[2], { desc = keymap.desc })
+    end
+end
+
+-- Call the function to set the custom keymaps
+setup_custom_keymaps()
+
 -- snacks picker for our saved chats
 vim.api.nvim_create_user_command("CodeCompanionLoad", function()
     local Snacks = require("snacks")
@@ -67,7 +84,11 @@ vim.api.nvim_create_user_command("CodeCompanionLoad", function()
                     os.remove(item.value)
 
                     -- Refresh the items list with updated files
-                    local files = vim.fn.glob(save_folder:absolute() .. "/*.md", false, true)
+                    local files = vim.fn.glob(
+                        save_folder:absolute() .. "/*.md",
+                        false,
+                        true
+                    )
                     local new_items = {}
 
                     for i, file in ipairs(files) do
@@ -132,7 +153,7 @@ end, { nargs = "*" })
 local anthropic_fn = function()
     local anthropic_config = {
         env = {
-            api_key = "cmd:gpg --pinentry-mode loopback --decrypt ~/anthropic_api_key.txt.asc",
+            api_key = vim.env.ANTHROPIC_API_KEY,
         },
     }
     return require("codecompanion.adapters").extend(
@@ -150,6 +171,42 @@ end
 ---     }
 ---     return require("codecompanion.adapters").extend("openai", openai_config)
 --- end
+
+--- DeepInfra config for CodeCompanion.
+local deepinfra_fn = function()
+    local deepinfra_config = {
+        env = {
+            url = "https://api.deepinfra.com/v1/openai",
+            api_key = vim.env.DEEPINFRA_API_KEY,
+            chat_url = "/chat/completions", -- optional: default value, override if different
+            models_endpoint = "/models", -- optional: attaches to the end of the URL to form the endpoint to retrieve models
+        },
+        schema = {
+            model = {
+                -- default = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                default = "Qwen/Qwen2.5-Coder-32B-Instruct",
+            },
+            temperature = {
+                default = 0.2,
+            },
+            max_completion_tokens = {
+                default = 8192,
+            },
+            top_p = {
+                order = 6,
+                mapping = "parameters",
+                type = "number",
+                optional = true,
+                default = 0.95,
+                desc = "Top probability sampling parameter",
+            },
+        },
+    }
+    return require("codecompanion.adapters").extend(
+        "openai_compatible",
+        deepinfra_config
+    )
+end
 
 return {
     {
@@ -188,16 +245,17 @@ return {
                 },
             },
         },
-        keys = function()
-            -- Import keymaps from config/keymaps.lua
-            local keymaps_module = require("config.keymaps")
-            return keymaps_module.setup_codecompanion_keymaps()
-        end,
+        -- keys = function()
+        --     -- Import keymaps from config/keymaps.lua
+        --     local keymaps_module = require("config.keymaps")
+        --     return keymaps_module.setup_codecompanion_keymaps()
+        -- end,
         opts = function(_, opts)
             local custom_opts = {
                 adapters = {
                     anthropic = anthropic_fn,
                     -- openai = openai_fn,
+                    deepinfra = deepinfra_fn,
                 },
             }
 

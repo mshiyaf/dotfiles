@@ -21,6 +21,12 @@ font pango:monospace 8
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
 #font pango:DejaVu Sans Mono 8
 
+# Inner gaps for all windows: space between two adjacent windows (or split containers).
+gaps inner 10px
+
+# Set the wallpaper
+exec_always --no-startup-id feh --bg-scale /home/mshiyaf/Documents/morning-routine-4k-ga.jpg
+
 # Start XDG autostart .desktop files using dex. See also
 # https://wiki.archlinux.org/index.php/XDG_Autostart
 exec --no-startup-id dex --autostart --environment i3
@@ -51,7 +57,8 @@ floating_modifier $mod
 tiling_drag modifier titlebar
 
 # start a terminal
-bindsym $mod+Return exec ghostty
+# bindsym $mod+Return exec ghostty
+bindsym $mod+Return exec kitty
 
 # Assign applications to specific workspaces
 for_window [class="Google-chrome"] move to workspace $ws1

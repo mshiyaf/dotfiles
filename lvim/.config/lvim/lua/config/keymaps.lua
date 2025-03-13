@@ -7,13 +7,21 @@ local M = {}
 -- silent
 local silent = { silent = true }
 
--- tmux-sessionizer
-vim.keymap.set(
-    "n",
-    "<C-f>",
-    "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>",
-    silent
-)
+-- Create an autocmd that runs after VeryLazy
+vim.api.nvim_create_autocmd("User", {
+    pattern = "VeryLazy",
+    callback = function()
+        -- Remove the default <C-f> mapping
+        vim.keymap.del("n", "<C-f>")
+        -- Set your custom mapping
+        vim.keymap.set(
+            "n",
+            "<C-f>",
+            "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>",
+            silent
+        )
+    end,
+})
 
 function M.setup_codecompanion_keymaps()
     return {
@@ -24,8 +32,8 @@ function M.setup_codecompanion_keymaps()
         },
         {
             "<leader>ao",
-            ":CodeCompanionChat openai<CR>",
-            desc = "Codecompanion: OpenAI",
+            ":CodeCompanionChat deepinfra<CR>",
+            desc = "Codecompanion: DeepInfra",
         },
         {
             "<leader>ag",

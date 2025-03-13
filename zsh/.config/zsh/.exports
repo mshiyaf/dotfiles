@@ -60,6 +60,10 @@ export PATH=$PATH:/opt/GoLand-2024.1.4/bin
 # mattermost
 export PATH=$PATH:/opt/Mattermost
 
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 # pnpm
 export PNPM_HOME="/home/mshiyaf/.local/share/pnpm"
 case ":$PATH:" in

@@ -5,3 +5,6 @@ zsh/.config/zsh/.zsh_history
 lazygit/.config/lazygit/state.yml
 nvim/.config/nvim/plugin/packer_compiled.lua
 btop/.config/btop/btop.log
+
+# env
+.env
