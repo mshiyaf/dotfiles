@@ -64,6 +64,8 @@ bindsym $mod+Return exec kitty
 for_window [class="Google-chrome"] move to workspace $ws1
 for_window [class="firefox"] move to workspace $ws1
 for_window [class="kitty"] move to workspace $ws2
+for_window [class="Cursor"] move to workspace $ws2
+for_window [class="cursor"] move to workspace $ws2
 for_window [class="ghostty"] move to workspace $ws2
 for_window [class="DBeaver"] move to workspace $ws3
 for_window [class="Postman"] move to workspace $ws4

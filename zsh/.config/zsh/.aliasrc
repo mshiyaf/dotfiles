@@ -43,6 +43,7 @@ alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
 
 # vim related (use nvim for neovim and vim for lazyvim)
 # Alias for launching lvim with decrypted API keys
-alias lvim='ANTHROPIC_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/anthropic_api_key.gpg 2>/dev/null)" OPENAI_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/openai_api_key.gpg 2>/dev/null)" DEEPINFRA_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/deepinfra_api_key.gpg 2>/dev/null)" NVIM_APPNAME=lvim nvim'
+# alias lvim='ANTHROPIC_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/anthropic_api_key.gpg 2>/dev/null)" OPENAI_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/openai_api_key.gpg 2>/dev/null)" DEEPINFRA_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/deepinfra_api_key.gpg 2>/dev/null)" NVIM_APPNAME=lvim nvim'
+alias lvim='NVIM_APPNAME=lvim nvim'
 # Redirect vim command to lvim
 alias vim=lvim
