@@ -83,3 +83,6 @@ PATH="$HOME/.emacs.d/bin:$PATH"
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
+## PHP Composer Laravel
+export PATH="/home/mshiyaf/.config/herd-lite/bin:$PATH"
+export PHP_INI_SCAN_DIR="/home/mshiyaf/.config/herd-lite/bin:$PHP_INI_SCAN_DIR"
