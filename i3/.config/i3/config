@@ -38,7 +38,7 @@ exec --no-startup-id xfsettingsd --sm-client-disable
 exec --no-startup-id xfce4-power-manager
 
 # start picom server
-exec_always --no-startup-id picom --daemon --no-frame-pacing
+# exec_always --no-startup-id picom --daemon --no-frame-pacing
 
 # The combination of xss-lock, nm-applet and pactl is a popular choice, so
 # they are included here as an example. Modify as you see fit.

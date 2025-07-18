@@ -4,3 +4,4 @@
 
 -- View a color column at 80 characters
 vim.opt.colorcolumn = "80"
+vim.g.lazyvim_php_lsp = "intelephense"
