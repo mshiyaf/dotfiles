@@ -65,3 +65,5 @@ eval "$(zoxide init zsh)"
 [ -s "/home/mshiyaf/.bun/_bun" ] && source "/home/mshiyaf/.bun/_bun"
 
 [ -f "/home/mshiyaf/.ghcup/env" ] && . "/home/mshiyaf/.ghcup/env" # ghcup-env
+
+[[ -r "$HOME/.zprofile" ]] && source "$HOME/.zprofile"

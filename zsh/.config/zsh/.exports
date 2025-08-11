@@ -86,3 +86,4 @@ export SDKMAN_DIR="$HOME/.sdkman"
 ## PHP Composer Laravel
 export PATH="/home/mshiyaf/.config/herd-lite/bin:$PATH"
 export PHP_INI_SCAN_DIR="/home/mshiyaf/.config/herd-lite/bin:$PHP_INI_SCAN_DIR"
+

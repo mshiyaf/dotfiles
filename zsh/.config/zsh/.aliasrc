@@ -47,3 +47,7 @@ alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
 alias lvim='NVIM_APPNAME=lvim nvim'
 # Redirect vim command to lvim
 alias vim=lvim
+
+# explicit reload of zprofile
+alias reload‑secrets='source ~/.zprofile'
+alias encs='encrypt_secrets'

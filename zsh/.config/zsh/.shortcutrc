@@ -22,3 +22,118 @@ bindkey '\e[B' history-beginning-search-forward
 # bindkey '^o' up-line-or-history
 
 function mkcd() { mkdir -p "$@" && cd "$_"; }
+
+# ---------------------------------------------------------------
+# encrypt_secrets – encrypt ~/secrets.env → ~/.config/zsh/secrets.gpg.env
+#                     with one or more selected PGP keys.
+# ---------------------------------------------------------------
+encrypt_secrets() {
+    local plain="${HOME}/secrets.env"
+    local crypt="${HOME}/.config/zsh/secrets.gpg.env"
+
+    # -----------------------------------------------------------------
+    # 1️⃣  Sanity checks
+    # -----------------------------------------------------------------
+    if [[ ! -f "$plain" ]]; then
+        print -P "%F{red}❌ Plain secrets file not found:%f $plain"
+        return 1
+    fi
+    chmod 600 "$plain"                     # keep it private
+
+    # -----------------------------------------------------------------
+    # 2️⃣  Prompt before overwriting an existing encrypted file
+    # -----------------------------------------------------------------
+    if [[ -f "$crypt" ]]; then
+        print -P "%F{yellow}⚠️  Encrypted file already exists:%f $crypt"
+        if (( ZSH_VERSION )); then
+            read "ans?Overwrite it? [y/N] "
+        else
+            read -r -p "Overwrite it? [y/N] " ans
+        fi
+        case "$ans" in
+            [Yy]) ;;               # continue
+            *)  print "Aborted."
+                return 0 ;;
+        esac
+    fi
+
+    # -----------------------------------------------------------------
+    # 3️⃣  Gather all public PGP keys (fingerprint + UID)
+    # -----------------------------------------------------------------
+    # Two parallel arrays:
+    #   fp_array[i]  = full fingerprint
+    #   uid_array[i] = human‑readable user‑id line
+    local -a fp_array uid_array
+
+    while IFS='|' read -r fp uid; do
+        fp_array+=("$fp")
+        uid_array+=("$uid")
+    done < <(
+        gpg --list-keys --with-colons --fingerprint |
+        awk -F: '
+            $1=="fpr"   {fp=$10}
+            $1=="uid" && fp {print fp "|" $10; fp=""}
+        '
+    )
+
+    if (( ${#fp_array[@]} == 0 )); then
+        print -P "%F{red}❌ No public GPG keys found in your keyring.%f"
+        return 1
+    fi
+
+    # -----------------------------------------------------------------
+    # 4️⃣  Show the keys and let the user choose
+    # -----------------------------------------------------------------
+    print -P "\n%F{cyan}Available PGP keys:%f"
+    for (( i = 0; i < ${#fp_array[@]}; i++ )); do
+        # Show the first 8 characters of the fingerprint for readability
+        printf "  %2d) %s  %s\n" "$((i+1))" "${fp_array[i]:0:8}" "${uid_array[i]}"
+    done
+
+    if (( ZSH_VERSION )); then
+        read "choice?Enter numbers or fingerprint prefixes (space‑sep) [Enter=cancel]: "
+    else
+        read -r -p "Enter numbers or fingerprint prefixes (space‑sep) [Enter=cancel]: " choice
+    fi
+    [[ -n $choice ]] || { print "Aborted."; return 0; }
+
+    # -----------------------------------------------------------------
+    # 5️⃣  Build the list of `--pgp <fingerprint>` arguments
+    # -----------------------------------------------------------------
+    local -a pgp_args
+    for token in $choice; do
+        if [[ $token =~ ^[0-9]+$ ]]; then                # a plain number
+            (( token-- ))                                 # make it 0‑based
+            if (( token < 0 || token >= ${#fp_array[@]} )); then
+                print -P "%F{red}❌ Invalid selection: $((token+1))%f"
+                return 1
+            fi
+            pgp_args+=( "--pgp" "${fp_array[token]}" )
+        else                                            # fingerprint or its prefix
+            local match=""
+            for f in "${fp_array[@]}"; do
+                if [[ $f == ${token}* ]]; then
+                    match=$f
+                    break
+                fi
+            done
+            if [[ -z $match ]]; then
+                print -P "%F{red}❌ No fingerprint matches ‘$token’%f"
+                return 1
+            fi
+            pgp_args+=( "--pgp" "$match" )
+        fi
+    done
+
+    # -----------------------------------------------------------------
+    # 6️⃣  Encrypt with SOPS
+    # -----------------------------------------------------------------
+    # `--output` avoids truncating the target file before sops runs.
+    if sops -e "${pgp_args[@]}" --output "$crypt" "$plain"; then
+        chmod 600 "$crypt"
+        print -P "%F{green}✅ Secrets encrypted to:%f $crypt"
+    else
+        print -P "%F{red}❌ sops failed – encrypted file not written.%f"
+        return 1
+    fi
+}
