@@ -19,7 +19,7 @@ font pango:monospace 8
 #font pango:DejaVu Sans Mono 8
 
 # Inner gaps for all windows: space between two adjacent windows (or split containers).
-gaps inner 10px
+gaps inner 5px
 
 # for aesthtic dipalay
 workspace 6 gaps horizontal 150
