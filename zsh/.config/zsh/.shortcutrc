@@ -134,3 +134,14 @@ aider() {
     # Run the actual aider command
     command aider "$@"
 }
+
+# ---------------------------------------------------------------
+# Auto-load secrets for crush only
+# ---------------------------------------------------------------
+crush() {
+    # Load secrets if not already loaded
+    [[ -z "$SECRETS_LOADED" ]] && load_secrets
+
+    # Run the actual crush command
+    command crush "$@"
+}
