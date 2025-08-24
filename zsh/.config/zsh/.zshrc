@@ -8,21 +8,17 @@ export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="robbyrussell"
 
+
 plugins=(
     git
     vi-mode
+    zsh-autosuggestions
+    zsh-syntax-highlighting
 )
 
 source $ZSH/oh-my-zsh.sh
 
 source ~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh
-# Fast syntax highlighting (replaces zsh-syntax-highlighting)
-# Install: git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ~/code/dotfiles/zsh/.config/zsh/plugins/fast-syntax-highlighting
-source ~/.config/zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
-# Fast autosuggestions (replaces zsh-autosuggestions)
-# Install: git clone https://github.com/zsh-users/zsh-autosuggestions ~/code/dotfiles/zsh/.config/zsh/plugins/zsh-autosuggestions
-source ~/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-
 
 export KEYTIMEOUT=1
 
