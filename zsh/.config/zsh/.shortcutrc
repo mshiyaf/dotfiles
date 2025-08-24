@@ -5,6 +5,15 @@
 # ---------
 source <(fzf --zsh)
 
+resetdate() {
+    sudo date -s "$(wget -qSO- --max-redirect=0 google.com 2>&1 | grep Date: | cut -d' ' -f5-8)Z"
+}
+
+asdf() {
+    unset -f asdf
+    source "$HOME/.asdf/asdf.sh"
+    asdf "$@"
+}
 
 t_s(){
     ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
@@ -76,4 +85,36 @@ encrypt_secrets() {
             return 1
         fi
     fi
+}
+
+# ---------------------------------------------------------------
+# Helper function to load secrets
+# ---------------------------------------------------------------
+load_secrets() {
+    if [[ -f "$HOME/.config/zsh/secrets.gpg.env" ]] && [[ -z "$SECRETS_LOADED" ]]; then
+        if sops -d "$HOME/.config/zsh/secrets.gpg.env" >/dev/null 2>&1; then
+            set -a
+            source <(sops -d "$HOME/.config/zsh/secrets.gpg.env" |
+                     grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
+            set +a
+            export SECRETS_LOADED=1
+            echo "✅ Secrets loaded successfully"
+        else
+            echo "❌ Could not decrypt secrets file"
+            return 1
+        fi
+    # elif [[ -n "$SECRETS_LOADED" ]]; then
+    #     echo "✅ Secrets already loaded"
+    fi
+}
+
+# ---------------------------------------------------------------
+# Auto-load secrets for opencode only
+# ---------------------------------------------------------------
+opencode() {
+    # Load secrets if not already loaded
+    [[ -z "$SECRETS_LOADED" ]] && load_secrets
+    
+    # Run the actual opencode command
+    command opencode "$@"
 }

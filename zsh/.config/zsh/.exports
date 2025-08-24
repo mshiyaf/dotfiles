@@ -5,13 +5,11 @@ export XDG_DATA_HOME="$HOME/.local/share"
 
 export OPENCV_VIDEOIO_PRIORITY_INTEL_MFX=0
 
-export EDITOR=nvim
+export EDITOR=vim
 export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-export PATH=bin:$PATH
-export PATH=~/bin:$PATH
-export PATH=~/.local/bin:$PATH
+export PATH="bin:$HOME/bin:$HOME/.local/bin:$PATH"
 export PATH=/usr/local/sbin:$PATH
 export PATH=/usr/local/bin/yarn:$PATH
 
@@ -19,10 +17,18 @@ export PATH=/usr/local/bin/yarn:$PATH
 export PATH=~/.cargo/bin:$PATH
 
 # Python
-# if command `pyenv` exists, init it
-# export PYENV_ROOT="$HOME/.pyenv"
-# command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-# eval "$(pyenv init --path)"
+# pyenv lazy loading (only if installed)
+if [[ -d "$HOME/.pyenv" ]]; then
+    export PYENV_ROOT="$HOME/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    
+    # Lazy load pyenv init instead of running it immediately
+    pyenv() {
+        unset -f pyenv
+        eval "$(pyenv init -)"
+        pyenv "$@"
+    }
+fi
 
 # NodeJS
 export PATH=node_modules/.bin:$PATH
@@ -79,11 +85,23 @@ export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 # doom path
 PATH="$HOME/.emacs.d/bin:$PATH"
 
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+# #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+# SDKMAN lazy loading (only if installed)
+if [[ -d "$HOME/.sdkman" ]]; then
+    sdk() {
+        unset -f sdk
+        export SDKMAN_DIR="$HOME/.sdkman"
+        source "$SDKMAN_DIR/bin/sdkman-init.sh"
+        sdk "$@"
+    }
+fi
 
 ## PHP Composer Laravel
 export PATH="/home/mshiyaf/.config/herd-lite/bin:$PATH"
 export PHP_INI_SCAN_DIR="/home/mshiyaf/.config/herd-lite/bin:$PHP_INI_SCAN_DIR"
+
+# opencode
+export PATH=/home/mshiyaf/.opencode/bin:$PATH
+
+export GPG_TTY=$(tty)
 
