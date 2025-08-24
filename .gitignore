@@ -8,3 +8,4 @@ btop/.config/btop/btop.log
 
 # env
 .env
+.aider*

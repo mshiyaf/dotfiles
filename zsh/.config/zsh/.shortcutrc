@@ -122,3 +122,15 @@ opencode() {
     # Run the actual opencode command
     command opencode "$@"
 }
+
+
+# ---------------------------------------------------------------
+# Auto-load secrets for aider only
+# ---------------------------------------------------------------
+aider() {
+    # Load secrets if not already loaded
+    [[ -z "$SECRETS_LOADED" ]] && load_secrets
+
+    # Run the actual aider command
+    command aider "$@"
+}
