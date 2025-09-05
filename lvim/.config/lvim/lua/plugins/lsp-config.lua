@@ -13,6 +13,7 @@ return {
         opts = {
             ensure_installed = {
                 "blade-formatter",
+                "intelephense",
             },
         },
     },

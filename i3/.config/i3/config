@@ -47,6 +47,9 @@ exec --no-startup-id xfce4-power-manager
 # screen before suspend. Use loginctl lock-session to lock your screen.
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 
+# greenclip daemon start
+exec --no-startup-id greenclip daemon>/dev/null
+
 # NetworkManager is the most popular way to manage wireless networks on Linux,
 # and nm-applet is a desktop environment-independent system tray GUI for it.
 exec --no-startup-id nm-applet
