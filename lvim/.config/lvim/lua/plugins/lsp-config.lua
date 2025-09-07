@@ -14,6 +14,7 @@ return {
             ensure_installed = {
                 "blade-formatter",
                 "intelephense",
+                "rust-analyzer",
             },
         },
     },
