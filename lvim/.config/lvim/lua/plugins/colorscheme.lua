@@ -1,4 +1,5 @@
 return {
+    -- tokyonight
     {
         "folke/tokyonight.nvim",
         lazy = true,
@@ -30,6 +31,18 @@ return {
             },
         },
     },
+    -- nord
+    {
+        "gbprod/nord.nvim",
+        lazy = false,
+        priority = 1000,
+        transparent = true,
+    },
+    -- rose-pine
+    {
+        "rose-pine/neovim",
+        name = "rose-pine",
+    },
     -- TODO: Remove after fix from folke
     {
         "akinsho/bufferline.nvim",
@@ -44,7 +57,7 @@ return {
     {
         "LazyVim/LazyVim",
         opts = {
-            colorscheme = "catppuccin",
+            colorscheme = "rose-pine",
         },
     },
 }
