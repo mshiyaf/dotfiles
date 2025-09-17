@@ -73,7 +73,7 @@ tiling_drag modifier titlebar
 bindsym $mod+Return exec kitty
 
 # Assign applications to specific workspaces
-for_window [class="Google-chrome"] move to workspace $ws1
+bindsym $mod+Shift+g exec --no-startup-id ~/.config/i3/chrome-secondary.sh
 for_window [class="firefox"] move to workspace $ws1
 for_window [class="kitty"] move to workspace $ws2
 for_window [class="Cursor"] move to workspace $ws2
@@ -85,6 +85,10 @@ for_window [class="Mattermost"] move to workspace $ws5
 for_window [class="Anydesk"] move to workspace $ws6
 
 bindsym $mod+bracketleft exec --no-startup-id ~/code/dotfiles/i3/.config/i3/workspace_launcher.sh
+
+# Open google chrome secondary profile
+# bindsym $mod+Shift+g exec --no-startup-id ~/.config/i3/chrome-secondary.sh
+# bindsym $mod+Shift+g exec --no-startup-id google-chrome-stable --profile-directory="Profile 1" --class=chrome-secondary
 
 # kill focused window
 bindsym $mod+Shift+q kill
