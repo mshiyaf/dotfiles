@@ -43,16 +43,16 @@ return {
         "rose-pine/neovim",
         name = "rose-pine",
     },
-    -- TODO: Remove after fix from folke
-    {
-        "akinsho/bufferline.nvim",
-        init = function()
-            local bufline = require("catppuccin.groups.integrations.bufferline")
-            function bufline.get()
-                return bufline.get_theme()
-            end
-        end,
-    },
+    -- -- TODO: Remove after fix from folke
+    -- {
+    --     "akinsho/bufferline.nvim",
+    --     init = function()
+    --         local bufline = require("catppuccin.groups.integrations.bufferline")
+    --         function bufline.get()
+    --             return bufline.get_theme()
+    --         end
+    --     end,
+    -- },
     -- Configure LazyVim to load the colorscheme
     {
         "LazyVim/LazyVim",
