@@ -16,6 +16,11 @@ asdf() {
     asdf "$@"
 }
 
+
+# (optional) completions without sourcing asdf.sh
+fpath=("$HOME/.asdf/completions" $fpath)
+autoload -Uz compinit && compinit
+
 t_s(){
     ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh
 }

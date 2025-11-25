@@ -105,3 +105,7 @@ export PATH=/home/mshiyaf/.opencode/bin:$PATH
 
 export GPG_TTY=$(tty)
 
+# asdf shims
+export ASDF_DIR="$HOME/.asdf"
+export PATH="$ASDF_DIR/shims:$PATH"
+
