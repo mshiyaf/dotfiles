@@ -16,7 +16,7 @@ return {
 	font_size = 10,
 
 	use_fancy_tab_bar = true,
-	enable_tab_bar = false,
+	enable_tab_bar = true,
 	window_decorations = "RESIZE",
 	window_padding = window_padding,
 	window_background_opacity = 1,
