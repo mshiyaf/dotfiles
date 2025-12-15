@@ -9,3 +9,6 @@ btop/.config/btop/btop.log
 # env
 .env
 .aider*
+
+# zbar
+.glzr/zebar/tmp*
