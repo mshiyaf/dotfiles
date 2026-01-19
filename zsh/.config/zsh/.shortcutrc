@@ -120,13 +120,13 @@ load_secrets() {
 # ---------------------------------------------------------------
 # Auto-load secrets for opencode only
 # ---------------------------------------------------------------
-opencode() {
-    # Load secrets if not already loaded
-    [[ -z "$SECRETS_LOADED" ]] && load_secrets
-    
-    # Run the actual opencode command
-    command opencode "$@"
-}
+# opencode() {
+#     # Load secrets if not already loaded
+#     [[ -z "$SECRETS_LOADED" ]] && load_secrets
+#
+#     # Run the actual opencode command
+#     command opencode "$@"
+# }
 
 
 # ---------------------------------------------------------------
