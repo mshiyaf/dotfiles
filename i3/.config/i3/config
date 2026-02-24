@@ -234,7 +234,19 @@ bindsym $mod+space focus mode_toggle
 # Key Bindings: Workspaces
 ###############################################################################
 
-# switch to workspace
+# switch to workspace (number keys)
+bindsym $mod+1 workspace number $ws1
+bindsym $mod+2 workspace number $ws2
+bindsym $mod+3 workspace number $ws3
+bindsym $mod+4 workspace number $ws4
+bindsym $mod+5 workspace number $ws5
+bindsym $mod+6 workspace number $ws6
+bindsym $mod+7 workspace number $ws7
+bindsym $mod+8 workspace number $ws8
+bindsym $mod+9 workspace number $ws9
+bindsym $mod+0 workspace number $ws10
+
+# switch to workspace (home row)
 bindsym $mod+y workspace number $ws1
 bindsym $mod+u workspace number $ws2
 bindsym $mod+i workspace number $ws3
@@ -246,7 +258,19 @@ bindsym $mod+coma workspace number $ws8
 bindsym $mod+period workspace number $ws9
 bindsym $mod+slash workspace number $ws10
 
-# move focused container to workspace
+# move focused container to workspace (number keys)
+bindsym $mod+Shift+1 move container to workspace number $ws1
+bindsym $mod+Shift+2 move container to workspace number $ws2
+bindsym $mod+Shift+3 move container to workspace number $ws3
+bindsym $mod+Shift+4 move container to workspace number $ws4
+bindsym $mod+Shift+5 move container to workspace number $ws5
+bindsym $mod+Shift+6 move container to workspace number $ws6
+bindsym $mod+Shift+7 move container to workspace number $ws7
+bindsym $mod+Shift+8 move container to workspace number $ws8
+bindsym $mod+Shift+9 move container to workspace number $ws9
+bindsym $mod+Shift+0 move container to workspace number $ws10
+
+# move focused container to workspace (home row)
 bindsym $mod+Shift+y move container to workspace number $ws1
 bindsym $mod+Shift+u move container to workspace number $ws2
 bindsym $mod+Shift+i move container to workspace number $ws3
