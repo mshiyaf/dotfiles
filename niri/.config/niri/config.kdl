@@ -253,6 +253,7 @@ layout {
 
 // Named workspaces
 workspace "chat"
+workspace "music"
 workspace "api"
 workspace "db"
 workspace "dev"
@@ -334,6 +335,8 @@ window-rule {
 
 window-rule {
     match app-id=r#"^kitty$"#
+    match app-id=r#"[Cc]ursor"#
+    match app-id=r#"[Gg]hostty"#
     open-on-workspace "dev"
 }
 
@@ -350,6 +353,11 @@ window-rule {
 window-rule {
     match app-id=r#"Mattermost"#
     open-on-workspace "chat"
+}
+
+window-rule {
+    match app-id=r#"chrome"# title="YouTube Music"
+    open-on-workspace "music"
 }
 
 // Open the Firefox picture-in-picture player as floating by default.
@@ -386,6 +394,7 @@ binds {
     Mod+Shift+C hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
     Mod+S hotkey-overlay-title="Screenshot Region + Edit" { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
     Mod+M hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
+    Mod+Shift+G hotkey-overlay-title="YouTube Music" { spawn-sh "google-chrome-stable --profile-directory='Profile 1' --app='https://music.youtube.com' & sleep 0.1 && niri msg action focus-workspace music"; }
     Shift+Alt+Super+XF86TouchpadToggle { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
@@ -401,6 +410,9 @@ binds {
     // XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
     // XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
     XF86AudioMicMute     allow-when-locked=true { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "muteInput"; }
+    Super+Up    { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "increase"; }
+    Super+Down  { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "decrease"; }
+    Super+H     { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "muteInput"; }
 
     // Example media keys mapping using playerctl.
     // This will work with any MPRIS-enabled media player.
