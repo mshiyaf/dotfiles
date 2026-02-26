@@ -230,7 +230,7 @@
         "manualSunrise": "06:30",
         "manualSunset": "18:30",
         "monitorForColors": "",
-        "predefinedScheme": "Tokyo Night",
+        "predefinedScheme": "Ayu",
         "schedulingMode": "off",
         "useWallpaperColors": false
     },
@@ -608,7 +608,7 @@
     },
     "wallpaper": {
         "automationEnabled": false,
-        "directory": "/home/mshiyaf/Documents",
+        "directory": "/home/mshiyaf/Wallpapers",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
         "favorites": [
