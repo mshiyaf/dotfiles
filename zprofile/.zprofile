@@ -1,4 +1,9 @@
-export GTK_IM_MODULE=ibus
+# only for X11
+if [ "$XDG_SESSION_TYPE" = "x11" ]; then
+  export GTK_IM_MODULE=ibus
+else
+  unset GTK_IM_MODULE
+fi
 export ZDOTDIR="$HOME/.config/zsh"
 
 # ---------------------------------------------------------------
