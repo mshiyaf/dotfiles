@@ -252,12 +252,10 @@ layout {
 }
 
 // Named workspaces
-workspace "chat"
-workspace "music"
-workspace "api"
-workspace "db"
 workspace "dev"
 workspace "browser"
+workspace "tools"
+workspace "music"
 
 // Add lines like this to spawn processes at startup.
 // Note that running niri as a session supports xdg-desktop-autostart,
@@ -330,6 +328,10 @@ window-rule {
 // Assign apps to workspaces
 window-rule {
     match app-id=r#"firefox$"#
+    match app-id=r#"[Cc]hrome"#
+    match app-id=r#"[Bb]rave"#
+    match app-id=r#"[Zz]en"#
+    match app-id=r#"Mattermost"#
     open-on-workspace "browser"
 }
 
@@ -342,17 +344,8 @@ window-rule {
 
 window-rule {
     match app-id=r#"DBeaver"#
-    open-on-workspace "db"
-}
-
-window-rule {
     match app-id=r#"Postman"#
-    open-on-workspace "api"
-}
-
-window-rule {
-    match app-id=r#"Mattermost"#
-    open-on-workspace "chat"
+    open-on-workspace "tools"
 }
 
 window-rule {
@@ -393,9 +386,9 @@ binds {
     Super+L hotkey-overlay-title="Lock the Screen" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
     Mod+Shift+C hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
     Mod+S hotkey-overlay-title="Screenshot Region + Edit" { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
-    Mod+M hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
+    Mod+M hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
     Mod+Shift+G hotkey-overlay-title="YouTube Music" { spawn-sh "google-chrome-stable --profile-directory='Profile 1' --app='https://music.youtube.com' & sleep 0.1 && niri msg action focus-workspace music"; }
-    Shift+Alt+Super+XF86TouchpadToggle { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
+    Shift+Alt+Super+XF86TouchpadToggle { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -556,15 +549,15 @@ binds {
     Mod+7 { focus-workspace 7; }
     Mod+8 { focus-workspace 8; }
     Mod+9 { focus-workspace 9; }
-    Mod+Shift+1 { move-column-to-workspace 1; }
-    Mod+Shift+2 { move-column-to-workspace 2; }
-    Mod+Shift+3 { move-column-to-workspace 3; }
-    Mod+Shift+4 { move-column-to-workspace 4; }
-    Mod+Shift+5 { move-column-to-workspace 5; }
-    Mod+Shift+6 { move-column-to-workspace 6; }
-    Mod+Shift+7 { move-column-to-workspace 7; }
-    Mod+Shift+8 { move-column-to-workspace 8; }
-    Mod+Shift+9 { move-column-to-workspace 9; }
+    Mod+Ctrl+1 { move-column-to-workspace 1; }
+    Mod+Ctrl+2 { move-column-to-workspace 2; }
+    Mod+Ctrl+3 { move-column-to-workspace 3; }
+    Mod+Ctrl+4 { move-column-to-workspace 4; }
+    Mod+Ctrl+5 { move-column-to-workspace 5; }
+    Mod+Ctrl+6 { move-column-to-workspace 6; }
+    Mod+Ctrl+7 { move-column-to-workspace 7; }
+    Mod+Ctrl+8 { move-column-to-workspace 8; }
+    Mod+Ctrl+9 { move-column-to-workspace 9; }
 
     // Alternatively, there are commands to move just a single window:
     // Mod+Ctrl+1 { move-window-to-workspace 1; }
@@ -659,4 +652,3 @@ binds {
 }
 
 include "./noctalia.kdl"
-
