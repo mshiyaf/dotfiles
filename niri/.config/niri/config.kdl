@@ -251,6 +251,13 @@ layout {
     }
 }
 
+// Named workspaces
+workspace "chat"
+workspace "api"
+workspace "db"
+workspace "dev"
+workspace "browser"
+
 // Add lines like this to spawn processes at startup.
 // Note that running niri as a session supports xdg-desktop-autostart,
 // which may be more convenient to use.
@@ -319,6 +326,32 @@ window-rule {
     default-column-width {}
 }
 
+// Assign apps to workspaces
+window-rule {
+    match app-id=r#"firefox$"#
+    open-on-workspace "browser"
+}
+
+window-rule {
+    match app-id=r#"^kitty$"#
+    open-on-workspace "dev"
+}
+
+window-rule {
+    match app-id=r#"DBeaver"#
+    open-on-workspace "db"
+}
+
+window-rule {
+    match app-id=r#"Postman"#
+    open-on-workspace "api"
+}
+
+window-rule {
+    match app-id=r#"Mattermost"#
+    open-on-workspace "chat"
+}
+
 // Open the Firefox picture-in-picture player as floating by default.
 window-rule {
     // This app-id regular expression will work for both:
@@ -352,6 +385,8 @@ binds {
     Super+L hotkey-overlay-title="Lock the Screen" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
     Mod+Shift+C hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
     Mod+S hotkey-overlay-title="Screenshot Region + Edit" { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
+    Mod+M hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
+    Shift+Alt+Super+XF86TouchpadToggle { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace chat"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
