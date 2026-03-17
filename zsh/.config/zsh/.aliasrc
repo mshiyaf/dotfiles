@@ -1,4 +1,29 @@
 # vim: filetype=zsh
+#
+#alias open="xdg-open"
+alias make="make -j`nproc`"
+alias ninja="ninja -j`nproc`"
+alias n="ninja"
+alias c="clear"
+alias rmpkg="sudo pacman -Rsn"
+alias cleanch="sudo pacman -Scc"
+alias fixpacman="sudo rm /var/lib/pacman/db.lck"
+alias update="sudo pacman -Syu"
+
+# Help people new to Arch
+alias apt="man pacman"
+alias apt-get="man pacman"
+alias please="sudo"
+alias tb="nc termbin.com 9999"
+
+# Cleanup orphaned packages
+alias cleanup='sudo pacman -Rsn $(pacman -Qtdq)'
+
+# Get the error messages from journalctl
+alias jctl="journalctl -p 3 -xb"
+
+# Recent installed packages
+alias rip="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -200 | nl"
 
 alias ls="eza -g -G --icons"
 alias la="ls -a"
@@ -9,13 +34,15 @@ alias t=tmux
 alias ta="tmux a"
 # alias backup="python ~/OneDrive/Back\ Up/backup_script.py"
 alias fin=fzf
-alias cl=clear
 alias yt=youtube-dl
 alias top=btop
 alias ll="eza -l -g --icons"
 alias lla="ll -a"
+
 alias bladeformatter="blade-formatter"
+
 alias lg="lazygit"
+
 alias ssh='TERM=xterm-256color ssh'
 if [[ "$(uname)" == "Linux" ]]; then
   if grep -qi microsoft /proc/version; then
@@ -23,28 +50,22 @@ if [[ "$(uname)" == "Linux" ]]; then
     alias open='explorer.exe'
   else
     # This is native Linux
-    alias open='thunar'
+    alias open='nautilus'
   fi
 fi
 
-alias sadb='adb.exe kill-server && adb.exe -a nodaemon server start'
-alias smysql='sudo service mysql start'
-alias spsql='sudo service postgresql start'
 alias pn=pnpm
 
-# project specific
-alias wo="cd ~/Texol && vim ."
-alias ide="source ~/code/dotfiles/zsh/.config/zsh/ide_session.sh"
+alias ide="source ~/dev/github.com/mshiyaf/dotfiles/zsh/.config/zsh/ide_session.sh"
 
 
 # vim related (use nvim for neovim and vim for lazyvim)
-# Alias for launching lvim with decrypted API keys
-# alias lvim='ANTHROPIC_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/anthropic_api_key.gpg 2>/dev/null)" OPENAI_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/openai_api_key.gpg 2>/dev/null)" DEEPINFRA_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/deepinfra_api_key.gpg 2>/dev/null)" NVIM_APPNAME=lvim nvim'
-alias lvim='NVIM_APPNAME=lvim nvim'
-# Redirect vim command to lvim
-alias vim=lvim
+# Alias for launching nvim with decrypted API keys
+# alias nvim='ANTHROPIC_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/anthropic_api_key.gpg 2>/dev/null)" OPENAI_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/openai_api_key.gpg 2>/dev/null)" DEEPINFRA_API_KEY="$(gpg --pinentry-mode loopback --decrypt ~/deepinfra_api_key.gpg 2>/dev/null)" nvim'
+# Redirect vim command to nvim
+alias vim=nvim
 
 # explicit reload of zprofile
-alias reload‑secrets='source ~/.zprofile'
+alias reload-secrets='source ~/.zprofile'
 alias encs='encrypt_secrets'
 alias load-secrets='load_secrets'
