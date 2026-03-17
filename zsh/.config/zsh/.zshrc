@@ -134,6 +134,9 @@ fi
 [ -s "/home/mshiyaf/.bun/_bun" ] && source "/home/mshiyaf/.bun/_bun"
 [ -f "/home/mshiyaf/.ghcup/env" ] && . "/home/mshiyaf/.ghcup/env" # ghcup-env
 
+# mise
+eval "$(mise activate zsh)"
+
 # Load profile last
 [[ -r "$HOME/.zprofile" ]] && source "$HOME/.zprofile"
 
