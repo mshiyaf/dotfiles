@@ -1,0 +1,25 @@
+binds {
+    Mod+Shift+G hotkey-overlay-title="YouTube Music" { spawn-sh "google-chrome-stable --profile-directory='Profile 1' --app='https://music.youtube.com' & sleep 0.1 && niri msg action focus-workspace music"; }
+    // ─── Media Controls ───
+    Super+Up    { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "increase"; }
+    Super+Down  { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "decrease"; }
+    Super+H     { spawn "qs" "-c" "noctalia-shell" "ipc" "call" "volume" "muteInput"; }
+
+
+    // ─── Window Movement and Focus ───
+    Mod+O repeat=false { toggle-overview; }
+
+    Mod+Q repeat=false { close-window; }
+
+
+    // ─── Layout Controls ───
+    Mod+BracketLeft  { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+
+    Mod+Comma  { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+
+    Mod+R { switch-preset-column-width; }
+    Mod+Shift+R { switch-preset-window-height; }
+    Mod+Ctrl+R { reset-window-height; }
+}

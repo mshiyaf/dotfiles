@@ -1,0 +1,7 @@
+// ────────────── Startup Applications ──────────────
+
+// Named workspaces
+workspace "dev"
+workspace "browser"
+workspace "tools"
+workspace "music"

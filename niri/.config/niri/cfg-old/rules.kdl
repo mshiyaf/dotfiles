@@ -1,0 +1,36 @@
+// ────────────── Window & Layer Rules ──────────────
+
+
+// Assign apps to workspaces
+window-rule {
+    match app-id=r#"firefox$"#
+    match app-id=r#"[Cc]hrome"#
+    match app-id=r#"[Bb]rave"#
+    match app-id=r#"[Zz]en"#
+    match app-id=r#"Mattermost"#
+    open-on-workspace "browser"
+}
+
+window-rule {
+    match app-id=r#"^kitty$"#
+    match app-id=r#"[Cc]ursor"#
+    match app-id=r#"[Gg]hostty"#
+    open-on-workspace "dev"
+}
+
+window-rule {
+    match app-id=r#"DBeaver"#
+    match app-id=r#"Postman"#
+    open-on-workspace "tools"
+}
+
+window-rule {
+    match app-id=r#"chrome"# title="YouTube Music"
+    open-on-workspace "music"
+}
+
+// Open the Firefox picture-in-picture player as floating by default.
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}

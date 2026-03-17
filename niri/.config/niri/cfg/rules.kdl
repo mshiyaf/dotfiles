@@ -1,0 +1,27 @@
+    window-rule {
+        geometry-corner-radius 12 // Set every window radius to 20
+        clip-to-geometry true
+    }
+
+    layer-rule {
+        match namespace="^noctalia-wallpaper*"
+        place-within-backdrop true
+    }
+
+    // Set the overview wallpaper on the backdrop.
+    layer-rule {
+    	match namespace="^noctalia-overview*"
+    	place-within-backdrop true
+    }
+
+    // Example: block out two password managers from screen capture.
+    // /-window-rule {
+    // 	match app-id=r#"^org\.keepassxc\.KeePassXC$"#
+    // 	match app-id=r#"^org\.gnome\.World\.Secrets$"#
+    //
+    // 	block-out-from "screen-capture"
+    //
+    // 	// Use this instead if you want them visible on third-party screenshot tools.
+    // 	// block-out-from "screencast"
+    // }
+
