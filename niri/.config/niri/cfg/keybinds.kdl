@@ -3,13 +3,13 @@ binds {
 
     // ─── Applications ───
     Mod+Return                          hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
-    Mod+D                     		hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn-sh "qs -c noctalia-shell ipc call launcher toggle"; }
+    Mod+D                               hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn-sh "qs -c noctalia-shell ipc call launcher toggle"; }
     Mod+B                               hotkey-overlay-title="Open Browser: firefox" { spawn "firefox"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
-    Mod+Shift+Q                        hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn-sh "qs -c noctalia-shell ipc call sessionMenu toggle"; }
-	Mod+Shift+C hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
-	Mod+M hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
-	Shift+Alt+Super+XF86TouchpadToggle { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
+    Mod+Shift+Q                         hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn-sh "qs -c noctalia-shell ipc call sessionMenu toggle"; }
+	  Mod+Shift+C                         hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
+	  Mod+M                               hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
+	  Shift+Alt+Super+XF86TouchpadToggle  { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
 
 
 
@@ -64,34 +64,34 @@ binds {
     Mod+Shift+Right                     { focus-monitor-right; }
     Mod+Shift+UP                        { focus-monitor-up; }
     Mod+Shift+Down                      { focus-monitor-down; }
-    // Mod+Shift+H     			{ focus-monitor-left; }
-    // Mod+Shift+J     			{ focus-monitor-down; }
-    // Mod+Shift+K     			{ focus-monitor-up; }
-    // Mod+Shift+L     			{ focus-monitor-right; }
+    // Mod+Shift+H                      { focus-monitor-left; }
+    // Mod+Shift+J                      { focus-monitor-down; }
+    // Mod+Shift+K                      { focus-monitor-up; }
+    // Mod+Shift+L                      { focus-monitor-right; }
 
     Mod+Shift+CTRL+Left                 { move-column-to-monitor-left; }
     Mod+Shift+CTRL+Right                { move-column-to-monitor-right; }
     Mod+Shift+CTRL+UP                   { move-column-to-monitor-up; }
     Mod+Shift+CTRL+Down                 { move-column-to-monitor-down; }
-    Mod+Shift+Ctrl+H     		{ move-column-to-monitor-left; }
-    Mod+Shift+Ctrl+J     		{ move-column-to-monitor-down; }
-    Mod+Shift+Ctrl+K     		{ move-column-to-monitor-up; }
-    Mod+Shift+Ctrl+L     		{ move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+H                    { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+J                    { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+K                    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+L                    { move-column-to-monitor-right; }
 
 
     // ─── Workspace Switching ───
     Mod+WheelScrollDown                 cooldown-ms=150 { focus-workspace-down; }
     Mod+WheelScrollUp                   cooldown-ms=150 { focus-workspace-up; }
-    Mod+Page_Down      			{ focus-workspace-down; }
-    Mod+Page_Up        			{ focus-workspace-up; }
-    Mod+U              			{ focus-workspace-down; }
-    Mod+I              			{ focus-workspace-up; }
+    Mod+Page_Down                       { focus-workspace-down; }
+    Mod+Page_Up                         { focus-workspace-up; }
+    Mod+U                               { focus-workspace-down; }
+    Mod+I                               { focus-workspace-up; }
     Mod+CTRL+WheelScrollDown            cooldown-ms=150 { move-column-to-workspace-down; }
     Mod+CTRL+WheelScrollUp              cooldown-ms=150 { move-column-to-workspace-up; }
-    Mod+Ctrl+Page_Down 			{ move-column-to-workspace-down; }
-    Mod+Ctrl+Page_Up   			{ move-column-to-workspace-up; }
-    Mod+Ctrl+U         			{ move-column-to-workspace-down; }
-    Mod+Ctrl+I         			{ move-column-to-workspace-up; }
+    Mod+Ctrl+Page_Down                  { move-column-to-workspace-down; }
+    Mod+Ctrl+Page_Up                    { move-column-to-workspace-up; }
+    Mod+Ctrl+U                          { move-column-to-workspace-down; }
+    Mod+Ctrl+I                          { move-column-to-workspace-up; }
 
     Mod+WheelScrollRight                { focus-column-right; }
     Mod+WheelScrollLeft                 { focus-column-left; }
@@ -145,9 +145,9 @@ binds {
     CTRL+Shift+1                        { screenshot; }
     CTRL+Shift+2                        { screenshot-screen; }
     CTRL+Shift+3                        { screenshot-window; }
-    Print 				{ screenshot; }
-    Ctrl+Print 				{ screenshot-screen; }
-    Alt+Print 				{ screenshot-window; }
+    Print                               { screenshot; }
+    Ctrl+Print                          { screenshot-screen; }
+    Alt+Print                           { screenshot-window; }
 
     // ─── Emergency Escape Key ───
     // Use this when a fullscreen app blocks your keybinds.
