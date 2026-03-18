@@ -142,3 +142,5 @@ eval "$(mise activate zsh)"
 
 # Show profiling results
 # zprof
+
+. "$HOME/.local/share/../bin/env"
