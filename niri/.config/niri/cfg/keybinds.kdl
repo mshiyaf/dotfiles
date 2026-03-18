@@ -2,7 +2,7 @@ binds {
     Mod+Shift+Slash                     { show-hotkey-overlay; }
 
     // ─── Applications ───
-    Mod+Return                          hotkey-overlay-title="Open Terminal: Alacritty" { spawn "alacritty"; }
+    Mod+Return                          hotkey-overlay-title="Open Terminal" { spawn-sh "${TERMINAL:-alacritty}"; }
     Mod+D                               hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn-sh "qs -c noctalia-shell ipc call launcher toggle"; }
     Mod+B                               hotkey-overlay-title="Open Browser: firefox" { spawn "firefox"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
@@ -11,7 +11,8 @@ binds {
 	  Mod+M                               hotkey-overlay-title="Open Mattermost" { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
 	  Shift+Alt+Super+XF86TouchpadToggle  { spawn-sh "mattermost-desktop & sleep 0.1 && niri msg action focus-workspace browser"; }
 
-
+    Mod+Shift+G hotkey-overlay-title="YouTube Music" { spawn-sh "google-chrome-stable --profile-directory='Profile 1' --app='https://music.youtube.com' & sleep 0.1 && niri msg action focus-workspace music"; }
+    // Super+L hotkey-overlay-title="Lock the Screen" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
 
     // Please choose your own file manager.
     Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }

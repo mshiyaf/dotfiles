@@ -1,7 +1,0 @@
-// ────────────── Output Configuration ──────────────
-// https://yalter.github.io/niri/Configuration:-Outputs
-
-/-output "eDP-1" {
-    mode "1920x1080@120.030"
-    scale 2
-}
