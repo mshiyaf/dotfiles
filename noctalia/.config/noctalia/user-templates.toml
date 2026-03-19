@@ -10,8 +10,8 @@
 # output_path = "~/.config/myapp/theme.css"
 # post_hook = "myapp --reload-theme"
 
-# Remove this section and add your own templates
-#[templates.placeholder]
-#input_path = "/etc/xdg/quickshell/noctalia-shell/Assets/Templates/noctalia.json"
-#output_path = "/home/mshiyaf/.cache/noctalia/placeholder.json"
+[templates.tmux]
+input_path = "~/.config/noctalia/templates/tmux.conf"
+output_path = "~/.tmux.colors-powerline.conf"
+post_hook = "tmux source-file ~/.tmux.conf 2>/dev/null || true"
 
