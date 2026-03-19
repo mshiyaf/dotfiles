@@ -15,3 +15,7 @@ input_path = "~/.config/noctalia/templates/tmux.conf"
 output_path = "~/.tmux.colors-powerline.conf"
 post_hook = "tmux source-file ~/.tmux.conf 2>/dev/null || true"
 
+[templates.opencode]
+input_path = "~/.config/noctalia/templates/opencode.json"
+output_path = "~/.config/opencode/themes/noctalia.json"
+
