@@ -378,7 +378,7 @@
         "allowPasswordWithFprintd": false,
         "animationDisabled": false,
         "animationSpeed": 1,
-        "autoStartAuth": false,
+        "autoStartAuth": true,
         "avatarImage": "/home/mshiyaf/.face",
         "boxRadiusRatio": 1,
         "clockFormat": "hh\\nmm",
