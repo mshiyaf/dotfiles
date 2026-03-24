@@ -32,20 +32,13 @@ fi
 parent=$(basename "$(dirname "$selected")")
 repo=$(basename "$selected")
 selected_name="${parent}/${repo}"
-# tmux doesn't allow dots or colons in session names
+# tmux doesn't allow dots, colons, or slashes in session names
+selected_name="${selected_name//\//_}"
 selected_name="${selected_name//./_}"
 selected_name="${selected_name//:/_}"
 
-# Not in tmux and tmux not running → start fresh
-if [[ -z "$TMUX" ]] && ! pgrep -x tmux &>/dev/null; then
-    tmux new-session -s "$selected_name" -c "$selected"
-    exit 0
-fi
-
-# Create session if it doesn't exist
-if ! tmux has-session -t="$selected_name" 2>/dev/null; then
-    tmux new-session -ds "$selected_name" -c "$selected"
-fi
+# Create session if it doesn't exist (silently fail if it does)
+tmux new-session -ds "$selected_name" -c "$selected" 2>/dev/null
 
 # Attach or switch
 if [[ -z "$TMUX" ]]; then
