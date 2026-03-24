@@ -15,7 +15,7 @@ vim.keymap.del("n", "<C-f>")
 vim.keymap.set(
     "n",
     "<C-f>",
-    "<cmd>silent !tmux neww ~/code/dotfiles/zsh/.config/zsh/tmux-sessionizer.sh<CR>",
+    "<cmd>silent !tmux neww ~/.config/zsh/tmux-sessionizer.sh<CR>",
     silent
 )
 
