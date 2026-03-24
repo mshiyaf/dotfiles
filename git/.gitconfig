@@ -1,56 +1,60 @@
-# This is Git's per-user configuration file.
 [user]
-  name = shiyaf
-  email = shiyaf@texolworld.com
+	name = Mohammed Shiyaf C
+	email = mshiyaf@gmail.com
+
 [core]
-  excludesfile = /home/shiyaf/.gitignore_global
-  editor = nvim
-[commit]
-  ; template = /home/shiyaf/.stCommitMsg
+	excludesfile = ~/.gitignore_global
+	editor = nvim
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	side-by-side = true
+	line-numbers = true
+	syntax-theme = Catppuccin Mocha
+
 [color]
-  status = auto
-  diff = auto
-  branch = auto
-  interactive = auto
-  grep = auto
-  ui = auto
-[alias]
-  a = "!git status --short | peco | awk '{print $2}' | xargs git add"
-  d = diff
-  co = checkout
-  ci = commit
-  ca = commit -a
-  ps = "!git push origin $(git rev-parse --abbrev-ref HEAD)"
-  pl = "!git pull origin $(git rev-parse --abbrev-ref HEAD)"
-  st = status
-  br = branch
-  ba = branch -a
-  bm = branch --merged
-  bn = branch --no-merged
-  df = "!git hist | peco | awk '{print $2}' | xargs -I {} git diff {}^ {}"
-  ; hist = log --pretty=format:'%h %<(20)%an %s' -10
-  hist = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset%n' --abbrev-commit --date=relative --branches
-  ; hist = log --pretty=format:\"%Cgreen%h %Creset%cd %Cblue[%cn] %Creset%s%C(yellow)%d%C(reset)\" --graph --date=relative --decorate --all
-  llog = log --graph --name-status --pretty=format:\"%C(red)%h %C(reset)(%cd) %C(green)%an %Creset%s %C(yellow)%d%Creset\" --date=relative
-  open = "!hub browse"
-  type = cat-file -t
-  dump = cat-file -p
-  find = "!f() { git log --pretty=format:\"%h %cd [%cn] %s%d\" --date=relative -S'pretty' -S\"$@\" | peco | awk '{print $1}' | xargs -I {} git diff {}^ {}; }; f"
-  # edit conflicted file on merge
-  edit-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; vim `f`"
-  # add conflicted file on merge
-  add-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; git add `f`"
-[hub]
-  protocol = ssh
-[github]
-  user = mshiyaf
-[diff]
-  tool = nvimdiff
+	ui = auto
+
 [merge]
-  tool = nvimdiff
+	tool = nvimdiff
+	conflictstyle = zdiff3
+
+[diff]
+	tool = nvimdiff
+	algorithm = histogram
+	colorMoved = default
+
 [difftool "nvimdiff"]
-  cmd = nvim -d \"$LOCAL\" \"$REMOTE\"
-  path =
+	cmd = nvim -d \"$LOCAL\" \"$REMOTE\"
+
 [mergetool "nvimdiff"]
-  cmd = nvim -d \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
-  trustExitCode = true
+	cmd = nvim -d \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	trustExitCode = true
+
+[rerere]
+	enabled = true
+
+[push]
+	autoSetupRemote = true
+
+[pull]
+	rebase = true
+
+[init]
+	defaultBranch = main
+
+[github]
+	user = mshiyaf
+
+[alias]
+	s = status -sb
+	lg = log --oneline --graph --decorate -20
+	hist = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset%n' --abbrev-commit --date=relative --branches
+	llog = log --graph --name-status --pretty=format:\"%C(red)%h %C(reset)(%cd) %C(green)%an %Creset%s %C(yellow)%d%Creset\" --date=relative
+	undo = reset --soft HEAD~1
+	edit-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; nvim `f`"
+	add-unmerged = "!f() { git ls-files --unmerged | cut -f2 | sort -u ; }; git add `f`"

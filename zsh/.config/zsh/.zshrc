@@ -24,7 +24,7 @@ COMPLETION_WAITING_DOTS="true"
 
 ZSH_THEME=""
 
-[[ -z "${plugins[*]}" ]] && plugins=( git vi-mode extract)
+[[ -z "${plugins[*]}" ]] && plugins=(git vi-mode extract fzf docker docker-compose golang)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -74,6 +74,18 @@ source /usr/share/doc/pkgfile/command-not-found.zsh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 export FZF_BASE=/usr/share/fzf
+
+# fzf keybindings & completion
+source /usr/share/fzf/key-bindings.zsh
+source /usr/share/fzf/completion.zsh
+
+# Use fd for fzf (respects .gitignore, much faster)
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+
+# Preview with bat
+export FZF_CTRL_T_OPTS="--preview 'bat --color=always --line-range :500 {}'"
 
 export KEYTIMEOUT=1
 
@@ -126,9 +138,7 @@ if [[ -f "$HOME/.local/share/fnm/fnm" ]]; then
 fi
 
 # zoxide  
-if [[ -f "$HOME/.local/bin/zoxide" ]]; then
-    eval "$(zoxide init zsh)"
-fi
+eval "$(zoxide init zsh)"
 
 # bun completions
 [ -s "/home/mshiyaf/.bun/_bun" ] && source "/home/mshiyaf/.bun/_bun"
