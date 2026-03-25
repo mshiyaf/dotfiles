@@ -117,8 +117,9 @@ bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 bindkey -v '^?' backward-delete-char
 
-# Edit line in vim with ctrl-v:
+# Edit line in nvim with ctrl-v:
 autoload edit-command-line; zle -N edit-command-line
+export VISUAL=nvim
 bindkey '^v' edit-command-line
 
 # # Load aliases and shortcuts if existent.
