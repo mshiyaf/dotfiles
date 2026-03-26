@@ -12,3 +12,6 @@ btop/.config/btop/btop.log
 
 # zbar
 .glzr/zebar/tmp*
+
+# per-host kitty overrides
+kitty/.config/kitty/archlinux.conf
