@@ -147,6 +147,7 @@ binds {
     CTRL+Shift+2                        { screenshot-screen; }
     CTRL+Shift+3                        { screenshot-window; }
     Print                               { screenshot; }
+Super+Shift+S                       { screenshot; }
     Ctrl+Print                          { screenshot-screen; }
     Alt+Print                           { screenshot-window; }
 

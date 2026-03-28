@@ -14,7 +14,7 @@ alias du="dust"
 alias ps="procs"
 alias dig="doggo"
 alias dstart="sudo systemctl start docker"
-alias dstop="sudo systemctl stop docker"
+alias dstop="sudo systemctl stop docker.socket docker.service"
 alias dc="docker compose"
 alias k="kubectl"
 alias tf="terraform"
@@ -72,7 +72,7 @@ if [[ "$(uname)" == "Linux" ]]; then
     alias open='explorer.exe'
   else
     # This is native Linux
-    alias open='nautilus'
+    function open() { nautilus "${@:-.}" &>/dev/null & disown; }
   fi
 fi
 
@@ -91,3 +91,19 @@ alias vim=nvim
 alias reload-secrets='source ~/.zprofile'
 alias encs='encrypt_secrets'
 alias load-secrets='load_secrets'
+
+# Mount/unmount Windows backup VHD
+function mount-backup() {
+    sudo modprobe nbd max_part=8
+    sudo qemu-nbd --connect=/dev/nbd0 /home/mshiyaf/windows-backup/wsl-backup.vhdx
+    sudo mkdir -p /mnt/backup
+    sudo mount /dev/nbd0 /mnt/backup
+    cd /mnt/backup
+}
+
+function umount-backup() {
+    cd ~
+    sudo umount /mnt/backup
+    sudo qemu-nbd --disconnect /dev/nbd0
+    sudo rmmod nbd
+}
