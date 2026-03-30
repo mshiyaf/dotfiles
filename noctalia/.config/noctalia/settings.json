@@ -32,6 +32,7 @@
         ],
         "preferredPlayer": "",
         "spectrumFrameRate": 30,
+        "spectrumMirrored": true,
         "visualizerType": "linear",
         "volumeFeedback": false,
         "volumeFeedbackSoundFile": "",
@@ -49,7 +50,6 @@
         "density": "compact",
         "displayMode": "always_visible",
         "enableExclusionZoneInset": true,
-        "floating": false,
         "fontScale": 1,
         "frameRadius": 12,
         "frameThickness": 8,
@@ -489,8 +489,7 @@
         "bluetoothRssiPollingEnabled": false,
         "disableDiscoverability": false,
         "networkPanelView": "wifi",
-        "wifiDetailsViewMode": "grid",
-        "wifiEnabled": true
+        "wifiDetailsViewMode": "grid"
     },
     "nightLight": {
         "autoSchedule": true,
@@ -717,6 +716,7 @@
         "transitionType": [
             "random"
         ],
+        "useOriginalImages": false,
         "useSolidColor": false,
         "useWallhaven": false,
         "viewMode": "recursive",
