@@ -107,3 +107,6 @@ export GPG_TTY=$(tty)
 # mise
 export PATH="$HOME/.local/share/mise/shims:$PATH"
 
+# ROCm - tell ROCm to treat RX 6800S (gfx1032) as compatible gfx1030
+export HSA_OVERRIDE_GFX_VERSION=10.3.0
+

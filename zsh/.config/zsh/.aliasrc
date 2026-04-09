@@ -78,6 +78,11 @@ fi
 
 alias pn=pnpm
 
+# Ollama (local LLM)
+alias ai-start="sudo systemctl start ollama.service"
+alias ai-stop="sudo systemctl stop ollama.service"
+alias ai-status="systemctl status ollama.service"
+
 alias ide="source ~/dev/github.com/mshiyaf/dotfiles/zsh/.config/zsh/ide_session.sh"
 
 
