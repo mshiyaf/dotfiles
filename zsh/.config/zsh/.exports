@@ -51,10 +51,6 @@ export PATH=$HOME/dev/flutter/bin:$PATH
 # npm
 export PATH=$HOME/.npm-packages/bin:$PATH
 
-# java
-export JAVA_HOME=/usr/lib/jvm/jdk-21-oracle-x64
-export PATH=$PATH:$JAVA_HOME/bin
-
 # android
 export ANDROID_SDK_ROOT=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
@@ -110,3 +106,6 @@ export PATH="$HOME/.local/share/mise/shims:$PATH"
 # ROCm - tell ROCm to treat RX 6800S (gfx1032) as compatible gfx1030
 export HSA_OVERRIDE_GFX_VERSION=10.3.0
 
+# Android Studio
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator"

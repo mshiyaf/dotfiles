@@ -3,6 +3,11 @@
         clip-to-geometry true
     }
 
+    window-rule {
+        match app-id="Emulator"
+        open-floating true
+    }
+
     layer-rule {
         match namespace="^noctalia-wallpaper*"
         place-within-backdrop true
@@ -12,6 +17,12 @@
     layer-rule {
     	match namespace="^noctalia-overview*"
     	place-within-backdrop true
+    }
+
+    window-rule {
+      match app-id="qemu-system"
+      match app-id=r#"^emulator"#
+      open-floating true
     }
 
     // Example: block out two password managers from screen capture.

@@ -3,8 +3,13 @@
   "compactMode": true,
   "showIpAddress": false,
   "showPeerCount": false,
-  "hideDisconnected": true,
+  "hideDisconnected": false,
+  "hideMullvadExitNodes": true,
   "terminalCommand": "alacritty",
+  "sshUsername": "",
   "pingCount": 5,
-  "defaultPeerAction": "copy-ip"
+  "defaultPeerAction": "copy-ip",
+  "taildropEnabled": true,
+  "taildropDownloadDir": "~/Downloads",
+  "taildropReceiveMode": "operator"
 }

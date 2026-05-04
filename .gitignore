@@ -15,3 +15,35 @@ btop/.config/btop/btop.log
 
 # per-host kitty overrides
 kitty/.config/kitty/archlinux.conf
+
+# opencode runtime, auth, plugin cache, and machine-local state
+opencode/.config/opencode/auth*
+opencode/.config/opencode/cache/
+opencode/.config/opencode/logs/
+opencode/.config/opencode/node_modules/
+opencode/.config/opencode/package-lock.json
+opencode/.config/opencode/pnpm-lock.yaml
+opencode/.config/opencode/yarn.lock
+opencode/.config/opencode/bun.lock*
+opencode/.config/opencode/*.sqlite
+opencode/.config/opencode/*.db
+opencode/.config/opencode/*.log
+opencode/.config/opencode/*.local.*
+opencode/.config/opencode/providers*
+opencode/.config/opencode/secrets*
+
+# never store home-level opencode plugin/runtime/auth state
+opencode/.opencode/oc-codex-multi-auth-accounts.json
+opencode/.opencode/oc-codex-multi-auth-accounts.json.lock
+opencode/.opencode/backups/
+opencode/.opencode/cache/
+opencode/.opencode/node_modules/
+opencode/.opencode/package-lock.json
+opencode/.opencode/bun.lock*
+.opencode/oc-codex-multi-auth-accounts.json
+.opencode/oc-codex-multi-auth-accounts.json.lock
+.opencode/backups/
+.opencode/cache/
+.opencode/node_modules/
+.opencode/package-lock.json
+.opencode/bun.lock*

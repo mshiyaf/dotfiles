@@ -97,6 +97,10 @@ alias reload-secrets='source ~/.zprofile'
 alias encs='encrypt_secrets'
 alias load-secrets='load_secrets'
 
+# android emulator - for fix related to qt
+alias emulator='QT_QPA_PLATFORM=xcb DISPLAY=:1 emulator'
+alias pixel='emulator -avd Pixel_10 &>/dev/null &'
+
 # Mount/unmount Windows backup VHD
 function mount-backup() {
     sudo modprobe nbd max_part=8
