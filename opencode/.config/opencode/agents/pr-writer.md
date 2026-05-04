@@ -1,5 +1,5 @@
 ---
-description: Drafts PR titles, PR bodies, summaries, test plans, and reviewer notes from git context.
+description: Drafts PR content and creates safe git commits from git context.
 mode: subagent
 temperature: 0.2
 permission:
@@ -13,6 +13,7 @@ permission:
     "git diff*": allow
     "git log*": allow
     "git branch*": allow
+    "git commit*": allow
   edit: deny
   skill:
     "*": deny
@@ -23,4 +24,4 @@ permission:
     "release-notes": allow
     "find-skills": ask
 ---
-Draft concise PR content from actual diffs and commits. Include summary, test plan, risks, and notes. Do not edit files unless explicitly requested.
+Draft concise PR content from actual diffs and commits. For commit requests, create commits from staged changes using a concise, accurate message. Do not edit files unless explicitly requested.

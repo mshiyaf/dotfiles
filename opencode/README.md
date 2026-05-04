@@ -118,6 +118,8 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
+Normal initial sessions use `default_agent: build` with `model: kimi-for-coding/k2p6`.
+
 To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 
 ### Command Routing
@@ -130,16 +132,21 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 | `/debug-tests`, `/explain` | `debugger` |
 | `/test-plan` | `tester` |
 | `/refactor-plan` | `refactor-planner` |
-| `/commit`, `/branch-name`, `/changelog`, `/pr-body` | `pr-writer` |
+| `/commit`, `/commit-message`, `/branch-name`, `/changelog`, `/pr-body` | `pr-writer` |
 | `/docs-update` | `docs-writer` |
 
 Model fallback or escalation is handled by editing the relevant agent model in `opencode.json`, not by keeping duplicate model-specific commands.
 
+`/commit` creates a commit from currently staged changes. It does not stage files automatically; stage what you want included first, then run `/commit`.
+
+`/commit-message` only drafts the message and never runs `git commit`.
+
 ### Verifying / changing models
 
-List configured agent models:
+List configured default and agent models:
 
 ```bash
+jq '{model, default_agent}' ~/.config/opencode/opencode.json
 jq '.agent' ~/.config/opencode/opencode.json
 ```
 
@@ -322,13 +329,13 @@ After restart, type `/` in OpenCode and check for:
 Primary commands:
 
 ```text
-/commit              /branch-name         /changelog
-/pr-body             /docs-update         /explain
-/debug-tests         /test-plan           /plan-feature
-/refactor-plan       /review-diff         /review-staged
-/security-review     /ship-check          /second-opinion
-/architecture-check  /long-context-review /ui-review
-/agentic-plan
+/commit              /commit-message      /branch-name
+/changelog           /pr-body             /docs-update
+/explain             /debug-tests         /test-plan
+/plan-feature        /refactor-plan       /review-diff
+/review-staged       /security-review     /ship-check
+/second-opinion      /architecture-check  /long-context-review
+/ui-review           /agentic-plan
 ```
 
 Model-specific fallback commands are intentionally not installed. Change agent model routing in `opencode.json` when you want a different model.
