@@ -5,6 +5,8 @@
   "default_agent": "build",
   "plugin": ["oc-codex-multi-auth"],
   "permission": {
+    "edit": "ask",
+    "bash": "ask",
     "skill": {
       "*": "ask",
       "laravel-*": "deny",
@@ -14,7 +16,26 @@
     }
   },
   "agent": {
-    "build": { "model": "kimi-for-coding/k2p6" },
+    "build": {
+      "model": "kimi-for-coding/k2p6",
+      "permission": {
+        "bash": {
+          "*": "ask",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "npm test*": "allow",
+          "pnpm test*": "allow",
+          "yarn test*": "allow",
+          "go test*": "allow",
+          "php artisan test*": "allow",
+          "vendor/bin/phpunit*": "allow",
+          "pytest*": "allow",
+          "git push*": "deny"
+        },
+        "edit": "ask"
+      }
+    },
     "plan": { "model": "fireworks-ai/accounts/fireworks/models/glm-5p1" },
     "architect": { "model": "fireworks-ai/accounts/fireworks/models/glm-5p1" },
     "debugger": { "model": "kimi-for-coding/k2p6" },

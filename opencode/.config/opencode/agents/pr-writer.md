@@ -13,7 +13,7 @@ permission:
     "git diff*": allow
     "git log*": allow
     "git branch*": allow
-    "git commit*": allow
+    "git commit*": ask
   edit: deny
   skill:
     "*": deny
