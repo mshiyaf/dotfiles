@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "kimi-for-coding/k2p6",
-  "small_model": "openai/gpt-5.4-mini",
+  "small_model": "kimi-for-coding/k2p5",
   "default_agent": "build",
   "plugin": ["oc-codex-multi-auth"],
   "permission": {
@@ -14,14 +14,18 @@
     }
   },
   "agent": {
+    "build": { "model": "kimi-for-coding/k2p6" },
+    "plan": { "model": "fireworks-ai/accounts/fireworks/models/glm-5p1" },
+    "architect": { "model": "fireworks-ai/accounts/fireworks/models/glm-5p1" },
+    "debugger": { "model": "kimi-for-coding/k2p6" },
+    "tester": { "model": "kimi-for-coding/k2p6" },
     "reviewer": { "model": "openai/gpt-5.5" },
     "security-reviewer": { "model": "openai/gpt-5.5" },
-    "architect": { "model": "openai/gpt-5.4-mini" },
-    "tester": { "model": "kimi-for-coding/k2p6" },
-    "debugger": { "model": "kimi-for-coding/k2p6" },
     "docs-writer": { "model": "openai/gpt-5.4-mini" },
     "pr-writer": { "model": "openai/gpt-5.4-mini" },
-    "refactor-planner": { "model": "kimi-for-coding/k2p5" },
+    "refactor-planner": {
+      "model": "fireworks-ai/accounts/fireworks/models/glm-5p1"
+    },
     "researcher": {
       "model": "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro"
     },
@@ -42,11 +46,31 @@
           "limit": { "context": 1050000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
           "variants": {
-            "none":   { "reasoningEffort": "none",   "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "low":    { "reasoningEffort": "low",    "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "medium": { "reasoningEffort": "medium", "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "high":   { "reasoningEffort": "high",   "reasoningSummary": "detailed", "textVerbosity": "medium" },
-            "xhigh":  { "reasoningEffort": "xhigh",  "reasoningSummary": "detailed", "textVerbosity": "medium" }
+            "none": {
+              "reasoningEffort": "none",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "low": {
+              "reasoningEffort": "low",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            }
           }
         },
         "gpt-5.4": {
@@ -54,11 +78,31 @@
           "limit": { "context": 1050000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
           "variants": {
-            "none":   { "reasoningEffort": "none",   "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "low":    { "reasoningEffort": "low",    "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "medium": { "reasoningEffort": "medium", "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "high":   { "reasoningEffort": "high",   "reasoningSummary": "detailed", "textVerbosity": "medium" },
-            "xhigh":  { "reasoningEffort": "xhigh",  "reasoningSummary": "detailed", "textVerbosity": "medium" }
+            "none": {
+              "reasoningEffort": "none",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "low": {
+              "reasoningEffort": "low",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            }
           }
         },
         "gpt-5.4-mini": {
@@ -66,11 +110,31 @@
           "limit": { "context": 400000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
           "variants": {
-            "none":   { "reasoningEffort": "none",   "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "low":    { "reasoningEffort": "low",    "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "medium": { "reasoningEffort": "medium", "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "high":   { "reasoningEffort": "high",   "reasoningSummary": "detailed", "textVerbosity": "medium" },
-            "xhigh":  { "reasoningEffort": "xhigh",  "reasoningSummary": "detailed", "textVerbosity": "medium" }
+            "none": {
+              "reasoningEffort": "none",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "low": {
+              "reasoningEffort": "low",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            }
           }
         },
         "gpt-5.3-codex": {
@@ -78,10 +142,26 @@
           "limit": { "context": 400000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
           "variants": {
-            "low":    { "reasoningEffort": "low",    "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "medium": { "reasoningEffort": "medium", "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "high":   { "reasoningEffort": "high",   "reasoningSummary": "detailed", "textVerbosity": "medium" },
-            "xhigh":  { "reasoningEffort": "xhigh",  "reasoningSummary": "detailed", "textVerbosity": "medium" }
+            "low": {
+              "reasoningEffort": "low",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            }
           },
           "options": {
             "reasoningEffort": "high",
@@ -94,11 +174,31 @@
           "limit": { "context": 400000, "output": 128000 },
           "modalities": { "input": ["text", "image"], "output": ["text"] },
           "variants": {
-            "none":   { "reasoningEffort": "none",   "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "low":    { "reasoningEffort": "low",    "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "medium": { "reasoningEffort": "medium", "reasoningSummary": "auto",     "textVerbosity": "medium" },
-            "high":   { "reasoningEffort": "high",   "reasoningSummary": "detailed", "textVerbosity": "medium" },
-            "xhigh":  { "reasoningEffort": "xhigh",  "reasoningSummary": "detailed", "textVerbosity": "medium" }
+            "none": {
+              "reasoningEffort": "none",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "low": {
+              "reasoningEffort": "low",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+              "reasoningSummary": "auto",
+              "textVerbosity": "medium"
+            },
+            "high": {
+              "reasoningEffort": "high",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh",
+              "reasoningSummary": "detailed",
+              "textVerbosity": "medium"
+            }
           }
         }
       }
