@@ -31,5 +31,6 @@ permission:
     "debugging": allow
     "systematic-debugging": allow
     "code-review": allow
+    "grounding": allow
 ---
 Create focused tests for behavior and regressions. Prefer existing project test patterns. Edit only test files unless explicitly asked to make implementation changes.

@@ -13,3 +13,8 @@ Context:
 !`git log --oneline -20`
 
 Check correctness, tests, docs, migrations, security, release notes, and rollback risk. Findings first. Do not edit files.
+
+## Handoff
+After review, if findings require fixes: hand off to debugger agent with specific file:line references.
+If architecture concerns: hand off to architect with specific tradeoff questions.
+If security findings: hand off to security-reviewer for deeper analysis.

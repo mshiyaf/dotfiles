@@ -1,0 +1,13 @@
+# OpenCode Configuration
+- Use deny-by-default permissions with explicit allowlists for all agents and skills. Confidence: 0.85
+- Keep agent.md files concise (1-2 lines of body instructions), not verbose personality prompts. Confidence: 0.85
+- Write skills as procedural instructions, not vague personality prompts. Confidence: 0.85
+- Keep global config stack-neutral (deny laravel-*, filament-*, *domain*, company-* patterns). Confidence: 0.80
+- Vendor public skills into local SKILL.md files for deterministic Stow management, not live npm installs. Confidence: 0.80
+- Centralize model routing in opencode.json only; agents, commands, and skills should never override models. Confidence: 0.85
+- Avoid unnecessary MCPs unless truly needed for external data access. Confidence: 0.75
+- Use Fireworks AI as provider for DeepSeek, GLM, and MiniMax models. Confidence: 0.70
+- Prefer cross-model critique: route second-opinion to a different provider/model than the primary analysis. Confidence: 0.70
+- Cost-optimize model routing: use cheaper models (gpt-5.4-mini, gpt-5.4-nano, k2p5) for simpler tasks like architecture, docs, commits, and refactor planning. Confidence: 0.70
+- Keep GSD (get-shit-done) per-repo, not in global config. Confidence: 0.65
+- Use Ralph Liggum script for context reduction in agent CLI loops. Confidence: 0.60

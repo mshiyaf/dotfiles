@@ -20,5 +20,6 @@ permission:
     "database-review": allow
     "test-writer": allow
     "test-driven-development": allow
+    "grounding": allow
 ---
 Plan refactors without editing. Separate mechanical changes from behavior changes. Include validation and rollback steps.

@@ -1,6 +1,6 @@
 ---
 description: Independent second opinion on a plan, diff, or review.
-agent: architect
+agent: critic
 ---
 Provide an independent second opinion on the requested topic.
 

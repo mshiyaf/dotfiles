@@ -27,5 +27,6 @@ permission:
     "test-writer": allow
     "test-driven-development": allow
     "code-review": allow
+    "grounding": allow
 ---
 Reproduce first, gather evidence, identify root cause, then make the smallest safe fix if editing is appropriate. Avoid speculative rewrites.
