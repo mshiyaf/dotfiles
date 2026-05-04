@@ -116,83 +116,38 @@ opencode
 
 ## Model Routing
 
-Model selection is **centralized in `opencode.json`** under the `agent` block. Each subagent has a default model; commands inherit from their parent agent unless they explicitly set a `model:` field to override.
+Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Current agent defaults:
+To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 
-| Agent              | Default model                                              |
-|--------------------|------------------------------------------------------------|
-| `reviewer`         | `openai/gpt-5.5`                                           |
-| `security-reviewer`| `openai/gpt-5.5`                                           |
-| `architect`        | `openai/gpt-5.5`                                           |
-| `tester`           | `kimi-for-coding/k2p6`                                     |
-| `debugger`         | `kimi-for-coding/k2p6`                                     |
-| `refactor-planner` | `kimi-for-coding/k2p6`                                     |
-| `docs-writer`      | `kimi-for-coding/k2p5`                                     |
-| `pr-writer`        | `kimi-for-coding/k2p5`                                     |
+### Command Routing
 
-To change a tier on a new machine, edit `~/.config/opencode/opencode.json` (one place) — agent `.md` files have no `model:` field, so they always follow the JSON.
+| Commands | Agent |
+|----------|-------|
+| `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review` | `reviewer` |
+| `/security-review` | `security-reviewer` |
+| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/second-opinion` | `architect` |
+| `/debug-tests`, `/explain` | `debugger` |
+| `/test-plan` | `tester` |
+| `/refactor-plan` | `refactor-planner` |
+| `/commit`, `/branch-name`, `/changelog`, `/pr-body` | `pr-writer` |
+| `/docs-update` | `docs-writer` |
 
-### Provider rules
-
-- Use **Fireworks** for GLM 5.1 and DeepSeek V4 Pro.
-- Use **Kimi for Coding** as the default implementation provider.
-- Use **OpenAI GPT-5.5 / GPT-5.5 Pro** only for strong review, final approval, high-risk security, and complex reasoning.
-- Use **OpenCode free** models only for low-risk cheap tasks (commits, branch names).
-- Do **not** use OpenRouter.
-- Do **not** use GPT-5.5 Pro for normal coding, commits, docs, summaries, changelog, or PR drafts.
-
-### Tier reference (informal)
-
-```text
-CHEAP   opencode/minimax-m2.5-free          commit, branch names
-        openai/gpt-5.4-nano                 cheap fallback
-MEDIUM  kimi-for-coding/k2p6                tests, debug, explain, plan, refactor
-        openai/gpt-5.3-codex                fast alternate implementation
-        openai/gpt-5.5-fast                 fast docs / scaffolding
-STRONG  openai/gpt-5.5                      review, architecture, ship check
-        fireworks .../glm-5p1               second opinion / long context
-PRO     openai/gpt-5.5-pro                  high-risk security, final prod approval
-GLM     fireworks .../glm-5p1               UI review, second opinion, large refactor
-LONG    fireworks .../deepseek-v4-pro       long-context fallback planning
-```
-
-### Command → model map
-
-| Command                | Primary                                     | Fallback variant            |
-|------------------------|---------------------------------------------|-----------------------------|
-| `/commit`              | `opencode/minimax-m2.5-free`                | `/commit-kimi` (k2p5)       |
-| `/branch-name`         | `opencode/minimax-m2.5-free`                | `/branch-name-nano` (gpt-5.4-nano) |
-| `/changelog`           | inherits pr-writer (`k2p5`)                 | `/changelog-fast` (gpt-5.5-fast)   |
-| `/pr-body`             | inherits pr-writer (`k2p5`)                 | `/pr-body-fast` (gpt-5.5-fast)     |
-| `/docs-update`         | inherits docs-writer (`k2p5`)               | `/docs-update-fast` (gpt-5.5-fast) |
-| `/explain`             | inherits debugger (`k2p6`)                  | `/explain-fast` (gpt-5.5-fast)     |
-| `/debug-tests`         | inherits debugger (`k2p6`)                  | `/debug-tests-codex` (gpt-5.3-codex) |
-| `/test-plan`           | inherits tester (`k2p6`)                    | `/test-plan-k2p5` (k2p5)    |
-| `/plan-feature`        | `kimi-for-coding/k2p6`                      | `/plan-feature-gpt` (gpt-5.5)      |
-| `/review-diff`         | inherits reviewer (`gpt-5.5`)               | `/review-diff-glm` (glm-5p1)       |
-| `/review-staged`       | inherits reviewer (`gpt-5.5`)               | `/review-staged-glm` (glm-5p1)     |
-| `/security-review`     | inherits security-reviewer (`gpt-5.5`)      | `/security-review-glm`, `/security-review-pro` |
-| `/ship-check`          | inherits reviewer (`gpt-5.5`)               | `/ship-check-glm`, `/ship-check-pro` |
-| `/refactor-plan`       | `kimi-for-coding/k2p6`                      | `/refactor-plan-glm` (large refactors) |
-| `/second-opinion`      | `fireworks .../glm-5p1`                     | `/second-opinion-kimi` (k2p6)      |
-| `/architecture-check`  | `fireworks .../glm-5p1`                     | `/architecture-check-gpt` (gpt-5.5)|
-| `/long-context-review` | `fireworks .../glm-5p1`                     | `/long-context-review-deepseek`    |
-| `/ui-review`           | `fireworks .../glm-5p1`                     | `/ui-review-minimax`               |
-| `/agentic-plan`        | `fireworks .../glm-5p1`                     | `/agentic-plan-gpt` (gpt-5.5)      |
-
-OpenCode does not auto-fallback on rate-limit / provider failure, so the `-glm`, `-kimi`, `-fast`, `-codex`, `-pro`, `-nano` suffixed commands exist as **explicit manual fallbacks** you invoke when the primary fails or when you want a second opinion.
+Model fallback or escalation is handled by editing the relevant agent model in `opencode.json`, not by keeping duplicate model-specific commands.
 
 ### Verifying / changing models
 
-List all model IDs currently used:
+List configured agent models:
 
 ```bash
-grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents 2>/dev/null | sort -u
 jq '.agent' ~/.config/opencode/opencode.json
 ```
 
-To swap a tier globally, edit only `~/.config/opencode/opencode.json`. To swap a single command, edit its `model:` field.
+Verify commands, agents, and skills do not override models:
+
+```bash
+grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.config/opencode/skills 2>/dev/null
+```
 
 ## Plugins
 
@@ -376,18 +331,7 @@ Primary commands:
 /agentic-plan
 ```
 
-Explicit fallback variants (manual fallback when primary is rate-limited or for a second opinion):
-
-```text
-/commit-kimi               /branch-name-nano        /changelog-fast
-/pr-body-fast              /docs-update-fast        /explain-fast
-/debug-tests-codex         /test-plan-k2p5          /plan-feature-gpt
-/refactor-plan-glm         /review-diff-glm         /review-staged-glm
-/security-review-glm       /security-review-pro     /ship-check-glm
-/ship-check-pro            /second-opinion-kimi     /architecture-check-gpt
-/long-context-review-deepseek                       /ui-review-minimax
-/agentic-plan-gpt
-```
+Model-specific fallback commands are intentionally not installed. Change agent model routing in `opencode.json` when you want a different model.
 
 ## Agents
 

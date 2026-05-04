@@ -1,7 +1,6 @@
 ---
 description: Plan a safe refactor with sequencing and verification.
 agent: refactor-planner
-model: kimi-for-coding/k2p6
 ---
 Use the refactor-planner skill.
 

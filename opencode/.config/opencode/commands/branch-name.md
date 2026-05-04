@@ -1,7 +1,6 @@
 ---
 description: Suggest short branch names from current worktree context.
 agent: pr-writer
-model: opencode/minimax-m2.5-free
 ---
 Context:
 !`git status --short`

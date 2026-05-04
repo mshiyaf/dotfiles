@@ -1,7 +1,6 @@
 ---
 description: Visual / UI review of components, layouts, and design tokens.
 agent: reviewer
-model: fireworks-ai/accounts/fireworks/models/glm-5p1
 ---
 Use the frontend-design skill.
 

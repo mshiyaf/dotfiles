@@ -1,7 +1,6 @@
 ---
 description: Plan a feature implementation without making changes.
 agent: architect
-model: kimi-for-coding/k2p6
 ---
 Plan this feature:
 

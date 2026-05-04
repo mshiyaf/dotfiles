@@ -1,7 +1,6 @@
 ---
 description: Draft a concise commit message from staged changes.
 agent: pr-writer
-model: opencode/minimax-m2.5-free
 ---
 Use the git-commit skill.
 

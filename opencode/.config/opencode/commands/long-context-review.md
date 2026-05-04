@@ -1,7 +1,6 @@
 ---
-description: Review across many files or a long diff using a long-context model.
+description: Review across many files or a long diff.
 agent: reviewer
-model: fireworks-ai/accounts/fireworks/models/glm-5p1
 ---
 Use the code-review skill.
 

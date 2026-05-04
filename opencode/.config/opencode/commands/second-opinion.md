@@ -1,7 +1,6 @@
 ---
-description: Independent second opinion on a plan, diff, or review using a different model family.
+description: Independent second opinion on a plan, diff, or review.
 agent: architect
-model: fireworks-ai/accounts/fireworks/models/glm-5p1
 ---
 Provide an independent second opinion on the requested topic.
 
