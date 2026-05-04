@@ -38,7 +38,7 @@ export PATH=$HOME/.npm-packages/bin:$PATH
 export GOPATH=$HOME/go
 export GOROOT="/usr/lib/go"
 export PATH="$PATH:${GOPATH}/bin:${GOROOT}/bin"
-export GOPRIVATE=github.com/texol-world-iCohort/almawasil-packages
+# GOPRIVATE is loaded from encrypted secrets (see ~/.config/zsh/secrets.gpg.env)
 
 # Composer
 export PATH=$HOME/.composer/vendor/bin:$PATH

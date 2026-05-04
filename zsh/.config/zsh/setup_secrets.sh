@@ -131,6 +131,18 @@ if confirm "Do you want to create a new secrets.env file at ~/secrets.env? [y/N]
 #  Sample secrets file – edit the values to match your environment.
 #  Keep this file *outside* of version control!
 # ------------------------------------------------------------------
+
+# API keys
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+
+# GitHub token for CLI
+GH_TOKEN=your_github_token_here
+
+# Go private modules (hide sensitive org names)
+GOPRIVATE=github.com/your-org/*
+
+# Other secrets
 API_KEY=your_api_key_here
 SECRET_KEY=your_secret_key_here
 EOL
