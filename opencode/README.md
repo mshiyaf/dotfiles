@@ -10,8 +10,6 @@ It installs:
 - Small reusable global skills in `~/.config/opencode/skills/`.
 - Noctalia TUI theme in `~/.config/opencode/themes/noctalia.json`.
 - TUI config at `~/.config/opencode/tui.json`.
-- OpenCode plugins declared in `opencode.json`.
-- A non-secret Codex plugin preference at `~/.opencode/openai-codex-auth-config.json`.
 
 The setup is intentionally stack-neutral. Laravel, Filament, Livewire, product-domain, and company-specific instructions should stay in each repo under `.opencode/`.
 
@@ -30,13 +28,7 @@ OpenCode reads global user config from:
 
 This dotfiles package manages only `~/.config/opencode` content.
 
-Do not stow `~/.opencode` wholesale. This package intentionally manages only one non-secret file there:
-
-```text
-~/.opencode/openai-codex-auth-config.json
-```
-
-Everything else in `~/.opencode` is plugin/runtime/auth state used by Codex multi-auth tooling. It can contain OAuth accounts, locks, backups, cache, and generated dependencies. Recreate that state on each machine by authenticating accounts after OpenCode starts.
+`~/.opencode` is **not** managed by this package. It is plugin/runtime/auth state (OAuth accounts, locks, backups, caches, generated `node_modules`). The package's `.stow-local-ignore` excludes `.opencode` and `node_modules` so anything OpenCode or its plugins write there will never end up under stow control.
 
 ## Dependencies
 
@@ -60,7 +52,7 @@ OpenCode installs npm plugins automatically with Bun at startup and caches them 
 
 ## Install With Stow
 
-From the dotfiles repo root:
+From the dotfiles repo root, dry-run first:
 
 ```bash
 stow --no-folding -t "$HOME" -nv opencode
@@ -72,6 +64,14 @@ If the dry run looks correct:
 stow --no-folding -t "$HOME" -v opencode
 ```
 
+If a plugin or installer (e.g. `npx oc-codex-multi-auth@latest`) overwrites the stowed config files, restow to recreate the symlinks:
+
+```bash
+stow --no-folding -R -t "$HOME" -v opencode
+```
+
+`stow -R` will replace the real files the installer wrote with symlinks pointing back into this repo.
+
 If you already have a real `~/.config/opencode` directory, back it up first:
 
 ```bash
@@ -81,6 +81,16 @@ stow --no-folding -t "$HOME" -v opencode
 ```
 
 `--no-folding` is intentional. It prevents Stow from turning the entire `~/.config/opencode` directory into one symlink, so OpenCode can safely create runtime files such as plugin caches, locks, and local state without writing them into this repo.
+
+### Stow ignore rules
+
+`opencode/.stow-local-ignore` keeps the following out of the link set so plugin and runtime state is never adopted into the package:
+
+```text
+README.md
+\.opencode
+node_modules
+```
 
 If you want to restore non-secret local files from the backup, copy them back explicitly after stowing. For example:
 
@@ -97,15 +107,7 @@ cache/
 *.lock
 *auth*
 *secret*
-oc-codex-multi-auth-accounts.json
 backups/
-```
-
-If `~/.opencode/openai-codex-auth-config.json` already exists, either move it aside or let Stow link the repo version after backing it up:
-
-```bash
-mv ~/.opencode/openai-codex-auth-config.json ~/.opencode/openai-codex-auth-config.json.backup.$(date +%Y%m%d-%H%M%S)
-stow --no-folding -t "$HOME" -v opencode
 ```
 
 Restart OpenCode after linking:
@@ -124,16 +126,16 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 
 ### Command Routing
 
-| Commands | Agent |
-|----------|-------|
-| `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review` | `reviewer` |
-| `/security-review` | `security-reviewer` |
-| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/second-opinion` | `architect` |
-| `/debug-tests`, `/explain` | `debugger` |
-| `/test-plan` | `tester` |
-| `/refactor-plan` | `refactor-planner` |
-| `/commit`, `/commit-message`, `/branch-name`, `/changelog`, `/pr-body` | `pr-writer` |
-| `/docs-update` | `docs-writer` |
+| Commands                                                                              | Agent               |
+| ------------------------------------------------------------------------------------- | ------------------- |
+| `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review` | `reviewer`          |
+| `/security-review`                                                                    | `security-reviewer` |
+| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/second-opinion`            | `architect`         |
+| `/debug-tests`, `/explain`                                                            | `debugger`          |
+| `/test-plan`                                                                          | `tester`            |
+| `/refactor-plan`                                                                      | `refactor-planner`  |
+| `/commit`, `/commit-message`, `/branch-name`, `/changelog`, `/pr-body`                | `pr-writer`         |
+| `/docs-update`                                                                        | `docs-writer`       |
 
 Model fallback or escalation is handled by editing the relevant agent model in `opencode.json`, not by keeping duplicate model-specific commands.
 
@@ -158,86 +160,15 @@ grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.con
 
 ## Plugins
 
-`opencode.json` currently declares these npm plugins:
+No npm plugins are declared in `opencode.json` at the moment. The previous `oc-codex-multi-auth` plugin was removed because it caused issues (overwriting stowed config files, among others).
 
-```json
-"plugin": ["oc-codex-multi-auth"]
-```
+If you add plugins later, declare them under the `"plugin"` key in `~/.config/opencode/opencode.json`. OpenCode loads npm plugins on startup with Bun and caches them under `~/.cache/opencode/packages/` and `~/.opencode/node_modules/` — both paths are intentionally excluded from this stow package.
 
-OpenCode loads npm plugins from `opencode.json` and installs them automatically with Bun on startup (cached under `~/.cache/opencode/packages/`). This means the plugin installation is part of the stowed OpenCode system; the authenticated account data is intentionally not part of the repo. You do **not** need to run `npx oc-codex-multi-auth@latest` manually — OpenCode handles installation when it starts.
-
-Start OpenCode once after stowing so plugins install:
+Avoid one-shot installers (`npx some-plugin@latest`) that rewrite the config files in `~/.config/opencode/`. They overwrite the stowed symlinks with real files. If one runs anyway, restow:
 
 ```bash
-opencode
+stow --no-folding -R -t "$HOME" -v opencode
 ```
-
-## Codex Multi-Auth Plugin
-
-The `oc-codex-multi-auth` plugin adds helper commands/tools for managing multiple Codex OAuth accounts and rate limits. The plugin is enabled by `~/.config/opencode/opencode.json`; account data is created under runtime/auth state after login.
-
-After OpenCode starts with the plugin enabled, add accounts:
-
-```bash
-opencode auth login
-```
-
-Repeat `opencode auth login` once per account you want available on the machine.
-
-Run the beginner checklist:
-
-```bash
-codex-setup
-```
-
-Use the guided onboarding wizard:
-
-```bash
-codex-setup --wizard
-```
-
-Verify account health:
-
-```bash
-codex-health
-```
-
-List configured accounts:
-
-```bash
-codex-list
-```
-
-Show current limits:
-
-```bash
-codex-limits
-```
-
-Show the live dashboard:
-
-```bash
-codex-dashboard
-```
-
-If requests fail or accounts stop refreshing:
-
-```bash
-codex-doctor
-codex-refresh
-```
-
-Useful account management commands:
-
-```bash
-codex-status
-codex-switch
-codex-label
-codex-tag
-codex-note
-```
-
-Never commit OAuth tokens, exported account JSON, diagnostics with sensitive data, or provider credentials. Treat `~/.opencode/oc-codex-multi-auth-accounts.json` and `~/.opencode/backups/` as sensitive runtime state.
 
 ## New Machine Setup
 
@@ -251,26 +182,13 @@ stow --no-folding -t "$HOME" -v opencode
 opencode
 ```
 
-OpenCode will install the declared plugins on startup. Then authenticate accounts:
+If `opencode.json` declares any plugins, OpenCode will install them on startup. Authenticate any providers with:
 
 ```bash
 opencode auth login
-codex-setup
-codex-health
-codex-list
 ```
 
-The account OAuth state must be created per machine. Do not sync it through Git.
-
-The only managed home-level plugin preference is:
-
-```json
-{
-  "perProjectAccounts": false
-}
-```
-
-It is linked to `~/.opencode/openai-codex-auth-config.json` by Stow.
+OAuth/auth state is created per machine and is not synced through Git.
 
 ## Skills
 
@@ -362,7 +280,8 @@ find ~/.config/opencode/agents -maxdepth 1 -type f -name '*.md' | sort
 find ~/.config/opencode/commands -maxdepth 1 -type f -name '*.md' | sort
 find ~/.config/opencode/skills -maxdepth 2 -name SKILL.md | sort
 find ~/.config/opencode/themes -maxdepth 1 -type f -name '*.json' | sort
-test -L ~/.opencode/openai-codex-auth-config.json && readlink ~/.opencode/openai-codex-auth-config.json
+test -L ~/.config/opencode/opencode.json && readlink ~/.config/opencode/opencode.json
+test -L ~/.config/opencode/tui.json && readlink ~/.config/opencode/tui.json
 ```
 
 Check that OpenCode is not unexpectedly seeing old Claude/agent skills:

@@ -114,7 +114,7 @@
                 {
                     "clockColor": "none",
                     "customFont": "",
-                    "formatHorizontal": "HH:mm ddd, MMM dd",
+                    "formatHorizontal": "h:mm AP ddd, MMM d",
                     "formatVertical": "HH mm - dd MM",
                     "id": "Clock",
                     "tooltipFormat": "HH:mm ddd, MMM dd",
@@ -234,10 +234,17 @@
                         "compactMode": false,
                         "defaultPeerAction": "copy-ip",
                         "hideDisconnected": false,
+                        "hideMullvadExitNodes": true,
+                        "loginServer": "",
                         "pingCount": 5,
                         "refreshInterval": 5000,
                         "showIpAddress": true,
                         "showPeerCount": true,
+                        "showSearchBar": false,
+                        "sshUsername": "",
+                        "taildropDownloadDir": "~/Downloads",
+                        "taildropEnabled": true,
+                        "taildropReceiveMode": "operator",
                         "terminalCommand": ""
                     },
                     "id": "plugin:tailscale"

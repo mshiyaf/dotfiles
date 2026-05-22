@@ -101,6 +101,39 @@ alias load-secrets='load_secrets'
 alias emulator='QT_QPA_PLATFORM=xcb DISPLAY=:1 emulator'
 alias pixel='emulator -avd Pixel_10 &>/dev/null &'
 
+# Keep system awake when lid is closed (inhibits logind lid-switch)
+# Usage:
+#   lid-keep-awake          # start in background, persists for the session
+#   lid-keep-awake stop     # stop the inhibitor
+#   lid-keep-awake status   # show current inhibitors
+function lid-keep-awake() {
+    case "${1:-start}" in
+        stop)
+            pkill -f 'systemd-inhibit.*lid-keep-awake' && echo "lid-keep-awake: stopped"
+            ;;
+        status)
+            systemd-inhibit --list | grep -E 'lid-keep-awake|handle-lid-switch' || echo "no lid inhibitor active"
+            ;;
+        start|"")
+            if pgrep -f 'systemd-inhibit.*lid-keep-awake' >/dev/null; then
+                echo "lid-keep-awake: already running"
+                return 0
+            fi
+            nohup systemd-inhibit \
+                --what=handle-lid-switch \
+                --who=lid-keep-awake \
+                --why="user requested" \
+                --mode=block \
+                sleep infinity >/dev/null 2>&1 &
+            disown
+            echo "lid-keep-awake: started (pid $!)"
+            ;;
+        *)
+            echo "usage: lid-keep-awake [start|stop|status]"
+            ;;
+    esac
+}
+
 # Mount/unmount Windows backup VHD
 function mount-backup() {
     sudo modprobe nbd max_part=8
