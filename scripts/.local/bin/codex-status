@@ -1,0 +1,333 @@
+#!/usr/bin/env bun
+/**
+ * codex-status — print ChatGPT/Codex usage and rate-limit status.
+ *
+ * Reads opencode's own auth store (~/.local/share/opencode/auth.json,
+ * key "codex"), falling back to ~/.codex/auth.json (Codex CLI), refreshes
+ * the OAuth access token if expired, then calls
+ * https://chatgpt.com/backend-api/wham/usage and prints a compact summary.
+ *
+ * Flags:
+ *   --json       output raw payload as JSON
+ *   --watch [s]  refresh every N seconds (default 30) until Ctrl-C
+ */
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+const TOKEN_URL = "https://auth.openai.com/oauth/token";
+const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "auth.json");
+const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
+
+type Creds = {
+  accessToken: string;
+  refreshToken: string;
+  expiresMs: number; // ms epoch; 0 if unknown
+  accountId?: string;
+  save: (next: { accessToken: string; refreshToken: string; expiresMs: number; idToken?: string }) => void;
+};
+
+// Try opencode auth keys in order; opencode usually authenticates via the
+// `openai` provider (which is actually ChatGPT OAuth), not `codex`.
+const OPENCODE_AUTH_KEYS = ["openai", "codex"] as const;
+
+function loadOpencode(): Creds | null {
+  if (!fs.existsSync(OPENCODE_AUTH)) return null;
+  let store: any;
+  try {
+    store = JSON.parse(fs.readFileSync(OPENCODE_AUTH, "utf8"));
+  } catch {
+    return null;
+  }
+  for (const key of OPENCODE_AUTH_KEYS) {
+    const c = store?.[key];
+    if (!c || c.type !== "oauth" || !c.access || !c.refresh) continue;
+    return {
+      accessToken: c.access,
+      refreshToken: c.refresh,
+      expiresMs: typeof c.expires === "number" ? c.expires : 0,
+      accountId: typeof c.accountId === "string" ? c.accountId : undefined,
+      save(next) {
+        const current = JSON.parse(fs.readFileSync(OPENCODE_AUTH, "utf8"));
+        current[key] = {
+          ...current[key],
+          type: "oauth",
+          access: next.accessToken,
+          refresh: next.refreshToken,
+          expires: next.expiresMs,
+        };
+        const tmp = `${OPENCODE_AUTH}.tmp`;
+        fs.writeFileSync(tmp, JSON.stringify(current, null, 2), { mode: 0o600 });
+        fs.renameSync(tmp, OPENCODE_AUTH);
+      },
+    };
+  }
+  return null;
+}
+
+function loadCodexCli(): Creds | null {
+  if (!fs.existsSync(CODEX_AUTH)) return null;
+  let a: any;
+  try {
+    a = JSON.parse(fs.readFileSync(CODEX_AUTH, "utf8"));
+  } catch {
+    return null;
+  }
+  if (!a?.tokens?.access_token || !a?.tokens?.refresh_token) return null;
+  return {
+    accessToken: a.tokens.access_token,
+    refreshToken: a.tokens.refresh_token,
+    expiresMs: 0,
+    accountId: a.tokens.account_id,
+    save(next) {
+      const current = JSON.parse(fs.readFileSync(CODEX_AUTH, "utf8"));
+      current.tokens = {
+        ...current.tokens,
+        access_token: next.accessToken,
+        refresh_token: next.refreshToken,
+        id_token: next.idToken ?? current.tokens.id_token,
+      };
+      current.last_refresh = new Date().toISOString();
+      const tmp = `${CODEX_AUTH}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(current, null, 2), { mode: 0o600 });
+      fs.renameSync(tmp, CODEX_AUTH);
+    },
+  };
+}
+
+function loadCreds(): Creds {
+  const c = loadOpencode() ?? loadCodexCli();
+  if (!c) {
+    throw new Error(
+      `No Codex credentials found.\n  Tried: ${OPENCODE_AUTH}\n  Tried: ${CODEX_AUTH}\nRun \`opencode auth login\` (provider: codex) or \`codex login\`.`,
+    );
+  }
+  return c;
+}
+
+function decodeJwt(token: string): Record<string, any> | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const padded = part + "=".repeat((4 - (part.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function tokenExpiresSoon(c: Creds): boolean {
+  const nowMs = Date.now();
+  const skewMs = 60_000;
+  if (c.expiresMs > 0) return c.expiresMs <= nowMs + skewMs;
+  const claims = decodeJwt(c.accessToken);
+  const exp = typeof claims?.exp === "number" ? claims.exp : 0;
+  if (!exp) return true;
+  return exp * 1000 <= nowMs + skewMs;
+}
+
+function accountIdFromJwt(accessToken: string, fallback?: string): string | undefined {
+  const claims = decodeJwt(accessToken);
+  const id = claims?.["https://api.openai.com/auth"]?.chatgpt_account_id;
+  if (typeof id === "string" && id.trim()) return id;
+  return fallback;
+}
+
+async function refreshAccessToken(c: Creds): Promise<Creds> {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: c.refreshToken,
+      client_id: CODEX_CLIENT_ID,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Token refresh failed: ${res.status} ${res.statusText}\n${await res.text()}`);
+  }
+  const data = (await res.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    id_token?: string;
+    expires_in?: number;
+  };
+  const expiresMs =
+    typeof data.expires_in === "number" ? Date.now() + data.expires_in * 1000 : 0;
+  const next = {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? c.refreshToken,
+    expiresMs,
+    idToken: data.id_token,
+  };
+  c.save(next);
+  return { ...c, ...next };
+}
+
+async function ensureFresh(c: Creds): Promise<Creds> {
+  if (tokenExpiresSoon(c)) return await refreshAccessToken(c);
+  return c;
+}
+
+type UsageWindow = {
+  used_percent?: number;
+  limit_window_seconds?: number;
+  reset_at?: number;
+  reset_after_seconds?: number;
+} | null;
+
+type UsagePayload = {
+  plan_type?: string;
+  rate_limit?: { primary_window?: UsageWindow; secondary_window?: UsageWindow } | null;
+  code_review_rate_limit?: { primary_window?: UsageWindow } | null;
+  additional_rate_limits?: Array<{
+    limit_name?: string;
+    metered_feature?: string;
+    rate_limit?: { primary_window?: UsageWindow };
+  }> | null;
+  credits?: { has_credits?: boolean; unlimited?: boolean; balance?: string | null } | null;
+};
+
+async function fetchUsage(c: Creds): Promise<UsagePayload> {
+  const accountId = accountIdFromJwt(c.accessToken, c.accountId);
+  if (!accountId) throw new Error("No chatgpt_account_id in token or auth file.");
+  const res = await fetch(USAGE_URL, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${c.accessToken}`,
+      "chatgpt-account-id": accountId,
+      "OpenAI-Beta": "responses=experimental",
+      originator: "codex_cli_rs",
+      accept: "application/json",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Usage fetch failed: ${res.status} ${res.statusText}\n${await res.text()}`);
+  }
+  return (await res.json()) as UsagePayload;
+}
+
+// ---------- formatting ----------
+
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  green: "\x1b[32m",
+  cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
+};
+
+function colorForLeft(left: number): string {
+  if (left <= 10) return C.red;
+  if (left <= 25) return C.yellow;
+  return C.green;
+}
+
+function formatWindowLabel(seconds?: number): string {
+  if (!seconds || seconds <= 0) return "window";
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
+}
+
+function formatReset(w: NonNullable<UsageWindow>): string {
+  const ms =
+    w.reset_at && w.reset_at > 0
+      ? w.reset_at * 1000
+      : w.reset_after_seconds
+        ? Date.now() + w.reset_after_seconds * 1000
+        : 0;
+  if (!ms) return "";
+  const diff = Math.max(0, ms - Date.now());
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  if (h >= 24) return `resets in ${Math.round(h / 24)}d`;
+  if (h > 0) return `resets in ${h}h ${m}m`;
+  return `resets in ${m}m`;
+}
+
+function bar(left: number, width = 20): string {
+  const filled = Math.round((left / 100) * width);
+  return `${colorForLeft(left)}${"█".repeat(filled)}${C.dim}${"░".repeat(width - filled)}${C.reset}`;
+}
+
+function renderWindow(label: string, w: UsageWindow): string {
+  if (!w || typeof w.used_percent !== "number") {
+    return `  ${C.bold}${label.padEnd(10)}${C.reset} ${C.dim}n/a${C.reset}`;
+  }
+  const left = Math.round(Math.max(0, Math.min(100, 100 - w.used_percent)));
+  const win = formatWindowLabel(w.limit_window_seconds);
+  const reset = formatReset(w);
+  const col = colorForLeft(left);
+  return `  ${C.bold}${label.padEnd(10)}${C.reset} ${bar(left)} ${col}${String(left).padStart(3)}%${C.reset} left  ${C.dim}${win} window${reset ? " · " + reset : ""}${C.reset}`;
+}
+
+function renderSummary(payload: UsagePayload): string {
+  const lines: string[] = [];
+  lines.push(`${C.cyan}${C.bold}Codex usage${C.reset}${payload.plan_type ? `  ${C.dim}plan: ${payload.plan_type}${C.reset}` : ""}`);
+  lines.push(renderWindow("Primary", payload.rate_limit?.primary_window ?? null));
+  lines.push(renderWindow("Secondary", payload.rate_limit?.secondary_window ?? null));
+
+  const cr =
+    payload.code_review_rate_limit?.primary_window ??
+    payload.additional_rate_limits?.find((e) => e.limit_name === "code_review_rate_limit")?.rate_limit
+      ?.primary_window;
+  if (cr) lines.push(renderWindow("CodeReview", cr));
+
+  for (const extra of payload.additional_rate_limits ?? []) {
+    if (extra.limit_name === "code_review_rate_limit") continue;
+    const label = (extra.limit_name ?? extra.metered_feature ?? "extra").slice(0, 10);
+    lines.push(renderWindow(label, extra.rate_limit?.primary_window ?? null));
+  }
+
+  const credits = payload.credits;
+  if (credits) {
+    if (credits.unlimited) lines.push(`  ${C.bold}${"Credits".padEnd(10)}${C.reset} ${C.magenta}unlimited${C.reset}`);
+    else if (credits.balance) lines.push(`  ${C.bold}${"Credits".padEnd(10)}${C.reset} ${C.magenta}${credits.balance}${C.reset}`);
+  }
+  return lines.join("\n");
+}
+
+// ---------- main ----------
+
+async function runOnce(json: boolean) {
+  const creds = await ensureFresh(loadCreds());
+  const payload = await fetchUsage(creds);
+  if (json) process.stdout.write(JSON.stringify(payload, null, 2) + "\n");
+  else process.stdout.write(renderSummary(payload) + "\n");
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const json = args.includes("--json");
+  const watchIdx = args.indexOf("--watch");
+  const watch = watchIdx >= 0;
+  const interval = watch ? Math.max(5, Number(args[watchIdx + 1]) || 30) * 1000 : 0;
+
+  if (!watch) {
+    await runOnce(json);
+    return;
+  }
+  while (true) {
+    try {
+      process.stdout.write("\x1b[2J\x1b[H");
+      process.stdout.write(`${C.dim}${new Date().toLocaleString()}${C.reset}\n\n`);
+      await runOnce(json);
+    } catch (err) {
+      process.stderr.write(`${C.red}error:${C.reset} ${(err as Error).message}\n`);
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+}
+
+main().catch((err) => {
+  process.stderr.write(`${C.red}error:${C.reset} ${(err as Error).message}\n`);
+  process.exit(1);
+});

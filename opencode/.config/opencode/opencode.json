@@ -431,7 +431,5 @@
       }
     }
   },
-  "plugin": [
-    "oc-codex-multi-auth"
-  ]
+  "plugin": []
 }

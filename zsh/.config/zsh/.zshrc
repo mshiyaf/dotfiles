@@ -146,7 +146,7 @@ eval "$(zoxide init zsh)"
 [ -f "/home/mshiyaf/.ghcup/env" ] && . "/home/mshiyaf/.ghcup/env" # ghcup-env
 
 # mise
-eval "$(mise activate zsh)"
+eval "$(mise activate zsh --quiet)"
 
 # Load profile last
 [[ -r "$HOME/.zprofile" ]] && source "$HOME/.zprofile"

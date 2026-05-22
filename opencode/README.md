@@ -160,9 +160,42 @@ grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.con
 
 ## Plugins
 
-No npm plugins are declared in `opencode.json` at the moment. The previous `oc-codex-multi-auth` plugin was removed because it caused issues (overwriting stowed config files, among others).
+No **npm** plugins are declared. The previous `oc-codex-multi-auth` plugin was removed because it caused issues (overwriting stowed config files, among others).
 
-If you add plugins later, declare them under the `"plugin"` key in `~/.config/opencode/opencode.json`. OpenCode loads npm plugins on startup with Bun and caches them under `~/.cache/opencode/packages/` and `~/.opencode/node_modules/` — both paths are intentionally excluded from this stow package.
+One **local** TUI plugin is vendored in this package:
+
+```text
+codex-status.ts            shows ChatGPT/Codex usage + rate-limit % in the TUI bottom-right
+```
+
+It is declared in `tui.json` (not `opencode.json`) as a relative path:
+
+```jsonc
+// ~/.config/opencode/tui.json
+{ "plugin": ["./codex-status.ts"] }
+```
+
+The `./` resolves relative to `~/.config/opencode/`, so the file must live at
+`~/.config/opencode/codex-status.ts` (stow links it there from
+`opencode/.config/opencode/codex-status.ts`). It renders a compact string such as
+`5h 72% · 1d 41%`. It reads OpenCode's own OAuth store
+(`~/.local/share/opencode/auth.json`, key `codex`), falling back to the Codex CLI
+(`~/.codex/auth.json`); **no auth or secrets are stored in this repo**. Requires `bun`.
+
+A standalone companion CLI lives in the separate **`scripts`** stow package and prints the
+same usage on demand from the terminal:
+
+```bash
+codex-status            # one-shot summary
+codex-status --json     # raw payload as JSON
+codex-status --watch 30 # refresh every N seconds (default 30) until Ctrl-C
+```
+
+It is `scripts/.local/bin/codex-status` in the repo and installs to `~/.local/bin/codex-status`
+via `stow --no-folding -t "$HOME" -v scripts`. It also requires `bun` (it runs under
+`#!/usr/bin/env bun`).
+
+If you add npm plugins later, declare them under the `"plugin"` key in `~/.config/opencode/opencode.json`. OpenCode loads npm plugins on startup with Bun and caches them under `~/.cache/opencode/packages/` and `~/.opencode/node_modules/` — both paths are intentionally excluded from this stow package.
 
 Avoid one-shot installers (`npx some-plugin@latest`) that rewrite the config files in `~/.config/opencode/`. They overwrite the stowed symlinks with real files. If one runs anyway, restow:
 
