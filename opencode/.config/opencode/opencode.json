@@ -36,10 +36,10 @@
       }
     },
     "plan": {
-      "model": "fireworks-ai/accounts/fireworks/models/glm-5p1"
+      "model": "opencode-go/glm-5.1"
     },
     "architect": {
-      "model": "fireworks-ai/accounts/fireworks/models/glm-5p1"
+      "model": "opencode-go/glm-5.1"
     },
     "debugger": {
       "model": "kimi-for-coding/k2p6"
@@ -60,13 +60,13 @@
       "model": "openai/gpt-5.4-mini"
     },
     "refactor-planner": {
-      "model": "fireworks-ai/accounts/fireworks/models/glm-5p1"
+      "model": "opencode-go/glm-5.1"
     },
     "researcher": {
-      "model": "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro"
+      "model": "opencode-go/qwen3.7-plus"
     },
     "critic": {
-      "model": "fireworks-ai/accounts/fireworks/models/glm-5p1"
+      "model": "opencode-go/qwen3.7-max"
     }
   },
   "provider": {
