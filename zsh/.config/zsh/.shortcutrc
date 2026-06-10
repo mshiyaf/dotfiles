@@ -39,6 +39,28 @@ bindkey '\e[B' history-beginning-search-forward
 function mkcd() { mkdir -p "$@" && cd "$_"; }
 
 # ---------------------------------------------------------------
+# Restart the Noctalia (Quickshell) shell without re-logging in.
+# Useful after installing/updating app icons, since Qt caches the
+# icon theme at startup and only re-scans on a fresh process.
+# ---------------------------------------------------------------
+noctalia-reload() {
+    # Refresh the user icon cache first (no-op if nothing changed)
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null
+
+    # Remember the currently running instances before we spawn a new one
+    local old_pids=$(pgrep -f 'qs -c noctalia-shell')
+
+    # Start a fresh, detached instance so it survives the old one dying
+    setsid qs -c noctalia-shell >/dev/null 2>&1 < /dev/null & disown
+    sleep 2
+
+    # Kill only the previously running instances
+    [[ -n "$old_pids" ]] && echo "$old_pids" | xargs -r kill 2>/dev/null
+
+    echo "🔄 Noctalia reloaded"
+}
+
+# ---------------------------------------------------------------
 # function to encrypt secrets
 # ---------------------------------------------------------------
 encrypt_secrets() {
