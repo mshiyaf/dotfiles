@@ -180,6 +180,7 @@
                     "hidePassive": false,
                     "id": "Tray",
                     "pinned": [
+                        "KDE Connect"
                     ]
                 },
                 {
@@ -248,6 +249,11 @@
                         "terminalCommand": ""
                     },
                     "id": "plugin:tailscale"
+                },
+                {
+                    "defaultSettings": {
+                    },
+                    "id": "plugin:kde-connect"
                 }
             ]
         }
