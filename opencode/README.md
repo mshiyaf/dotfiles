@@ -120,7 +120,7 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Normal initial sessions use `default_agent: build` with `model: kimi-for-coding/k2p6`.
+Normal initial sessions use `default_agent: build` with `model: kimi-for-coding/k2p7`.
 
 To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 

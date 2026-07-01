@@ -149,3 +149,32 @@ function umount-backup() {
     sudo qemu-nbd --disconnect /dev/nbd0
     sudo rmmod nbd
 }
+
+# wt — cd into (or create + cd into) a sibling git worktree.
+# Backed by the `git-wt` script (~/.local/bin/git-wt). An external binary
+# cannot change the parent shell's cwd, so this wrapper handles the `cd`.
+#
+#   wt <branch>            cd into the worktree (creates it if missing)
+#   wt <branch> <start>    create from <start-point>, then cd
+#   wt <sub> ...           pass through to git-wt (list|rm|path|prune|help)
+function wt() {
+    case "${1:-}" in
+        ""|help|-h|--help)
+            git wt help
+            ;;
+        list|ls|rm|remove|prune|path|new|add)
+            git wt "$@"
+            ;;
+        *)
+            # Treat first arg as a branch: cd if it exists, else create then cd.
+            local branch="$1"; shift
+            local dir
+            if dir=$(git wt path "$branch" 2>/dev/null); then
+                cd "$dir"
+            else
+                git wt new "$branch" "$@" || return $?
+                dir=$(git wt path "$branch") && cd "$dir"
+            fi
+            ;;
+    esac
+}
