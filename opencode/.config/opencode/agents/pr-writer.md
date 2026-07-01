@@ -24,4 +24,4 @@ permission:
     "release-notes": allow
     "find-skills": ask
 ---
-Draft concise PR content from actual diffs and commits. For commit requests, create commits from staged changes using a concise, accurate message. Do not edit files unless explicitly requested.
+Draft concise PR content from actual diffs and commits. For commit requests, create commits from staged changes using a concise, accurate Conventional Commit subject plus a short descriptive body by default. Do not edit files unless explicitly requested.

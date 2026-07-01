@@ -130,9 +130,10 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 | ------------------------------------------------------------------------------------- | ------------------- |
 | `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review` | `reviewer`          |
 | `/security-review`                                                                    | `security-reviewer` |
-| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/second-opinion`            | `architect`         |
-| `/debug-tests`, `/explain`                                                            | `debugger`          |
+| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/autoplan`, `/second-opinion` | `architect`         |
+| `/debug-tests`, `/investigate`, `/explain`                                             | `debugger`          |
 | `/test-plan`                                                                          | `tester`            |
+| `/qa-only`                                                                            | `tester`            |
 | `/refactor-plan`                                                                      | `refactor-planner`  |
 | `/commit`, `/commit-message`, `/branch-name`, `/changelog`, `/pr-body`                | `pr-writer`         |
 | `/docs-update`                                                                        | `docs-writer`       |
@@ -141,7 +142,39 @@ Model fallback or escalation is handled by editing the relevant agent model in `
 
 `/commit` creates a commit from currently staged changes. It does not stage files automatically; stage what you want included first, then run `/commit`.
 
-`/commit-message` only drafts the message and never runs `git commit`.
+`/commit` uses a Conventional Commit subject plus a short body by default, so later `git log` readers can see both what changed and why. It omits the body only for truly trivial changes.
+
+`/commit-message` only drafts the message and never runs `git commit`. It uses the same subject/body format as `/commit`.
+
+## GStack-Inspired Workflow
+
+This package intentionally keeps a lightweight OpenCode-native workflow instead of vendoring gstack, but it borrows the useful sprint shape from <https://github.com/garrytan/gstack>:
+
+```text
+Think → Plan → Build → Review → Test → Ship → Reflect
+```
+
+Recommended command flow:
+
+| Stage   | OpenCode command                                             | Notes                                      |
+| ------- | ------------------------------------------------------------ | ------------------------------------------ |
+| Think   | `/research`, `/explain`, or normal chat                      | Clarify unknowns before planning.          |
+| Plan    | `/autoplan`, `/plan-feature`, `/architecture-check`          | Save scope, risks, files, and tests.       |
+| Build   | Normal `build` agent                                         | Keep changes small and repo-patterned.     |
+| Review  | `/review-diff`, `/review-staged`, `/security-review`         | Findings first; no edits in review agents. |
+| Test    | `/qa-only`, `/test-plan`, `/debug-tests`, project tests      | Reproduce failures before fixing.          |
+| Ship    | `/ship-check`, `/docs-update`, `/changelog`, `/pr-body`      | Final readiness, docs, release notes, PR.  |
+| Commit  | `/commit-message`, `/commit`, `/branch-name`                 | Descriptive commit bodies by default.      |
+
+If you want to install gstack's upstream skills directly for experimentation, use its OpenCode host installer outside this stow package:
+
+```bash
+git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/gstack
+cd ~/gstack
+./setup --host opencode
+```
+
+That installs upstream gstack skills under `~/.config/opencode/skills/gstack-*/`. Keep those generated upstream skills out of this dotfiles package unless you intentionally want to vendor and maintain them.
 
 ### Verifying / changing models
 
