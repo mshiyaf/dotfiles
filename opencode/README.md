@@ -140,7 +140,7 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 
 Model fallback or escalation is handled by editing the relevant agent model in `opencode.json`, not by keeping duplicate model-specific commands.
 
-`/commit` creates a commit from currently staged changes. It does not stage files automatically; stage what you want included first, then run `/commit`.
+`/commit` creates commits from currently staged changes. It does not stage files automatically; stage what you want included first, then run `/commit`. If you run it from a folder that is not itself a git repo, it discovers child repos/submodules and commits each one with staged changes. If the current folder is also a repo, it includes that repo too.
 
 `/commit` uses a Conventional Commit subject plus a short body by default, so later `git log` readers can see both what changed and why. It omits the body only for truly trivial changes.
 

@@ -3,8 +3,10 @@ name: git-commit
 description: Use when creating git commits, drafting commit messages, branch names, or concise git summaries from staged or unstaged changes.
 ---
 ## Procedure
-- Inspect staged changes first.
-- For `/commit` or an explicit commit request, create a commit from staged changes after choosing the message.
+- Inspect staged changes first. If the command context lists multiple repositories, inspect the staged changes for each listed repository.
+- For `/commit` or an explicit commit request, create commits from staged changes after choosing the message.
+- If the current directory is not a git repository but contains child repositories or submodules, treat `/commit` as "commit all listed repositories with staged changes" instead of failing.
+- Commit each repository separately. Use `git -C <repo> commit ...` for child repositories or when the current directory is not that repository.
 - If no changes are staged, do not stage automatically unless the user explicitly asked for that; say what needs staging.
 - Follow Conventional Commits by default: `<type>(optional-scope): <description>`.
 - Use common types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
@@ -16,7 +18,7 @@ description: Use when creating git commits, drafting commit messages, branch nam
 - If verification was run or intentionally skipped, include it in the body when useful for future readers.
 - Mark breaking changes with `!` in the subject and `BREAKING CHANGE:` in the body.
 - Warn if secrets, generated artifacts, lockfiles, or unrelated changes appear.
-- After committing, verify with `git status --short`.
+- After committing, verify with `git status --short` or `git -C <repo> status --short` for each committed repository.
 - Do not amend commits unless the user explicitly requested amend.
 - Use multi-line commit commands so the body is preserved, for example:
   ```bash

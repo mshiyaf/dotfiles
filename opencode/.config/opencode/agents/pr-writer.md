@@ -10,10 +10,15 @@ permission:
   bash:
     "*": ask
     "git status*": allow
+    "git -C * status*": allow
     "git diff*": allow
+    "git -C * diff*": allow
     "git log*": allow
+    "git -C * log*": allow
     "git branch*": allow
+    "git -C * branch*": allow
     "git commit*": ask
+    "git -C * commit*": ask
   edit: deny
   skill:
     "*": deny
