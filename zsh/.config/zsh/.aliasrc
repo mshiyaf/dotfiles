@@ -154,9 +154,10 @@ function umount-backup() {
 # Backed by the `git-wt` script (~/.local/bin/git-wt). An external binary
 # cannot change the parent shell's cwd, so this wrapper handles the `cd`.
 #
-#   wt <branch>            cd into the worktree (creates it if missing)
-#   wt <branch> <start>    create from <start-point>, then cd
-#   wt <sub> ...           pass through to git-wt (list|rm|path|prune|help)
+#   wt <task...>           AI-name a branch from the task, create the worktree + cd
+#   wt <existing>          cd into an existing worktree/branch (no AI)
+#   wt -b <name> [start]   create/reuse an explicit branch (opt. from <start>) + cd
+#   wt <sub> ...           pass through to git-wt (list|rm|path|prune|new|add|help)
 function wt() {
     case "${1:-}" in
         ""|help|-h|--help)
@@ -165,14 +166,33 @@ function wt() {
         list|ls|rm|remove|prune|path|new|add)
             git wt "$@"
             ;;
-        *)
-            # Treat first arg as a branch: cd if it exists, else create then cd.
+        -b|--branch)
+            # Explicit branch: cd if the worktree exists, else create (opt. from
+            # <start>) then cd.
+            shift
             local branch="$1"; shift
+            [ -n "$branch" ] || { git wt new; return $?; }
             local dir
             if dir=$(git wt path "$branch" 2>/dev/null); then
                 cd "$dir"
             else
                 git wt new "$branch" "$@" || return $?
+                dir=$(git wt path "$branch") && cd "$dir"
+            fi
+            ;;
+        *)
+            # Existing worktree/branch -> just cd. Otherwise treat the args as a
+            # task and let AI name the branch.
+            local dir branch
+            if dir=$(git wt path "$1" 2>/dev/null); then
+                cd "$dir"
+            elif git show-ref --verify --quiet "refs/heads/$1"; then
+                git wt new "$1" || return $?
+                dir=$(git wt path "$1") && cd "$dir"
+            else
+                branch=$(ai-branch-name "$@") || return $?
+                print -r -- "→ branch: $branch"
+                git wt new "$branch" || return $?
                 dir=$(git wt path "$branch") && cd "$dir"
             fi
             ;;

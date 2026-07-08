@@ -171,10 +171,14 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 touching your main working tree.
 
 ```bash
-wt feature-x            # create sibling worktree <repo>.worktrees/feature-x and cd in
-opencode                # (or claude) - the agent works here, isolated
-git wt rm feature-x -D  # teardown: remove worktree + branch
+wt "add a dark-mode toggle"  # AI-name a branch, create <repo>.worktrees/<name> and cd in
+opencode                     # (or claude) - the agent works here, isolated
+git wt rm <branch> -D        # teardown: remove worktree + branch
 ```
+
+`wt` is task-first: describe the work and the branch is AI-named (via `ai-branch-name`,
+printed as `-> branch: ...`). Use `wt <existing>` to cd into an existing worktree, or
+`wt -b <name> [start]` to force a specific branch. Tab completion covers all three.
 
 Worktrees are **siblings** of the repo (`<repo>.worktrees/<branch>`), never nested inside it, so
 they're never committed or scanned. If an executable **`.worktrees-setup`** exists at the repo
@@ -192,8 +196,9 @@ push is blocked). Headless `opencode run` has no TTY to approve prompts, so **`-
 or every crewmate action is auto-rejected.
 
 ```bash
-crew new <branch> "<task>"   # worktree + tmux session running: opencode run "<task>" --agent crewmate
-                             #   no task   -> interactive opencode in the worktree
+crew new "<task>"            # AI-name a branch, then worktree + tmux session running:
+                             #   opencode run "<task>" --agent crewmate
+                             #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
                              #   --claude / --codex -> use claude or codex (bounded the same way)
                              #   --attach  -> jump into the session now
                              #   --start <ref> -> branch from <ref>
@@ -218,12 +223,12 @@ state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`,
 *Manual* - you run `crew` yourself and check in when you like:
 
 ```bash
-crew new fix/login    "fix the flaky login test"
-crew new feat/dark    "add a dark-mode toggle to settings"
+crew new "fix the flaky login test"        # -> branch: fix/flaky-login (AI-named)
+crew new "add a dark-mode toggle to settings"
 crew status                   # see both: running -> done:0 with commits-ahead
-crew logs fix/login           # read what a crewmate did (or -f to follow)
+crew logs fix/flaky-login     # read what a crewmate did (or -f to follow)
 # when each shows done with commits: review the branch (Playbook 7), ship via the gate (Playbook 11)
-crew stop fix/login -D
+crew stop fix/flaky-login -D
 ```
 
 *Captain-driven* - converse with **one** agent that dispatches and monitors for you (the firstmate

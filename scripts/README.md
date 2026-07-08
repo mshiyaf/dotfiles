@@ -15,6 +15,7 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 ## Contents
 
 - `codex-status` - print ChatGPT/Codex usage and rate-limit status.
+- `ai-branch-name` - turn a free-text task into one git branch name (AI, with a slug fallback); used by `crew` and `wt`.
 - `git-wt` - sibling git worktree manager (see below).
 - `crew` - tmux multi-agent orchestrator built on `git-wt` (see below).
 - `gate` - local AI ship gate: validate in a disposable worktree, then push + PR (see below).
@@ -69,13 +70,19 @@ cp "$GIT_WT_MAIN/.env" . 2>/dev/null || true
 ### `wt` shell function (cd support)
 
 An external binary cannot change the parent shell's directory, so a `wt` zsh
-function in `zsh/.config/zsh/.aliasrc` wraps `git-wt` to add `cd`:
+function in `zsh/.config/zsh/.aliasrc` wraps `git-wt` to add `cd`. It is
+**task-first**: describe the work and the branch is AI-named for you (via
+`ai-branch-name`), so you don't have to invent a name:
 
 ```bash
-wt foo            # cd into worktree "foo" (creates it first if missing)
-wt foo main       # create "foo" from main, then cd into it
-wt list           # pass-through to `git wt list` (also: rm, path, prune, help)
+wt "refactor the auth module"   # AI-name a branch, create the worktree + cd in
+wt foo                          # cd into existing worktree/branch "foo" (no AI)
+wt -b feat/foo                  # create/reuse an explicit branch, then cd
+wt -b feat/foo main             # explicit branch from start-point "main", then cd
+wt list                         # pass-through to `git wt list` (also: rm, path, prune, help)
 ```
+
+Tab completion (`_wt`) offers subcommands, `-b`, and existing worktrees.
 
 ### Typical agentic flow
 
@@ -101,16 +108,21 @@ yolo mode: `opencode` via `--agent crewmate --auto` (auto-approves, but the agen
 `claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
 via the `workspace-write` sandbox (network off, so push is blocked).
 
+`crew` is **task-first**: give it the task and the branch is AI-named for you
+(via `ai-branch-name`, printed as `-> branch: ...`). Pass `-b/--branch <name>`
+only when you want to reuse or force a specific branch.
+
 ```bash
-crew new feature-x "add dark mode"   # worktree + tmux session: opencode run "..." --agent crewmate
-crew new spike-y                     # no task -> interactive opencode in the worktree
-crew new fix-z --claude "fix flaky test" --attach   # use claude, jump straight in
+crew new "add dark mode"             # AI-name a branch, worktree + `opencode run "..." --agent crewmate`
+crew new --claude "fix flaky test" --attach   # use claude, jump straight in
+crew new -b feat/dark "add toggle"   # force the branch name
+crew new -b spike-y                  # no task -> interactive opencode in the worktree
 crew status                          # branch | running/done(rc) | commits-ahead | last log line
-crew logs feature-x -f               # follow a crewmate's captured output
+crew logs feat/dark -f               # follow a crewmate's captured output
 crew watch                           # bell + notify-send when a crewmate finishes or blocks
 crew ls                              # list active crew tmux sessions
-crew attach feature-x                # attach / switch-client to a crewmate
-crew stop feature-x -D               # kill session (-D also removes worktree + branch)
+crew attach feat/dark                # attach / switch-client to a crewmate
+crew stop feat/dark -D               # kill session (-D also removes worktree + branch)
 ```
 
 crew is **scoped per repository**: sessions are named `crew_<repo-key>_<branch>` and state lives
@@ -120,7 +132,8 @@ main repo or any of its worktrees. `crew ls`/`status`/`watch` show only the curr
 crewmates (two repos can each run a `feat-x` without colliding); pass `--all` for the cross-repo
 view. This is what `crew status`, `crew logs`, and `crew watch` read and `crew stop` clears. Run `crew watch`
 in its own pane for zero-token, event-driven alerts (bell + `notify-send`) the moment a crewmate
-is ready or blocked - the push layer a chat agent cannot provide on its own. Prefer the captain?
+is ready or blocked - the push layer a chat agent cannot provide on its own. Tab completion (`_crew`)
+offers subcommands, `new` flags, and live sessions for `attach`/`stop`. Prefer the captain?
 `/crew "build A, B, C"` in OpenCode dispatches crewmates and reports on request (it does not poll
 in a loop). `claude --tmux` / `claude --bg` are native alternatives if you prefer Claude Code's
 own worktree/background orchestration.

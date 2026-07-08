@@ -18,7 +18,8 @@ asdf() {
 
 
 # (optional) completions without sourcing asdf.sh
-fpath=("$HOME/.asdf/completions" $fpath)
+# plus our own completions dir (crew, git-wt, wt).
+fpath=("$HOME/.config/zsh/completions" "$HOME/.asdf/completions" $fpath)
 autoload -Uz compinit && compinit
 
 t_s(){

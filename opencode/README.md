@@ -244,7 +244,8 @@ Parallel agent work uses our own tools (in the `scripts` package, on `$PATH`):
   An optional executable `.worktrees-setup` at the repo root runs after each `git wt new`
   (copy `.env`, install deps).
 - **`crew`** - a lightweight tmux orchestrator (our own take on firstmate, no external scripts):
-  `crew new <branch> [task…]` spins up a worktree + detached tmux session running an agent;
+  `crew new "<task…>"` spins up a worktree + detached tmux session running an agent, with the
+  branch AI-named from the task (pass `-b <name>` to force/reuse one);
   `crew ls` / `crew attach <branch>` / `crew stop <branch> [-D]` manage the fleet.
 
 ## Ship gate

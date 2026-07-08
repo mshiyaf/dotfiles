@@ -1,0 +1,62 @@
+#compdef crew
+
+# Completion for the `crew` tmux multi-agent orchestrator.
+
+# Active crew sessions, with the `crew_` prefix stripped (attach/stop re-sanitize,
+# so the underscored form round-trips fine).
+__crew_sessions() {
+    local -a sessions
+    sessions=(${(f)"$(tmux list-sessions -F '#{session_name}' 2>/dev/null \
+        | sed -n 's/^crew_//p')"})
+    _describe -t sessions 'crew session' sessions
+}
+
+__crew_all_branches() {
+    local -a branches
+    branches=(${(f)"$(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
+    _describe -t branches 'branch' branches
+}
+
+_crew() {
+    local curcontext="$curcontext" state line
+    local -a subcommands
+    subcommands=(
+        'new:create a worktree + tmux session running an agent (branch AI-named from the task)'
+        'ls:list active crew sessions'
+        'list:list active crew sessions'
+        'attach:attach/switch to a crewmate session'
+        'stop:kill a session (-D also removes worktree + branch)'
+        'rm:kill a session (-D also removes worktree + branch)'
+        'help:show help'
+    )
+
+    _arguments -C '1: :->cmd' '*:: :->args' && return 0
+
+    case $state in
+        cmd)
+            _describe -t commands 'crew command' subcommands
+            ;;
+        args)
+            case $line[1] in
+                new)
+                    _arguments \
+                        '(-b --branch)'{-b,--branch}'[reuse/force a branch instead of AI-naming]:branch:__crew_all_branches' \
+                        '--start[branch start-point]:ref:__crew_all_branches' \
+                        '--attach[jump into the session now]' \
+                        '--claude[use the claude engine]' \
+                        '--codex[use the codex engine]'
+                    ;;
+                attach)
+                    __crew_sessions
+                    ;;
+                stop|rm)
+                    _arguments \
+                        '-D[also remove worktree + branch]' \
+                        '*:session:__crew_sessions'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_crew "$@"

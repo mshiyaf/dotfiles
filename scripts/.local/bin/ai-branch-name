@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+#
+# ai-branch-name - turn a free-text task into ONE git branch name.
+#
+# Used by `crew` and the `wt` shell function so you describe the task instead of
+# inventing a branch name. Prints exactly one sanitized branch name on stdout.
+#
+# Usage:
+#   ai-branch-name [--engine opencode|claude|codex] <task words...>
+#
+# Engine: default `opencode`; override with --engine or $WT_AI_ENGINE.
+#   opencode -> uses the configured `small_model` (see ~/.config/opencode/
+#               opencode.json, default openai/gpt-5.4-nano) - naming is cheap/fast.
+#   claude   -> claude -p ... (haiku, for speed)
+#   codex    -> codex exec ...
+#
+# Robustness: the model call is wrapped in `timeout`. If the engine is missing,
+# errors, times out, or returns nothing usable, we fall back to a deterministic
+# slug of the task text - so this never fails and never blocks.
+
+set -euo pipefail
+
+AI_TIMEOUT="${WT_AI_TIMEOUT:-60}"
+OPENCODE_CONFIG="${HOME}/.config/opencode/opencode.json"
+DEFAULT_SMALL_MODEL="openai/gpt-5.4-nano"
+
+engine="${WT_AI_ENGINE:-opencode}"
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--engine) shift; engine="${1:-}" ;;
+		--) shift; break ;;
+		-*) printf 'ai-branch-name: unknown flag: %s\n' "$1" >&2; exit 2 ;;
+		*) break ;;
+	esac
+	shift
+done
+
+task="$*"
+[ -n "$task" ] || { printf 'ai-branch-name: no task given\n' >&2; exit 2; }
+
+# Deterministic slug: lowercase, keep a-z0-9/-, collapse dashes, cap ~6 words.
+slugify() {
+	printf '%s' "$1" \
+		| tr '[:upper:]' '[:lower:]' \
+		| tr '_ ' '--' \
+		| tr -cd 'a-z0-9/\n-' \
+		| tr -s '-' \
+		| sed -E 's#(^[-/]+|[-/]+$)##g' \
+		| cut -c1-50 \
+		| awk -F'-' '{ n=(NF>6?6:NF); s=$1; for(i=2;i<=n;i++) s=s"-"$i; print s }'
+}
+
+# Normalize a raw model reply into a single clean branch name (or empty).
+# Take the LAST non-empty line - the model's final answer, after any preamble.
+clean() {
+	awk 'NF{last=$0} END{if(last)print last}' \
+		| sed -E 's/^[[:space:]]*(branch[[:space:]]*[:=][[:space:]]*)?//I' \
+		| tr -d '`"'"'"'' \
+		| tr '[:upper:]' '[:lower:]' \
+		| tr '_ ' '--' \
+		| tr -cd 'a-z0-9/-' \
+		| tr -s '-' \
+		| sed -E 's#(^[-/]+|[-/]+$)##g' \
+		| cut -c1-50
+}
+
+opencode_small_model() {
+	local m=""
+	if command -v jq >/dev/null 2>&1 && [ -f "$OPENCODE_CONFIG" ]; then
+		m=$(jq -r '.small_model // empty' "$OPENCODE_CONFIG" 2>/dev/null) || m=""
+	fi
+	printf '%s' "${m:-$DEFAULT_SMALL_MODEL}"
+}
+
+PROMPT=$(printf '%s\n' \
+	"Generate exactly ONE git branch name for this task." \
+	"Rules: lowercase, hyphen-separated words; add a conventional prefix" \
+	"(feat/ fix/ chore/ refactor/ docs/) only if clearly implied; keep it short." \
+	"Output ONLY the branch name on a single line - no quotes, no explanation." \
+	"Task: ${task}")
+
+# Ask the selected engine; empty stdout on any failure so we fall back.
+ask_engine() {
+	command -v "$engine" >/dev/null 2>&1 || return 1
+	case "$engine" in
+		opencode)
+			timeout "$AI_TIMEOUT" opencode run "$PROMPT" --model "$(opencode_small_model)" 2>/dev/null
+			;;
+		claude)
+			timeout "$AI_TIMEOUT" claude -p "$PROMPT" --model claude-haiku-4-5 --output-format text 2>/dev/null
+			;;
+		codex)
+			timeout "$AI_TIMEOUT" codex exec "$PROMPT" 2>/dev/null
+			;;
+		*) return 1 ;;
+	esac
+}
+
+name=""
+if raw=$(ask_engine); then
+	name=$(printf '%s' "$raw" | clean)
+fi
+
+[ -n "$name" ] || name=$(slugify "$task")
+[ -n "$name" ] || name="task"
+
+printf '%s\n' "$name"

@@ -7,10 +7,13 @@
 # - just spawn, monitor, and tear down. Our own take on the firstmate idea.
 #
 # Usage:
-#   crew new <branch> [task...]   Create a worktree + tmux session and launch an agent.
-#                                   No task  -> interactive agent in the worktree.
+#   crew new <task...>            Create a worktree + tmux session and launch an agent.
+#                                   The branch is AI-named from the task (printed as
+#                                   "-> branch: ..."); no need to invent a name.
 #                                   With task -> headless agent that implements + commits.
-#                                 Flags: --attach (jump to it), --claude, --codex,
+#                                 Flags: -b/--branch <name> (reuse/force a branch instead
+#                                        of AI-naming; no task -> interactive agent),
+#                                        --attach (jump to it), --claude, --codex,
 #                                        --start <ref> (branch start-point).
 #   crew status [branch] [--all]  Report crewmates: running/done, commits, last log line.
 #   crew logs <branch> [-f]       Print (or follow with -f) a crewmate's captured output.
@@ -24,7 +27,7 @@
 # across the repo's worktrees), so ls/status/watch show only the current repo's crewmates.
 # Pass --all to span every repo. Crewmates run headless and commit on their own branch; they
 # never push. Review each ready branch (/review-diff) and ship it (/ship-gate). Requires:
-# tmux, git-wt (PATH), opencode/claude/codex. Run from inside the target git repo.
+# tmux, git-wt + ai-branch-name (PATH), opencode/claude/codex. Run from inside the target git repo.
 
 set -euo pipefail
 
@@ -103,22 +106,29 @@ cmd_new() {
 	local branch="" start="" task="" attach=0 engine="opencode"
 	while [ $# -gt 0 ]; do
 		case "$1" in
+			-b|--branch) shift; branch="${1:-}" ;;
 			--attach) attach=1 ;;
 			--claude) engine="claude" ;;
 			--codex) engine="codex" ;;
 			--start) shift; start="${1:-}" ;;
 			--) shift; break ;;
 			-*) die "unknown flag: $1" ;;
-			*) if [ -z "$branch" ]; then branch="$1"; else task+="${task:+ }$1"; fi ;;
+			*) task+="${task:+ }$1" ;;
 		esac
 		shift
 	done
 	# Any remaining args after `--` are part of the task.
 	while [ $# -gt 0 ]; do task+="${task:+ }$1"; shift; done
-	[ -n "$branch" ] || die "usage: crew new <branch> [task...]"
 
 	git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
 	command -v "$engine" >/dev/null 2>&1 || die "$engine not on PATH"
+
+	# Resolve the branch: explicit -b wins; otherwise AI-name it from the task.
+	if [ -z "$branch" ]; then
+		[ -n "$task" ] || die "usage: crew new [-b <branch>] <task...>"
+		branch=$(ai-branch-name --engine "$engine" "$task") || die "could not resolve a branch name"
+		printf '→ branch: %s\n' "$branch"
+	fi
 
 	# Create/attach the worktree via git-wt, then resolve its path.
 	local path
