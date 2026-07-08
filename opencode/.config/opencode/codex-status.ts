@@ -7,7 +7,8 @@
  * the access token if expired, then calls /wham/usage and renders a
  * compact string such as "5h █████░░░░░ 55% · 7d ██░░░░░░░░ 20%" in the bottom-right.
  *
- * No multi-account support. No persisted cache. No tools or commands.
+ * Supports local OpenCode-only OpenAI account profiles stored outside the repo
+ * under ~/.local/share/opencode/openai-accounts/.
  */
 
 import fs from "node:fs";
@@ -22,6 +23,8 @@ const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "auth.json");
 const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
 const OPENCODE_DB = path.join(os.homedir(), ".local", "share", "opencode", "opencode.db");
+const OPENCODE_ACCOUNT_DIR = path.join(os.homedir(), ".local", "share", "opencode", "openai-accounts");
+const OPENCODE_ACCOUNT_NAMES = ["personal", "sprdh"] as const;
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const POST_TURN_DELAY_MS = 750;
@@ -33,6 +36,16 @@ type Creds = {
   expiresMs: number;
   accountId?: string;
   save: (next: { accessToken: string; refreshToken: string; expiresMs: number; idToken?: string }) => void;
+};
+
+type OpencodeOAuth = {
+  type: "oauth";
+  access: string;
+  refresh: string;
+  expires?: number;
+  accountId?: string;
+  enterpriseUrl?: string;
+  [key: string]: unknown;
 };
 
 type UsageWindow = {
@@ -62,6 +75,76 @@ type Status =
 // `openai` provider (which is actually ChatGPT OAuth), not `codex`.
 const OPENCODE_AUTH_KEYS = ["openai", "codex"] as const;
 
+function readJson(file: string): any | null {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeJsonAtomic(file: string, value: unknown) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
+function accountProfilePath(name: string): string {
+  return path.join(OPENCODE_ACCOUNT_DIR, `${name}.json`);
+}
+
+function isOpencodeOAuth(value: any): value is OpencodeOAuth {
+  return value?.type === "oauth" && typeof value.access === "string" && typeof value.refresh === "string";
+}
+
+function loadProfile(name: string): OpencodeOAuth | null {
+  const profile = readJson(accountProfilePath(name));
+  return isOpencodeOAuth(profile) ? profile : null;
+}
+
+function currentOpencodeOAuth(): OpencodeOAuth | null {
+  const store = readJson(OPENCODE_AUTH);
+  const current = store?.openai;
+  return isOpencodeOAuth(current) ? current : null;
+}
+
+function profileAccountId(profile: OpencodeOAuth): string | undefined {
+  return accountIdFromJwt(profile.access, profile.accountId);
+}
+
+function activeProfileName(): string | null {
+  const current = currentOpencodeOAuth();
+  if (!current) return null;
+  const currentAccountId = profileAccountId(current);
+  for (const name of OPENCODE_ACCOUNT_NAMES) {
+    const profile = loadProfile(name);
+    if (!profile) continue;
+    const profileId = profileAccountId(profile);
+    if (profileId && currentAccountId && profileId === currentAccountId) return name;
+  }
+  return null;
+}
+
+function saveCurrentProfileIfKnown() {
+  const current = currentOpencodeOAuth();
+  if (!current) return;
+  const name = activeProfileName();
+  if (!name) return;
+  writeJsonAtomic(accountProfilePath(name), current);
+}
+
+function switchOpenAIProfile(name: string) {
+  const profile = loadProfile(name);
+  if (!profile) throw new Error(`missing profile: ${name}`);
+  const current = readJson(OPENCODE_AUTH);
+  if (!current || typeof current !== "object") throw new Error("missing opencode auth.json");
+  saveCurrentProfileIfKnown();
+  if (fs.existsSync(OPENCODE_AUTH)) fs.copyFileSync(OPENCODE_AUTH, `${OPENCODE_AUTH}.bak`);
+  current.openai = profile;
+  writeJsonAtomic(OPENCODE_AUTH, current);
+}
+
 function loadOpencode(): Creds | null {
   if (!fs.existsSync(OPENCODE_AUTH)) return null;
   let store: any;
@@ -87,9 +170,11 @@ function loadOpencode(): Creds | null {
           refresh: next.refreshToken,
           expires: next.expiresMs,
         };
-        const tmp = `${OPENCODE_AUTH}.tmp`;
-        fs.writeFileSync(tmp, JSON.stringify(current, null, 2), { mode: 0o600 });
-        fs.renameSync(tmp, OPENCODE_AUTH);
+        writeJsonAtomic(OPENCODE_AUTH, current);
+        const active = activeProfileName();
+        if (key === "openai" && active && isOpencodeOAuth(current[key])) {
+          writeJsonAtomic(accountProfilePath(active), current[key]);
+        }
       },
     };
   }
@@ -403,6 +488,7 @@ const tui: TuiPlugin = async (api) => {
   ]);
 
   const [status, setStatus] = solidJs.createSignal<Status>({ type: "loading" });
+  const [accountVersion, setAccountVersion] = solidJs.createSignal(0);
   let inFlight = false;
 
   async function tick() {
@@ -439,6 +525,26 @@ const tui: TuiPlugin = async (api) => {
   const offIdle = api.event.on("session.idle", () => tick());
   api.lifecycle.onDispose(offIdle);
 
+  const offCommand = api.command.register(() =>
+    OPENCODE_ACCOUNT_NAMES.map((name) => ({
+      title: `OpenAI: switch to ${name}`,
+      value: `openai-account-${name}`,
+      category: "OpenAI",
+      onSelect: () => {
+        try {
+          switchOpenAIProfile(name);
+          setAccountVersion((v) => v + 1);
+          setStatus({ type: "loading" });
+          tick();
+          api.ui.toast({ variant: "success", message: `Switched OpenAI account to ${name}` });
+        } catch (err) {
+          api.ui.toast({ variant: "error", message: (err as Error).message });
+        }
+      },
+    })),
+  );
+  api.lifecycle.onDispose(offCommand);
+
   api.slots.register({
     slots: {
       session_prompt_right: (props) => {
@@ -469,6 +575,11 @@ const tui: TuiPlugin = async (api) => {
           return contextUsage(api, currentSessionID(api, props));
         }
 
+        function accountName() {
+          accountVersion();
+          return showCodex() ? activeProfileName() ?? "openai" : "";
+        }
+
         function statusText(index: number) {
           const s = status();
           if (s.type === "loading") return "";
@@ -484,10 +595,22 @@ const tui: TuiPlugin = async (api) => {
           return Boolean(formatContext(currentContext()));
         }
 
+        function hasAccount() {
+          return Boolean(accountName());
+        }
+
         function showCodex() {
           return sessionUsesOpenAI(api, currentSessionID(api, props));
         }
 
+        textNode(
+          () => accountName(),
+          () => api.theme.current.info,
+        );
+        textNode(
+          () => (hasAccount() && (formatContext(currentContext()) || (showCodex() && statusText(0))) ? " · " : ""),
+          () => api.theme.current.textMuted,
+        );
         textNode(
           () => formatContext(currentContext()),
           () => contextColor(currentContext(), api.theme.current),
