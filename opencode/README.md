@@ -1,5 +1,9 @@
 # OpenCode Dotfiles Package
 
+> 📖 **New here?** Read [`docs/WORKFLOW.md`](../docs/WORKFLOW.md) for the end-to-end agentic
+> workflow - playbooks (plan a product/feature, fix a bug, parallel agents, ship gate) plus a
+> full reference for every command, skill, subagent, and config file.
+
 This package is a GNU Stow package for global OpenCode config.
 
 It installs:
@@ -7,9 +11,13 @@ It installs:
 - Global OpenCode config at `~/.config/opencode/opencode.json`.
 - Global subagents in `~/.config/opencode/agents/`.
 - Global commands in `~/.config/opencode/commands/`.
-- Small reusable global skills in `~/.config/opencode/skills/`.
 - Noctalia TUI theme in `~/.config/opencode/themes/noctalia.json`.
 - TUI config at `~/.config/opencode/tui.json`.
+
+> **Skills live in the `agents/` package, not here.** `~/.config/opencode/skills/` is the
+> canonical skills dir, owned by the `agents/` stow package and shared (symlinked) with
+> Claude and Codex. See `agents/README.md`. This package owns everything else under
+> `~/.config/opencode/` except `skills/` and `AGENTS.md`.
 
 The setup is intentionally stack-neutral. Laravel, Filament, Livewire, product-domain, and company-specific instructions should stay in each repo under `.opencode/`.
 
@@ -128,9 +136,11 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 
 | Commands                                                                              | Agent               |
 | ------------------------------------------------------------------------------------- | ------------------- |
-| `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review` | `reviewer`          |
+| `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review`, `/second-pass`, `/claude-review` | `reviewer`          |
 | `/security-review`                                                                    | `security-reviewer` |
-| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/autoplan`, `/second-opinion` | `architect`         |
+| `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/autoplan`, `/plan-design-review`, `/plan-eng-review` | `architect`         |
+| `/plan-ceo-review`, `/ceo-review`, `/second-opinion`, `/critique`                     | `critic`            |
+| `/ship-gate`, `/init-gate`, `/init-agents-md`                                          | `build`             |
 | `/debug-tests`, `/investigate`, `/explain`                                             | `debugger`          |
 | `/test-plan`                                                                          | `tester`            |
 | `/qa-only`                                                                            | `tester`            |
@@ -146,9 +156,10 @@ Model fallback or escalation is handled by editing the relevant agent model in `
 
 `/commit-message` only drafts the message and never runs `git commit`. It uses the same subject/body format as `/commit`.
 
-## GStack-Inspired Workflow
+## Workflow
 
-This package intentionally keeps a lightweight OpenCode-native workflow instead of vendoring gstack, but it borrows the useful sprint shape from <https://github.com/garrytan/gstack>:
+A lightweight OpenCode-native sprint shape (loosely inspired by gstack's, but fully
+self-contained - nothing from gstack is installed or required):
 
 ```text
 Think → Plan → Build → Review → Test → Ship → Reflect
@@ -160,21 +171,12 @@ Recommended command flow:
 | ------- | ------------------------------------------------------------ | ------------------------------------------ |
 | Think   | `/research`, `/explain`, or normal chat                      | Clarify unknowns before planning.          |
 | Plan    | `/autoplan`, `/plan-feature`, `/architecture-check`          | Save scope, risks, files, and tests.       |
+| Plan review | `/plan-ceo-review`, `/plan-design-review`, `/plan-eng-review` | Founder / designer / eng-lens critique before building. |
 | Build   | Normal `build` agent                                         | Keep changes small and repo-patterned.     |
-| Review  | `/review-diff`, `/review-staged`, `/security-review`         | Findings first; no edits in review agents. |
+| Review  | `/review-diff`, `/ui-review`, `/security-review`, `/ceo-review`, `/claude-review`, `/second-pass` | Findings first; `/claude-review` = Claude-CLI second opinion; `/second-pass` re-checks after fixes. |
 | Test    | `/qa-only`, `/test-plan`, `/debug-tests`, project tests      | Reproduce failures before fixing.          |
-| Ship    | `/ship-check`, `/docs-update`, `/changelog`, `/pr-body`      | Final readiness, docs, release notes, PR.  |
+| Ship    | `/ship-check`, `/ship-gate`, `/docs-update`, `/changelog`, `/pr-body` | `/ship-gate` = disposable-worktree validate → push → PR. |
 | Commit  | `/commit-message`, `/commit`, `/branch-name`                 | Descriptive commit bodies by default.      |
-
-If you want to install gstack's upstream skills directly for experimentation, use its OpenCode host installer outside this stow package:
-
-```bash
-git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/gstack
-cd ~/gstack
-./setup --host opencode
-```
-
-That installs upstream gstack skills under `~/.config/opencode/skills/gstack-*/`. Keep those generated upstream skills out of this dotfiles package unless you intentionally want to vendor and maintain them.
 
 ### Verifying / changing models
 
@@ -190,6 +192,78 @@ Verify commands, agents, and skills do not override models:
 ```bash
 grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.config/opencode/skills 2>/dev/null
 ```
+
+## Shared cross-agent AGENTS.md
+
+Global behavioral instructions are shared across Claude Code, Codex, and OpenCode via a
+separate **`agents/`** stow package (see `agents/README.md`). One canonical
+`~/AGENTS.md` is symlinked into each agent:
+
+```text
+~/AGENTS.md                          (canonical, short - loads into every agent's context)
+~/.claude/CLAUDE.md          -> ~/AGENTS.md
+~/.codex/AGENTS.md           -> ~/AGENTS.md
+~/.config/opencode/AGENTS.md -> ~/AGENTS.md   (owned by the agents package, not this one)
+```
+
+This `opencode/` package still owns everything else under `~/.config/opencode/`
+(`opencode.json`, `tui.json`, `agents/`, `commands/`, `skills/`, `themes/`); it only
+does **not** own `AGENTS.md`, so there is no stow conflict.
+
+Per-project instructions stay in each repo's own `AGENTS.md` - seed one with
+`/init-agents-md`.
+
+## Review roles
+
+Lightweight review commands borrow the CEO / design / eng lenses without vendoring gstack:
+
+- **CEO / founder** - `/plan-ceo-review` (plan) and `/ceo-review` (diff): framing, scope, value.
+- **Design** - `/plan-design-review` (plan). For implemented UI use the existing `/ui-review`.
+- **Engineering** - `/plan-eng-review` (plan). For an implemented change use `/architecture-check`.
+- **Second opinions** - `/second-opinion` (critic, cross-model) and `/claude-review` (hands the
+  diff to the `claude` CLI using your Claude subscription - no Anthropic provider is configured
+  in OpenCode).
+- **Re-review** - `/second-pass`: confirms prior findings are resolved and no regressions crept in.
+
+To avoid command sprawl, these reuse the existing `critic` / `architect` / `reviewer` agents;
+no new models were added.
+
+## Headless browser skill
+
+The `browser` skill (`skills/browser/`) gives OpenCode a **headless, CLI-driven** browser
+(`browser-cli.ts`, Bun) for web QA and scraping - fetch text, screenshot, click, fill,
+assert, and axe-core a11y scans.
+If Playwright's Chromium is not installed, `text` degrades to a plain fetch; other ops print
+`bunx playwright install chromium`.
+
+## Worktrees and the crew orchestrator
+
+Parallel agent work uses our own tools (in the `scripts` package, on `$PATH`):
+
+- **`git wt`** / **`wt`** - sibling git worktrees, one isolated checkout per branch/agent.
+  An optional executable `.worktrees-setup` at the repo root runs after each `git wt new`
+  (copy `.env`, install deps).
+- **`crew`** - a lightweight tmux orchestrator (our own take on firstmate, no external scripts):
+  `crew new <branch> [task…]` spins up a worktree + detached tmux session running an agent;
+  `crew ls` / `crew attach <branch>` / `crew stop <branch> [-D]` manage the fleet.
+
+## Ship gate
+
+`/ship-gate` runs our own **`gate`** CLI (in the `scripts` package): it validates a branch's
+committed work in a **disposable worktree** (advisory review → enforced test → enforced lint,
+each with a bounded auto-fix loop) and only pushes + opens a PR once the gate passes. On an
+unfixable failure it escalates and pushes nothing. No external binary. Seed config with
+`/init-gate` (writes a `.gate.sh`). See `skills/ship-gate/SKILL.md`.
+
+## Token efficiency
+
+Guardrails are baked into `~/AGENTS.md` and the review commands:
+
+- Shortest useful answer first; don't re-read files already in context.
+- Reviews: findings first, severity-tagged, one line of context each - don't summarize a diff.
+- Prefer targeted `grep`/read over broad `find`/`cat`.
+- Routing keeps cheap models on lightweight agents (`small_model` = `kimi-for-coding/k2p5`);
+  reviewers stay on cost-effective models by default (edit `opencode.json` to escalate).
 
 ## Plugins
 
@@ -228,7 +302,7 @@ It is `scripts/.local/bin/codex-status` in the repo and installs to `~/.local/bi
 via `stow --no-folding -t "$HOME" -v scripts`. It also requires `bun` (it runs under
 `#!/usr/bin/env bun`).
 
-If you add npm plugins later, declare them under the `"plugin"` key in `~/.config/opencode/opencode.json`. OpenCode loads npm plugins on startup with Bun and caches them under `~/.cache/opencode/packages/` and `~/.opencode/node_modules/` — both paths are intentionally excluded from this stow package.
+If you add npm plugins later, declare them under the `"plugin"` key in `~/.config/opencode/opencode.json`. OpenCode loads npm plugins on startup with Bun and caches them under `~/.cache/opencode/packages/` and `~/.opencode/node_modules/` - both paths are intentionally excluded from this stow package.
 
 Avoid one-shot installers (`npx some-plugin@latest`) that rewrite the config files in `~/.config/opencode/`. They overwrite the stowed symlinks with real files. If one runs anyway, restow:
 
@@ -258,7 +332,12 @@ OAuth/auth state is created per machine and is not synced through Git.
 
 ## Skills
 
-This package vendors a small reviewed subset of public skills and keeps concise local fallback skills for day-to-day work.
+> Skills are owned by the **`agents/`** stow package (`agents/.config/opencode/skills/`) and
+> shared across OpenCode, Claude, and Codex via symlinks - the same `SKILL.md` set for all
+> three. See `agents/README.md`. The list below documents the shared set; it is not
+> installed by this `opencode/` package.
+
+This set vendors a small reviewed subset of public skills and keeps concise local fallback skills for day-to-day work.
 
 Vendored public skills:
 
@@ -268,7 +347,7 @@ systematic-debugging       from obra/superpowers
 test-driven-development    from obra/superpowers
 ```
 
-These are trimmed copies, not a live install from npm or `skills add`. They are stored in `opencode/.config/opencode/skills/` so Stow can manage them deterministically.
+These are trimmed copies, not a live install from npm or `skills add`. They are stored in `agents/.config/opencode/skills/` so Stow can manage them deterministically.
 
 Local fallback skills:
 
@@ -319,7 +398,15 @@ Primary commands:
 /plan-feature        /refactor-plan       /review-diff
 /review-staged       /security-review     /ship-check
 /second-opinion      /architecture-check  /long-context-review
-/ui-review           /agentic-plan
+/ui-review           /agentic-plan        /critique
+```
+
+Review + workflow additions:
+
+```text
+/plan-ceo-review     /ceo-review          /plan-design-review
+/plan-eng-review     /second-pass         /claude-review
+/ship-gate           /init-gate           /init-agents-md
 ```
 
 Model-specific fallback commands are intentionally not installed. Change agent model routing in `opencode.json` when you want a different model.
@@ -337,6 +424,8 @@ Global subagents:
 @debugger
 @pr-writer
 @refactor-planner
+@critic
+@researcher
 ```
 
 ## Verification

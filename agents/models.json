@@ -1,0 +1,52 @@
+{
+  "reviewer": {
+    "opencode": "gpt-5.5",
+    "claude": "opus",
+    "codex": "gpt-5.5"
+  },
+  "security-reviewer": {
+    "opencode": "gpt-5.5",
+    "claude": "opus",
+    "codex": "gpt-5.5"
+  },
+  "critic": {
+    "opencode": "qwen3.7-max",
+    "claude": "opus",
+    "codex": "gpt-5.5"
+  },
+  "architect": {
+    "opencode": "glm-5.2",
+    "claude": "opus",
+    "codex": "gpt-5.5"
+  },
+  "refactor-planner": {
+    "opencode": "glm-5.2",
+    "claude": "opus",
+    "codex": "gpt-5.5"
+  },
+  "researcher": {
+    "opencode": "qwen3.7-plus",
+    "claude": "sonnet",
+    "codex": "gpt-5.5-fast"
+  },
+  "debugger": {
+    "opencode": "k2p7",
+    "claude": "sonnet",
+    "codex": "gpt-5.1-codex-max"
+  },
+  "tester": {
+    "opencode": "k2p7",
+    "claude": "sonnet",
+    "codex": "gpt-5.1-codex-max"
+  },
+  "docs-writer": {
+    "opencode": "gpt-5.4-mini",
+    "claude": "haiku",
+    "codex": "gpt-5.4-mini"
+  },
+  "pr-writer": {
+    "opencode": "gpt-5.4-mini",
+    "claude": "haiku",
+    "codex": "gpt-5.4-mini"
+  }
+}

@@ -6,4 +6,4 @@ Context:
 !`git status --short`
 !`git diff --stat`
 
-Critique the most recent analysis or review output. Challenge assumptions, find missed edge cases, and propose alternatives. Use a different reasoning perspective.
+Use the critique skill to critique the most recent analysis or review output.

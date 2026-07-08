@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
- * codex-status — print ChatGPT/Codex usage and rate-limit status.
+ * codex-status - print ChatGPT/Codex usage and rate-limit status.
  *
- * Reads opencode's own auth store (~/.local/share/opencode/auth.json,
- * key "codex"), falling back to ~/.codex/auth.json (Codex CLI), refreshes
+ * Reads the Codex CLI auth store (~/.codex/auth.json), falling back to
+ * opencode's own auth store (~/.local/share/opencode/auth.json), refreshes
  * the OAuth access token if expired, then calls
  * https://chatgpt.com/backend-api/wham/usage and prints a compact summary.
  *
@@ -99,7 +99,7 @@ function loadCodexCli(): Creds | null {
 }
 
 function loadCreds(): Creds {
-  const c = loadOpencode() ?? loadCodexCli();
+  const c = loadCodexCli() ?? loadOpencode();
   if (!c) {
     throw new Error(
       `No Codex credentials found.\n  Tried: ${OPENCODE_AUTH}\n  Tried: ${CODEX_AUTH}\nRun \`opencode auth login\` (provider: codex) or \`codex login\`.`,

@@ -1,0 +1,248 @@
+#!/usr/bin/env bash
+#
+# gate - our own AI ship-gate. Validates a branch in a disposable worktree, then
+# pushes and opens a PR only after the gate passes. Our own take on no-mistakes;
+# no external binary, built on `git-wt` + `opencode`/`claude`/`codex` + `gh`.
+#
+# Pipeline (per `gate run`):
+#   1. Copy the current branch's HEAD into a disposable worktree (your work stays put).
+#   2. review  - advisory: surface findings (does not block; exit codes from an LLM
+#                are unreliable, so review informs, tests/lint enforce).
+#   3. test    - enforced, with a bounded auto-fix loop.
+#   4. lint     - enforced, with a bounded auto-fix loop.
+#   5. On pass: fast-forward push to the remote and `gh pr create`. Auto-fix commits
+#      (if any) are fast-forwarded back onto your local branch.
+#   6. Tear down the disposable worktree.
+#
+# Usage:
+#   gate init [--engine opencode|claude|codex]
+#                      Seed a .gate.sh config in the current repo.
+#   gate run [branch]  Run the gate for <branch> (default: current branch).
+#   gate status        Show the resolved config.
+#   gate help
+#
+# Config: a sourced `.gate.sh` at the repo root (bash, not YAML). See `gate init`.
+# Requires: git-wt (PATH), gh (for the PR), and whatever your GATE_* commands need.
+
+set -euo pipefail
+
+die() { printf 'gate: %s\n' "$*" >&2; exit 1; }
+info() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
+ok()   { printf '\033[1;32m✔ %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33m! %s\033[0m\n' "$*" >&2; }
+
+repo_root() {
+	git rev-parse --show-toplevel 2>/dev/null || die "not inside a git repository"
+}
+
+# --- config -----------------------------------------------------------------
+
+# Defaults; a repo's .gate.sh overrides these.
+GATE_TEST="npm test"
+GATE_LINT="npm run lint"
+GATE_REVIEW_CMD='opencode run "/review-diff" --agent reviewer'
+GATE_FIX_CMD='opencode run "%s" --agent build'   # %s is replaced with the fix prompt
+GATE_MAX_ROUNDS=3
+GATE_PUSH_REMOTE="origin"
+GATE_PR_ARGS="--fill"
+
+load_config() {
+	local cfg; cfg="$(repo_root)/.gate.sh"
+	# shellcheck source=/dev/null
+	[ -f "$cfg" ] && source "$cfg"
+}
+
+# --- init -------------------------------------------------------------------
+
+cmd_init() {
+	local engine="opencode"
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--engine) shift; engine="${1:-}" ;;
+			-*) die "unknown flag: $1" ;;
+			*) die "unexpected argument: $1" ;;
+		esac
+		shift
+	done
+	case "$engine" in
+		opencode)
+			review_cmd='opencode run "/review-diff" --agent reviewer'
+			fix_cmd='opencode run "%s" --agent build'
+			;;
+		claude)
+			review_cmd='claude -p "/code-review" --output-format text'
+			fix_cmd='claude -p "%s" --output-format text'
+			;;
+		codex)
+			review_cmd='codex exec "Use the code-review skill on the current diff"'
+			fix_cmd='codex exec "%s"'
+			;;
+		*) die "unknown engine: $engine" ;;
+	esac
+	local cfg; cfg="$(repo_root)/.gate.sh"
+	[ -e "$cfg" ] && die ".gate.sh already exists at $cfg"
+	cat > "$cfg" <<EOF
+# .gate.sh - ship-gate config (sourced by \`gate\`). Plain bash, not YAML.
+# Set a command to "" to skip that stage.
+
+GATE_TEST="npm test"                 # enforced (with auto-fix loop)
+GATE_LINT="npm run lint"             # enforced (with auto-fix loop)
+
+# Advisory review (surfaces findings, does not block). Empty = skip.
+GATE_REVIEW_CMD='$review_cmd'
+# Alternatives:
+# GATE_REVIEW_CMD='opencode run "/review-diff" --agent reviewer'
+# GATE_REVIEW_CMD='claude -p "/code-review" --output-format text'
+# GATE_REVIEW_CMD='codex exec "Use the code-review skill on the current diff"'
+
+# How auto-fixes are requested. %s is replaced with the failing-stage prompt.
+GATE_FIX_CMD='$fix_cmd'
+# Alternatives:
+# GATE_FIX_CMD='opencode run "%s" --agent build'
+# GATE_FIX_CMD='claude -p "%s" --output-format text'
+# GATE_FIX_CMD='codex exec "%s"'
+
+GATE_MAX_ROUNDS=3                    # auto-fix attempts per enforced stage
+GATE_PUSH_REMOTE="origin"
+GATE_PR_ARGS="--fill"                # extra args for \`gh pr create\`
+EOF
+	ok "wrote $cfg"
+	printf '  Review and tweak the GATE_* commands, then: gate run\n'
+}
+
+# --- run --------------------------------------------------------------------
+
+# Run one enforced stage with a bounded auto-fix loop. Returns non-zero if it
+# still fails after GATE_MAX_ROUNDS.
+run_enforced() {
+	local name="$1" cmd="$2"
+	[ -n "$cmd" ] || { info "skip $name (not configured)"; return 0; }
+
+	local round=0 out fix_prompt fix_cmd
+	while :; do
+		info "$name (round $round): $cmd"
+		if out=$(eval "$cmd" 2>&1); then
+			printf '%s\n' "$out" | tail -5
+			ok "$name passed"
+			return 0
+		fi
+		printf '%s\n' "$out" | tail -30
+		round=$((round + 1))
+		if [ "$round" -gt "$GATE_MAX_ROUNDS" ]; then
+			warn "$name still failing after $GATE_MAX_ROUNDS auto-fix rounds - escalating"
+			return 1
+		fi
+		warn "$name failed - attempting auto-fix (round $round/$GATE_MAX_ROUNDS)"
+		fix_prompt="The '$name' stage failed. Fix the code so it passes. Output:
+$out"
+		# shellcheck disable=SC2059
+		fix_cmd=$(printf "$GATE_FIX_CMD" "$fix_prompt")
+		eval "$fix_cmd" || warn "auto-fix command errored (continuing to re-check)"
+		if ! git diff --quiet || ! git diff --cached --quiet; then
+			git add -A && git commit -q -m "gate: auto-fix $name (round $round)"
+			ok "committed auto-fix for $name"
+		else
+			warn "auto-fix produced no changes"
+		fi
+	done
+}
+
+cmd_run() {
+	load_config
+	command -v git-wt >/dev/null 2>&1 || die "git-wt not on PATH"
+
+	local root branch
+	root=$(repo_root)
+	branch="${1:-$(git -C "$root" rev-parse --abbrev-ref HEAD)}"
+	[ "$branch" != "HEAD" ] || die "detached HEAD - check out a branch first"
+
+	local default_branch
+	default_branch=$(git -C "$root" symbolic-ref --quiet --short refs/remotes/"$GATE_PUSH_REMOTE"/HEAD 2>/dev/null | sed 's#.*/##' || true)
+	[ "$branch" = "${default_branch:-main}" ] && die "refusing to gate the default branch ($branch)"
+
+	# Require the branch's work to be committed - the gate validates commits.
+	git -C "$root" diff --quiet && git -C "$root" diff --cached --quiet \
+		|| die "commit or stash your changes first (the gate validates committed work)"
+
+	local gate_branch="gate/$branch" wt
+	info "creating disposable worktree from $branch"
+	git -C "$root" wt rm "$gate_branch" --force >/dev/null 2>&1 || true
+	git -C "$root" wt new "$gate_branch" "$branch" --no-setup >/dev/null
+	wt=$(git -C "$root" wt path "$gate_branch")
+
+	local rc=0
+	(
+		cd "$wt"
+		local fail=0
+		# 2. advisory review
+		if [ -n "$GATE_REVIEW_CMD" ]; then
+			info "review (advisory): $GATE_REVIEW_CMD"
+			eval "$GATE_REVIEW_CMD" 2>&1 | tail -40 || warn "review command errored (advisory, continuing)"
+		fi
+		# 3 + 4. enforced gates - run both so all failures surface, but fail the run if any did.
+		run_enforced test "$GATE_TEST" || fail=1
+		run_enforced lint "$GATE_LINT" || fail=1
+		exit "$fail"
+	) || rc=$?
+
+	if [ "$rc" -ne 0 ]; then
+		warn "gate did not pass - nothing pushed. Disposable worktree kept for inspection:"
+		printf '    %s\n' "$wt"
+		printf '    (clean up with: git wt rm %s --force -D)\n' "$gate_branch"
+		exit 1
+	fi
+
+	ok "all gates passed"
+
+	# 5a. Best-effort: fast-forward the local branch to the validated commits.
+	#     gate_branch descends from branch, so this is a clean fast-forward.
+	#     (branch is checked out in the main worktree, which we required to be clean.)
+	if git -C "$root" merge --ff-only "$gate_branch" >/dev/null 2>&1; then
+		ok "fast-forwarded local $branch to the validated commits"
+	else
+		warn "could not fast-forward local $branch - remote will be authoritative; run: git pull --ff-only"
+	fi
+
+	# 5b. Push the validated commits to the remote branch (authoritative even if 5a failed).
+	info "pushing validated commits to $GATE_PUSH_REMOTE/$branch"
+	git -C "$root" push "$GATE_PUSH_REMOTE" "$gate_branch:refs/heads/$branch"
+
+	# 5c. Open a PR (best-effort; requires gh).
+	if command -v gh >/dev/null 2>&1; then
+		info "opening PR"
+		( cd "$root" && gh pr create --head "$branch" $GATE_PR_ARGS ) || warn "gh pr create failed (open the PR manually)"
+	else
+		warn "gh not installed - pushed, but open the PR manually"
+	fi
+
+	# 6. Teardown.
+	info "cleaning up disposable worktree"
+	git -C "$root" wt rm "$gate_branch" --force -D >/dev/null 2>&1 || true
+	ok "shipped: $branch"
+}
+
+cmd_status() {
+	load_config
+	printf 'repo:          %s\n' "$(repo_root)"
+	printf 'config:        %s\n' "$([ -f "$(repo_root)/.gate.sh" ] && echo "$(repo_root)/.gate.sh" || echo '(defaults - run: gate init)')"
+	printf 'GATE_TEST:     %s\n' "${GATE_TEST:-<skip>}"
+	printf 'GATE_LINT:     %s\n' "${GATE_LINT:-<skip>}"
+	printf 'GATE_REVIEW:   %s\n' "${GATE_REVIEW_CMD:-<skip>}"
+	printf 'GATE_MAX_ROUNDS: %s\n' "$GATE_MAX_ROUNDS"
+	printf 'GATE_PUSH_REMOTE: %s\n' "$GATE_PUSH_REMOTE"
+}
+
+cmd_help() { awk 'NR==1{next} /^#/{sub(/^#[ ]?/,""); print; next} {exit}' "$0"; }
+
+main() {
+	local sub="${1:-help}"; shift || true
+	case "$sub" in
+		init)           cmd_init "$@" ;;
+		run)            cmd_run "$@" ;;
+		status)         cmd_status "$@" ;;
+		help|-h|--help) cmd_help ;;
+		*) die "unknown command: $sub (try: gate help)" ;;
+	esac
+}
+
+main "$@"

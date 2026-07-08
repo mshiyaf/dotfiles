@@ -1,5 +1,8 @@
 # Scripts Dotfiles Package
 
+> 📖 See [`docs/WORKFLOW.md`](../docs/WORKFLOW.md) for how `git-wt`, `crew`, and `gate` fit into
+> the agentic workflow (parallel agents + ship gate playbooks).
+
 GNU Stow package for personal CLI helpers. Everything lives under
 `scripts/.local/bin/` and stows to `~/.local/bin/` (already on `$PATH`).
 
@@ -11,10 +14,12 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 
 ## Contents
 
-- `codex-status` — print ChatGPT/Codex usage and rate-limit status.
-- `git-wt` — sibling git worktree manager (see below).
+- `codex-status` - print ChatGPT/Codex usage and rate-limit status.
+- `git-wt` - sibling git worktree manager (see below).
+- `crew` - tmux multi-agent orchestrator built on `git-wt` (see below).
+- `gate` - local AI ship gate: validate in a disposable worktree, then push + PR (see below).
 
-## git-wt — parallel worktrees for agentic development
+## git-wt - parallel worktrees for agentic development
 
 Runs coding agents (opencode, Claude, etc.) in parallel without them clobbering
 each other, by giving each task/branch its own isolated checkout. Worktrees are
@@ -46,6 +51,21 @@ git wt help
 branch is created from `<start-point>` (default: `origin/HEAD`, else current HEAD).
 The base `.worktrees` directory is auto-created and auto-removed when empty.
 
+#### Post-create hook
+
+If an executable `.worktrees-setup` exists at the **main repo root**, `git wt new`
+runs it inside the freshly-created worktree - handy for copying `.env`, installing
+deps, or warming a build cache. It runs with the new worktree as its working
+directory, receives the branch name as `$1`, and the main repo root in
+`$GIT_WT_MAIN`. Skip it for one run with `git wt new <branch> --no-setup`.
+
+```bash
+# example .worktrees-setup
+#!/usr/bin/env bash
+cp "$GIT_WT_MAIN/.env" . 2>/dev/null || true
+[ -f package.json ] && npm ci
+```
+
 ### `wt` shell function (cd support)
 
 An external binary cannot change the parent shell's directory, so a `wt` zsh
@@ -68,3 +88,50 @@ wt feature-y                 # a second agent, fully isolated
 cd ~/dev/github.com/you/myrepo
 git wt rm feature-x -D       # remove worktree + branch
 ```
+
+## crew - tmux multi-agent orchestrator
+
+`crew` runs several agents in parallel, each in its own `git wt` worktree and its own
+detached tmux session. Our own lightweight take on firstmate - no daemon, no shared
+state, no external scripts. Run it from inside the target repo.
+
+```bash
+crew new feature-x "add dark mode"   # worktree + tmux session running `opencode run "..."`
+crew new spike-y                     # no task -> interactive opencode in the worktree
+crew new fix-z --claude "fix flaky test" --attach   # use claude, jump straight in
+crew ls                              # list active crew sessions
+crew attach feature-x                # attach / switch-client to a crewmate
+crew stop feature-x -D               # kill session (-D also removes worktree + branch)
+```
+
+Sessions are named `crew_<branch>`. `claude --tmux` / `claude --bg` are native
+alternatives if you prefer Claude Code's own worktree/background orchestration.
+
+## gate - local AI ship gate
+
+`gate` validates a branch's committed work in a **disposable worktree**, then pushes and
+opens a PR only if the gate passes. Our own take on no-mistakes - no external binary,
+built on `git-wt` + `opencode`/`claude` + `gh`.
+
+```bash
+gate init          # seed a .gate.sh config in the repo (once)
+gate status        # show the resolved config
+gate run [branch]  # validate (review → test → lint, +auto-fix) → push → gh pr create
+```
+
+Pipeline: an advisory **review** (surfaces findings, never blocks), then **enforced**
+`test` and `lint` stages, each with a bounded auto-fix loop (`GATE_MAX_ROUNDS`). On pass
+it fast-forwards your local branch, pushes the validated commits, and opens a PR. On an
+unfixable failure it **escalates** - nothing is pushed and the disposable worktree is kept
+for inspection. Config lives in `.gate.sh` (plain sourced bash, not YAML):
+
+```bash
+GATE_TEST="npm test"
+GATE_LINT="npm run lint"
+GATE_REVIEW_CMD='opencode run "/review-diff" --agent reviewer'   # "" to skip
+GATE_MAX_ROUNDS=3
+GATE_PUSH_REMOTE="origin"
+```
+
+Commit your work before running - the gate validates commits, and it refuses to run on
+the default branch.

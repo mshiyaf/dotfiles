@@ -1,0 +1,65 @@
+prefix_rule(
+    pattern = ["git", "status"],
+    decision = "allow",
+    justification = "Read-only git status is safe to run without prompting",
+)
+
+prefix_rule(
+    pattern = ["git", "diff"],
+    decision = "allow",
+    justification = "Read-only git diff is safe to run without prompting",
+)
+
+prefix_rule(
+    pattern = ["git", "log"],
+    decision = "allow",
+    justification = "Read-only git log is safe to run without prompting",
+)
+
+prefix_rule(
+    pattern = ["npm", "test"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "test"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["yarn", "test"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["go", "test"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["php", "artisan", "test"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["vendor/bin/phpunit"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["pytest"],
+    decision = "allow",
+    justification = "Project test runners are allowed without prompting",
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "forbidden",
+    justification = "Never push automatically; ask the user to push explicitly after review",
+)

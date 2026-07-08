@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+input=$(cat)
+
+model=$(jq -r '.model.display_name // .model.name // .model // "model"' <<<"$input" 2>/dev/null || printf 'model')
+cwd=$(jq -r '.workspace.current_dir // .cwd // env.PWD' <<<"$input" 2>/dev/null || pwd)
+base=$(basename "$cwd")
+
+branch="-"
+if git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  branch=$(git -C "$cwd" branch --show-current 2>/dev/null || true)
+  [ -n "$branch" ] || branch=$(git -C "$cwd" rev-parse --short HEAD 2>/dev/null || printf '-')
+fi
+
+reset=$'\033[0m'
+dim=$'\033[2m'
+cyan=$'\033[36m'
+green=$'\033[32m'
+yellow=$'\033[33m'
+red=$'\033[31m'
+
+color_for() {
+  local pct="$1"
+  if [ -z "$pct" ]; then
+    printf '%s' "$dim"
+  elif [ "$pct" -ge 90 ]; then
+    printf '%s' "$red"
+  elif [ "$pct" -ge 70 ]; then
+    printf '%s' "$yellow"
+  else
+    printf '%s' "$green"
+  fi
+}
+
+bar() {
+  local pct="$1" width=10 filled empty fill pad color
+  if [ -z "$pct" ]; then
+    printf '%s░░░░░░░░░░ ?%%%s' "$dim" "$reset"
+    return
+  fi
+  filled=$(((pct * width + 50) / 100))
+  [ "$pct" -gt 0 ] && [ "$filled" -eq 0 ] && filled=1
+  empty=$((width - filled))
+  fill=""
+  pad=""
+  [ "$filled" -gt 0 ] && printf -v fill '%*s' "$filled" '' && fill=${fill// /█}
+  [ "$empty" -gt 0 ] && printf -v pad '%*s' "$empty" '' && pad=${pad// /░}
+  color=$(color_for "$pct")
+  printf '%s%s%s%s %s%s%%%s' "$color" "$fill" "$dim" "$pad" "$color" "$pct" "$reset"
+}
+
+percent() {
+  jq -r "$1 | if . == null then empty else tonumber | round end" <<<"$input" 2>/dev/null || true
+}
+
+context=$(percent '.context_window.used_percentage')
+five_hour=$(percent '.rate_limits.five_hour.used_percentage')
+seven_day=$(percent '.rate_limits.seven_day.used_percentage')
+
+line="${cyan}${model}${reset} | ${base} | ${branch} | ctx $(bar "$context")"
+[ -n "$five_hour" ] && line="$line | 5h $(bar "$five_hour")"
+[ -n "$seven_day" ] && line="$line | 7d $(bar "$seven_day")"
+
+printf '%s\n' "$line"

@@ -12,6 +12,7 @@ permission:
     "git status*": allow
     "git diff*": allow
     "git log*": allow
+    "claude -p*": allow
   edit: deny
   webfetch: ask
   skill:
@@ -22,5 +23,6 @@ permission:
     "test-writer": allow
     "test-driven-development": allow
     "api-design": allow
+    "second-pass": allow
 ---
 Review with findings first. Prioritize correctness, regressions, security, data safety, test gaps, and maintainability. Include file and line references when possible. Do not edit files.

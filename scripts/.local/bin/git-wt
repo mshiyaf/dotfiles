@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# git-wt — sibling git worktree manager for parallel (AI-)agent workflows.
+# git-wt - sibling git worktree manager for parallel (AI-)agent workflows.
 #
 # Worktrees live in a sibling directory next to the MAIN repo:
 #
@@ -11,7 +11,8 @@
 # nesting worktrees inside the repo (so they never get committed or scanned).
 #
 # Usage:
-#   git wt new <branch> [<start-point>]   Create a worktree for <branch>
+#   git wt new <branch> [<start-point>] [--no-setup]
+#                                         Create a worktree for <branch>
 #                                         (creates the branch if it's new)
 #   git wt list                           List worktrees for this repo
 #   git wt path <branch>                  Print the worktree path (for cd)
@@ -20,6 +21,11 @@
 #                                           --force  discard uncommitted work
 #   git wt prune                          Prune stale worktree metadata
 #   git wt help                           Show this help
+#
+# Post-create hook: if an executable `.worktrees-setup` exists at the MAIN repo
+# root, `new` runs it inside the freshly-created worktree (to copy .env, install
+# deps, etc.). It runs with CWD = the new worktree and receives the branch name as
+# $1 and the main repo root in $GIT_WT_MAIN. Skip it for one run with --no-setup.
 #
 # Invoke as `git wt <cmd>` (this file is on PATH as `git-wt`) or `git-wt <cmd>`.
 # For `cd` into a worktree, use the `wt` shell function (see .aliasrc).
@@ -64,10 +70,33 @@ default_start_point() {
 	fi
 }
 
+# Run the optional post-create hook (.worktrees-setup at the main repo root)
+# inside the new worktree. Silent when absent; warns if present but not executable.
+run_setup_hook() {
+	local path="$1" branch="$2" root hook
+	root=$(main_root)
+	hook="$root/.worktrees-setup"
+	[ -e "$hook" ] || return 0
+	if [ ! -x "$hook" ]; then
+		printf 'git-wt: %s exists but is not executable; skipping (chmod +x it to enable)\n' "$hook" >&2
+		return 0
+	fi
+	printf '\n→ running post-create hook: %s\n' "$hook"
+	( cd "$path" && GIT_WT_MAIN="$root" "$hook" "$branch" ) \
+		|| printf 'git-wt: post-create hook exited non-zero (worktree kept)\n' >&2
+}
+
 cmd_new() {
-	[ $# -ge 1 ] || die "usage: git wt new <branch> [<start-point>]"
-	local branch="$1"; shift
-	local start="${1:-}"
+	local branch="" start="" run_setup=1
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--no-setup) run_setup=0 ;;
+			-*) die "unknown flag: $1" ;;
+			*) if [ -z "$branch" ]; then branch="$1"; else start="$1"; fi ;;
+		esac
+		shift
+	done
+	[ -n "$branch" ] || die "usage: git wt new <branch> [<start-point>] [--no-setup]"
 	local path; path=$(wt_path_for "$branch")
 
 	[ -e "$path" ] && die "worktree path already exists: $path"
@@ -81,6 +110,8 @@ cmd_new() {
 		[ -n "$start" ] || start=$(default_start_point)
 		git worktree add -b "$branch" "$path" "$start"
 	fi
+
+	[ "$run_setup" -eq 1 ] && run_setup_hook "$path" "$branch"
 
 	printf '\n✔ worktree ready: %s\n' "$path"
 	printf '  cd %s\n' "$path"
@@ -137,7 +168,8 @@ cmd_prune() {
 	rmdir "$(wt_base)" 2>/dev/null || true
 }
 
-cmd_help() { sed -n '2,25p' "$0" | sed 's/^#\( \|$\)//'; }
+# Print the leading comment block (after the shebang), stripping the "# " prefix.
+cmd_help() { awk 'NR==1{next} /^#/{sub(/^#[ ]?/,""); print; next} {exit}' "$0"; }
 
 main() {
 	local sub="${1:-help}"; shift || true

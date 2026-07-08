@@ -1,0 +1,39 @@
+{
+  "model": "sonnet",
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "37signals": {
+      "source": {
+        "source": "github",
+        "repo": "basecamp/claude-plugins"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(npm test*)",
+      "Bash(pnpm test*)",
+      "Bash(yarn test*)",
+      "Bash(go test*)",
+      "Bash(php artisan test*)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(pytest*)"
+    ],
+    "deny": [
+      "Bash(git push*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.local/bin/claude-statusline"
+  }
+}

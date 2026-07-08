@@ -31,7 +31,7 @@ ALL_PACKAGES := $(filter-out $(EXCLUDE),$(patsubst %/,%,$(wildcard */)))
 #   make stow PKG="opencode nvim tmux"
 PKG ?= $(ALL_PACKAGES)
 
-.PHONY: help list stow restow unstow
+.PHONY: help list stow restow unstow agents-sync
 
 help:
 	@echo "Targets:"
@@ -39,6 +39,7 @@ help:
 	@echo "  make stow   [PKG=\"a b c\"]       Stow all packages, or only PKG"
 	@echo "  make restow [PKG=\"a b c\"]       Re-stow (sync) packages"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
+	@echo "  make agents-sync                Regenerate Claude/Codex subagents"
 	@echo "  make stow-<pkg>                Stow a single package (e.g. stow-opencode)"
 	@echo "  make unstow-<pkg>              Unstow a single package"
 	@echo "  make restow-<pkg>             Restow a single package"
@@ -61,6 +62,9 @@ restow:
 
 unstow:
 	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -D $(PKG)
+
+agents-sync:
+	./scripts/.local/bin/agents-sync
 
 # Per-package convenience targets: make stow-opencode / unstow-nvim / restow-tmux
 stow-%:

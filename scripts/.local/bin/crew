@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+#
+# crew - lightweight tmux multi-agent orchestrator for parallel (AI-)agent work.
+#
+# Each crewmate is a branch in its own isolated worktree (via `git wt`) running an
+# agent in its own detached tmux session. No orchestration daemon, no shared state
+# - just spawn, list, attach, and tear down. Our own take on the firstmate idea.
+#
+# Usage:
+#   crew new <branch> [task...]   Create a worktree + tmux session and launch an agent.
+#                                   No task  -> interactive agent in the worktree.
+#                                   With task -> engine-specific non-interactive command.
+#                                 Flags: --attach (jump to it), --claude, --codex,
+#                                        --start <ref> (branch start-point).
+#   crew ls                       List active crew sessions.
+#   crew attach <branch>          Attach/switch to a crewmate's session.
+#   crew stop <branch> [-D]       Kill the session (-D also removes worktree + branch).
+#   crew help                     Show this help.
+#
+# Requires: tmux, git-wt (on PATH), opencode/claude/codex. Run from
+# inside the target git repo. `claude --tmux` / `claude --bg` are native alternatives.
+
+set -euo pipefail
+
+die() { printf 'crew: %s\n' "$*" >&2; exit 1; }
+
+command -v tmux >/dev/null 2>&1 || die "tmux is not installed"
+
+PREFIX="crew_"
+
+# Same sanitize as tmux-sessionizer: /, ., : -> _
+session_name() {
+	local s="${PREFIX}$1"
+	s="${s//\//_}"; s="${s//./_}"; s="${s//:/_}"
+	printf '%s' "$s"
+}
+
+# Attach if outside tmux, switch-client if inside.
+enter_session() {
+	local name="$1"
+	if [ -z "${TMUX:-}" ]; then
+		exec tmux attach-session -t "$name"
+	else
+		tmux switch-client -t "$name"
+	fi
+}
+
+cmd_new() {
+	local branch="" start="" task="" attach=0 engine="opencode"
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--attach) attach=1 ;;
+			--claude) engine="claude" ;;
+			--codex) engine="codex" ;;
+			--start) shift; start="${1:-}" ;;
+			--) shift; break ;;
+			-*) die "unknown flag: $1" ;;
+			*) if [ -z "$branch" ]; then branch="$1"; else task+="${task:+ }$1"; fi ;;
+		esac
+		shift
+	done
+	# Any remaining args after `--` are part of the task.
+	while [ $# -gt 0 ]; do task+="${task:+ }$1"; shift; done
+	[ -n "$branch" ] || die "usage: crew new <branch> [task...]"
+
+	git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
+	command -v "$engine" >/dev/null 2>&1 || die "$engine not on PATH"
+
+	# Create/attach the worktree via git-wt, then resolve its path.
+	local path
+	if path=$(git wt path "$branch" 2>/dev/null); then
+		printf 'crew: reusing existing worktree %s\n' "$path"
+	else
+		git wt new "$branch" ${start:+"$start"} >/dev/null
+		path=$(git wt path "$branch")
+	fi
+
+	local name; name=$(session_name "$branch")
+
+	if tmux has-session -t "$name" 2>/dev/null; then
+		printf 'crew: session %s already exists\n' "$name"
+	else
+		tmux new-session -ds "$name" -c "$path"
+		# Build the launch command and send it so the shell survives the agent exit.
+		local launch
+		if [ -n "$task" ]; then
+			case "$engine" in
+				claude) launch=$(printf 'claude -p %q' "$task") ;;
+				codex) launch=$(printf 'codex exec %q' "$task") ;;
+				opencode) launch=$(printf 'opencode run %q --agent build' "$task") ;;
+				*) die "unknown engine: $engine" ;;
+			esac
+		else
+			launch="$engine"
+		fi
+		tmux send-keys -t "$name" "$launch" C-m
+		printf '✔ crew %s ready in %s\n' "$name" "$path"
+		printf '  attach: crew attach %s\n' "$branch"
+	fi
+
+	[ "$attach" -eq 1 ] && enter_session "$name"
+}
+
+cmd_ls() {
+	tmux list-sessions \
+		-F '#{session_name}  (#{session_windows}w, #{?session_attached,attached,detached})' 2>/dev/null \
+		| grep "^${PREFIX}" || printf '(no crew sessions)\n'
+}
+
+cmd_attach() {
+	[ $# -ge 1 ] || die "usage: crew attach <branch>"
+	local name; name=$(session_name "$1")
+	tmux has-session -t "$name" 2>/dev/null || die "no crew session for '$1' ($name)"
+	enter_session "$name"
+}
+
+cmd_stop() {
+	local branch="" del=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			-D) del=1 ;;
+			-*) die "unknown flag: $1" ;;
+			*) branch="$1" ;;
+		esac
+		shift
+	done
+	[ -n "$branch" ] || die "usage: crew stop <branch> [-D]"
+	local name; name=$(session_name "$branch")
+
+	if tmux has-session -t "$name" 2>/dev/null; then
+		tmux kill-session -t "$name"
+		printf '✔ killed session: %s\n' "$name"
+	else
+		printf 'crew: no session %s\n' "$name"
+	fi
+
+	if [ "$del" -eq 1 ]; then
+		git wt rm "$branch" -D --force 2>/dev/null \
+			&& printf '✔ removed worktree + branch: %s\n' "$branch" \
+			|| printf 'crew: could not remove worktree for %s (remove manually)\n' "$branch" >&2
+	fi
+}
+
+cmd_help() { awk 'NR==1{next} /^#/{sub(/^#[ ]?/,""); print; next} {exit}' "$0"; }
+
+main() {
+	local sub="${1:-help}"; shift || true
+	case "$sub" in
+		new)            cmd_new "$@" ;;
+		ls|list)        cmd_ls "$@" ;;
+		attach)         cmd_attach "$@" ;;
+		stop|rm)        cmd_stop "$@" ;;
+		help|-h|--help) cmd_help ;;
+		*) die "unknown command: $sub (try: crew help)" ;;
+	esac
+}
+
+main "$@"
