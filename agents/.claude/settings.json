@@ -1,20 +1,4 @@
 {
-  "model": "sonnet",
-  "enabledPlugins": {
-    "rust-analyzer-lsp@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "37signals": {
-      "source": {
-        "source": "github",
-        "repo": "basecamp/claude-plugins"
-      }
-    }
-  },
-  "effortLevel": "high",
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true,
   "permissions": {
     "allow": [
       "Bash(git status*)",
@@ -32,8 +16,24 @@
       "Bash(git push*)"
     ]
   },
+  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/.local/bin/claude-statusline"
-  }
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "37signals": {
+      "source": {
+        "source": "github",
+        "repo": "basecamp/claude-plugins"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true
 }

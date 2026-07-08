@@ -1,5 +1,5 @@
 ---
-description: Get a cross-model critique of recent analysis or review.
+description: Get an independent critique of recent analysis or review.
 agent: critic
 ---
 Context:

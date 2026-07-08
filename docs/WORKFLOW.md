@@ -47,18 +47,20 @@ Think → Plan → Plan-review → Build → Review → Test → Ship → Reflec
 
 ### Model-routing philosophy (in `opencode.json`)
 
-Cheap models do the bulk work; pricier models do judgement work; the priciest is on-demand only.
+OpenCode routing is OpenAI-only.
+GPT-5.5 handles coding, planning, debugging, testing, review, and critique.
+Mini/nano variants are kept for lighter writing and small-model operations.
 
 | Tier | Agents | Model |
 |---|---|---|
-| Workhorse | `build`, `debugger`, `tester` | `kimi-for-coding/k2p7` |
-| Planning | `plan`, `architect`, `refactor-planner` | `opencode-go/glm-5.2` |
+| Workhorse | `build`, `debugger`, `tester` | `openai/gpt-5.5` |
+| Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.5` |
 | Review | `reviewer`, `security-reviewer` | `openai/gpt-5.5` |
 | Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.4-mini` |
-| Research | `researcher` | `opencode-go/qwen3.7-plus` |
-| Challenge | `critic` | `opencode-go/qwen3.7-max` |
+| Research | `researcher` | `openai/gpt-5.5-fast` |
+| Challenge | `critic` | `openai/gpt-5.5` |
 
-`small_model = kimi-for-coding/k2p5` (lightweight ops); `default_agent = build`.
+`small_model = openai/gpt-5.4-nano` (lightweight ops); `default_agent = build`.
 On-demand escalation: `/claude-review` shells out to the `claude` CLI (your Claude subscription)
 for a different-family second opinion - spend only when you ask.
 
@@ -67,10 +69,10 @@ Generated Claude/Codex model map:
 | Role | OpenCode | Claude | Codex |
 |---|---|---|---|
 | `reviewer`, `security-reviewer` | gpt-5.5 | opus | gpt-5.5 |
-| `critic` | qwen3.7-max | opus | gpt-5.5 |
-| `architect`, `refactor-planner` | glm-5.2 | opus | gpt-5.5 |
-| `researcher` | qwen3.7-plus | sonnet | gpt-5.5-fast |
-| `debugger`, `tester` | k2p7 | sonnet | gpt-5.1-codex-max |
+| `critic` | gpt-5.5 | opus | gpt-5.5 |
+| `architect`, `refactor-planner` | gpt-5.5 | opus | gpt-5.5 |
+| `researcher` | gpt-5.5-fast | sonnet | gpt-5.5-fast |
+| `debugger`, `tester` | gpt-5.5 | sonnet | gpt-5.1-codex-max |
 | `docs-writer`, `pr-writer` | gpt-5.4-mini | haiku | gpt-5.4-mini |
 
 ---
@@ -84,17 +86,17 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: decide whether and what to build before designing anything.*
 
-1. `/research <topic>` - gather live context (researcher · qwen3.7-plus).
-2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · glm-5.2).
+1. `/research <topic>` - gather live context (researcher · gpt-5.5-fast).
+2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · gpt-5.5).
 3. `/plan-ceo-review <the idea>` - founder lens: is the problem real, who's the user, what to
-   cut, stronger alternatives (critic · qwen3.7-max). **Framing before features.**
+   cut, stronger alternatives (critic · gpt-5.5). **Framing before features.**
 4. Capture the agreed scope + non-goals in the repo's `AGENTS.md` (seed with `/init-agents-md`).
 
 ### 2. Planning a feature
 
 *Goal: a locked, reviewed implementation plan - no code yet.*
 
-1. `/plan-feature <feature>` - implementation plan (architect · glm-5.2).
+1. `/plan-feature <feature>` - implementation plan (architect · gpt-5.5).
 2. `/plan-eng-review` - architecture, data flow, edge cases, tests, failure modes (architect).
 3. `/plan-design-review` - if there's UI: flow, design-system fit, a11y, AI-slop (architect).
 4. `/plan-ceo-review` - scope/value gut-check (critic).
@@ -104,7 +106,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: implement in small, isolated, repo-patterned changes.*
 
-1. Work on the default `build` agent (kimi k2p7).
+1. Work on the default `build` agent (gpt-5.5).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
 3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 9**.
@@ -114,7 +116,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 *Goal: reproduce first, then fix, then prove it's fixed.*
 
 1. `/investigate <bug>` or `/debug-tests` - root-cause first, using the **`systematic-debugging`**
-   skill (debugger · kimi k2p7). **Reproduce before fixing.**
+   skill (debugger · gpt-5.5). **Reproduce before fixing.**
 2. Fix on the `build` agent.
 3. `/qa-only` - exercise the changed behavior, report what still breaks (tester).
 4. `/review-diff` - catch regressions (reviewer · gpt-5.5).
@@ -122,7 +124,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 ### 5. Refactoring
 
-1. `/refactor-plan <target>` - safe sequencing + verification points (refactor-planner · glm-5.2).
+1. `/refactor-plan <target>` - safe sequencing + verification points (refactor-planner · gpt-5.5).
 2. Apply in small steps on `build`.
 3. `/review-diff` and run the tests after each step.
 
@@ -148,8 +150,8 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 ### 8. Reflect
 
-- `/critique` or `/second-opinion` - a cross-model gut-check on your analysis or a review, to
-  surface what the first pass missed (critic · qwen3.7-max).
+- `/critique` or `/second-opinion` - an independent gut-check on your analysis or a review, to
+  surface what the first pass missed (critic · gpt-5.5).
 
 ### Playbook 9 - Parallel multi-agent development (`wt` + `crew`)
 
@@ -250,31 +252,31 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 
 | Command | Agent (model) | Uses skill | Purpose |
 |---|---|---|---|
-| `/research` | researcher (qwen3.7-plus) | research | Research a topic using live web sources |
-| `/explain` | debugger (k2p7) | explain | Explain code, behavior, or repo structure |
-| `/investigate` | debugger (k2p7) | investigate | Investigate a bug/failure before proposing fixes |
-| `/autoplan` | architect (glm-5.2) | autoplan | End-to-end implementation plan, no edits |
-| `/plan-feature` | architect (glm-5.2) | autoplan | Plan a feature implementation, no changes |
-| `/architecture-check` | architect (glm-5.2) | api-design, refactor-planner | Architecture review of a design/change |
-| `/agentic-plan` | architect (glm-5.2) | autoplan | Plan an agentic workflow (subagents, tools, orchestration) |
-| `/refactor-plan` | refactor-planner (glm-5.2) | refactor-planner | Safe refactor plan with sequencing + verification |
-| `/plan-ceo-review` | critic (qwen3.7-max) | ceo-review | Founder-lens review of a **plan** |
-| `/plan-design-review` | architect (glm-5.2) | design-review | Plan-stage UX/design-system/a11y review |
-| `/plan-eng-review` | architect (glm-5.2) | eng-review | Plan-stage architecture/edge-case/test review |
+| `/research` | researcher (gpt-5.5-fast) | research | Research a topic using live web sources |
+| `/explain` | debugger (gpt-5.5) | explain | Explain code, behavior, or repo structure |
+| `/investigate` | debugger (gpt-5.5) | investigate | Investigate a bug/failure before proposing fixes |
+| `/autoplan` | architect (gpt-5.5) | autoplan | End-to-end implementation plan, no edits |
+| `/plan-feature` | architect (gpt-5.5) | autoplan | Plan a feature implementation, no changes |
+| `/architecture-check` | architect (gpt-5.5) | api-design, refactor-planner | Architecture review of a design/change |
+| `/agentic-plan` | architect (gpt-5.5) | autoplan | Plan an agentic workflow (subagents, tools, orchestration) |
+| `/refactor-plan` | refactor-planner (gpt-5.5) | refactor-planner | Safe refactor plan with sequencing + verification |
+| `/plan-ceo-review` | critic (gpt-5.5) | ceo-review | Founder-lens review of a **plan** |
+| `/plan-design-review` | architect (gpt-5.5) | design-review | Plan-stage UX/design-system/a11y review |
+| `/plan-eng-review` | architect (gpt-5.5) | eng-review | Plan-stage architecture/edge-case/test review |
 | `/review-diff` | reviewer (gpt-5.5) | code-review | Review unstaged+staged diffs for bugs/regressions |
 | `/review-staged` | reviewer (gpt-5.5) | code-review | Review only staged changes pre-commit |
 | `/long-context-review` | reviewer (gpt-5.5) | code-review | Review across many files / a long diff |
 | `/ui-review` | reviewer (gpt-5.5) | frontend-design | Visual/UI review of implemented components |
 | `/ship-check` | reviewer (gpt-5.5) | - | Final readiness review before merge/release |
 | `/security-review` | security-reviewer (gpt-5.5) | security-review | Security review of changes + nearby risky code |
-| `/ceo-review` | critic (qwen3.7-max) | ceo-review | Founder-lens review of a **change/diff** |
-| `/second-opinion` | critic (qwen3.7-max) | critique | Independent second opinion on a plan/diff/review |
-| `/critique` | critic (qwen3.7-max) | critique | Cross-model critique of recent analysis/review |
+| `/ceo-review` | critic (gpt-5.5) | ceo-review | Founder-lens review of a **change/diff** |
+| `/second-opinion` | critic (gpt-5.5) | critique | Independent second opinion on a plan/diff/review |
+| `/critique` | critic (gpt-5.5) | critique | Critique of recent analysis/review |
 | `/claude-review` | reviewer → `claude` CLI | - | Second opinion from the Claude CLI (your Claude sub) |
 | `/second-pass` | reviewer (gpt-5.5) | second-pass | Re-review after fixes; confirm resolved, no regressions |
-| `/test-plan` | tester (k2p7) | test-writer | Practical test plan for a change/feature |
-| `/qa-only` | tester (k2p7) | - | Test changed behavior, report bugs, no code changes |
-| `/debug-tests` | debugger (k2p7) | debugging | Debug failing tests, root-cause first |
+| `/test-plan` | tester (gpt-5.5) | test-writer | Practical test plan for a change/feature |
+| `/qa-only` | tester (gpt-5.5) | - | Test changed behavior, report bugs, no code changes |
+| `/debug-tests` | debugger (gpt-5.5) | debugging | Debug failing tests, root-cause first |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
 | `/commit` | pr-writer (gpt-5.4-mini) | git-commit | Commit staged changes (this repo or child repos) |
 | `/commit-message` | pr-writer (gpt-5.4-mini) | git-commit | Draft a commit message (never commits) |
@@ -282,8 +284,8 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/changelog` | pr-writer (gpt-5.4-mini) | release-notes | Draft changelog/release notes from commits+diffs |
 | `/pr-body` | pr-writer (gpt-5.4-mini) | pull-request | Draft a PR title + body from branch changes |
 | `/docs-update` | docs-writer (gpt-5.4-mini) | documentation | Update docs/README from current changes |
-| `/init-agents-md` | build (k2p7) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
-| `/init-gate` | build (k2p7) | - | Seed a `.gate.sh` ship-gate config |
+| `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
+| `/init-gate` | build (gpt-5.5) | - | Seed a `.gate.sh` ship-gate config |
 
 ### Skills (28) - shared across Claude, Codex, OpenCode
 
@@ -333,16 +335,16 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 
 | Agent | Model | Role | Can edit? |
 |---|---|---|---|
-| `architect` | glm-5.2 | Architecture / plan reviews | no |
-| `debugger` | kimi k2p7 | Investigate bugs / failing tests | limited |
-| `tester` | kimi k2p7 | Test plans / QA, no code changes | no |
+| `architect` | gpt-5.5 | Architecture / plan reviews | no |
+| `debugger` | gpt-5.5 | Investigate bugs / failing tests | limited |
+| `tester` | gpt-5.5 | Test plans / QA, no code changes | no |
 | `reviewer` | gpt-5.5 | Code/UI/ship review, findings-first | no (deny) |
 | `security-reviewer` | gpt-5.5 | Security review | no |
 | `docs-writer` | gpt-5.4-mini | Docs / README | docs only |
 | `pr-writer` | gpt-5.4-mini | Commits, PR bodies, changelogs | commit-scope |
-| `refactor-planner` | glm-5.2 | Refactor planning | no |
-| `researcher` | qwen3.7-plus | Live web research | no |
-| `critic` | qwen3.7-max | Founder/critique/second-opinion | no |
+| `refactor-planner` | gpt-5.5 | Refactor planning | no |
+| `researcher` | gpt-5.5-fast | Live web research | no |
+| `critic` | gpt-5.5 | Founder/critique/second-opinion | no |
 
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.
 Generated Claude/Codex roles cover the 10 custom subagents above.

@@ -128,7 +128,7 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Normal initial sessions use `default_agent: build` with `model: kimi-for-coding/k2p7`.
+Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.5`.
 
 To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 
@@ -220,7 +220,7 @@ Lightweight review commands borrow the CEO / design / eng lenses without vendori
 - **CEO / founder** - `/plan-ceo-review` (plan) and `/ceo-review` (diff): framing, scope, value.
 - **Design** - `/plan-design-review` (plan). For implemented UI use the existing `/ui-review`.
 - **Engineering** - `/plan-eng-review` (plan). For an implemented change use `/architecture-check`.
-- **Second opinions** - `/second-opinion` (critic, cross-model) and `/claude-review` (hands the
+- **Second opinions** - `/second-opinion` (critic) and `/claude-review` (hands the
   diff to the `claude` CLI using your Claude subscription - no Anthropic provider is configured
   in OpenCode).
 - **Re-review** - `/second-pass`: confirms prior findings are resolved and no regressions crept in.
@@ -262,8 +262,8 @@ Guardrails are baked into `~/AGENTS.md` and the review commands:
 - Shortest useful answer first; don't re-read files already in context.
 - Reviews: findings first, severity-tagged, one line of context each - don't summarize a diff.
 - Prefer targeted `grep`/read over broad `find`/`cat`.
-- Routing keeps cheap models on lightweight agents (`small_model` = `kimi-for-coding/k2p5`);
-  reviewers stay on cost-effective models by default (edit `opencode.json` to escalate).
+- Routing is OpenAI-only by default (`small_model` = `openai/gpt-5.4-nano`);
+  edit `opencode.json` if you want to change agent-specific model choices.
 
 ## Plugins
 

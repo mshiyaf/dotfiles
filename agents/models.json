@@ -10,32 +10,32 @@
     "codex": "gpt-5.5"
   },
   "critic": {
-    "opencode": "qwen3.7-max",
+    "opencode": "gpt-5.5",
     "claude": "opus",
     "codex": "gpt-5.5"
   },
   "architect": {
-    "opencode": "glm-5.2",
+    "opencode": "gpt-5.5",
     "claude": "opus",
     "codex": "gpt-5.5"
   },
   "refactor-planner": {
-    "opencode": "glm-5.2",
+    "opencode": "gpt-5.5",
     "claude": "opus",
     "codex": "gpt-5.5"
   },
   "researcher": {
-    "opencode": "qwen3.7-plus",
+    "opencode": "gpt-5.5-fast",
     "claude": "sonnet",
     "codex": "gpt-5.5-fast"
   },
   "debugger": {
-    "opencode": "k2p7",
+    "opencode": "gpt-5.5",
     "claude": "sonnet",
     "codex": "gpt-5.1-codex-max"
   },
   "tester": {
-    "opencode": "k2p7",
+    "opencode": "gpt-5.5",
     "claude": "sonnet",
     "codex": "gpt-5.1-codex-max"
   },
