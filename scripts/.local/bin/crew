@@ -4,21 +4,25 @@
 #
 # Each crewmate is a branch in its own isolated worktree (via `git wt`) running an
 # agent in its own detached tmux session. No orchestration daemon, no shared state
-# - just spawn, list, attach, and tear down. Our own take on the firstmate idea.
+# - just spawn, monitor, and tear down. Our own take on the firstmate idea.
 #
 # Usage:
 #   crew new <branch> [task...]   Create a worktree + tmux session and launch an agent.
 #                                   No task  -> interactive agent in the worktree.
-#                                   With task -> engine-specific non-interactive command.
+#                                   With task -> headless agent that implements + commits.
 #                                 Flags: --attach (jump to it), --claude, --codex,
 #                                        --start <ref> (branch start-point).
-#   crew ls                       List active crew sessions.
+#   crew status [branch]          Report crewmates: running/done, commits, last log line.
+#   crew logs <branch> [-f]       Print (or follow with -f) a crewmate's captured output.
+#   crew watch [-n SECS] [-1]     Notify (notify-send + bell) when a crewmate finishes or blocks.
+#   crew ls                       List active crew tmux sessions.
 #   crew attach <branch>          Attach/switch to a crewmate's session.
 #   crew stop <branch> [-D]       Kill the session (-D also removes worktree + branch).
 #   crew help                     Show this help.
 #
-# Requires: tmux, git-wt (on PATH), opencode/claude/codex. Run from
-# inside the target git repo. `claude --tmux` / `claude --bg` are native alternatives.
+# Crewmates run headless and commit on their own branch; they never push. Review each
+# ready branch (/review-diff) and ship it (/ship-gate). Requires: tmux, git-wt (PATH),
+# opencode/claude/codex. Run from inside the target git repo.
 
 set -euo pipefail
 
@@ -27,6 +31,18 @@ die() { printf 'crew: %s\n' "$*" >&2; exit 1; }
 command -v tmux >/dev/null 2>&1 || die "tmux is not installed"
 
 PREFIX="crew_"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
+TASK_SUFFIX="When done, commit your work on this branch with a Conventional-commit message. Do not push. If blocked, print BLOCKED: <reason> and stop."
+
+# Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
+# but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
+#   opencode: --agent crewmate --auto  (auto-approve, but the crewmate agent still denies
+#             git push / sudo / hard-reset / rm -rf; --auto honors those denies).
+#   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
+#   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
+OPENCODE_CREW_FLAGS="--agent crewmate --auto"
+CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
+CODEX_CREW_FLAGS="--sandbox workspace-write"
 
 # Same sanitize as tmux-sessionizer: /, ., : -> _
 session_name() {
@@ -34,6 +50,8 @@ session_name() {
 	s="${s//\//_}"; s="${s//./_}"; s="${s//:/_}"
 	printf '%s' "$s"
 }
+
+state_dir_for() { printf '%s/%s' "$STATE_DIR" "$(session_name "$1")"; }
 
 # Attach if outside tmux, switch-client if inside.
 enter_session() {
@@ -76,29 +94,157 @@ cmd_new() {
 	fi
 
 	local name; name=$(session_name "$branch")
+	local sdir; sdir=$(state_dir_for "$branch")
 
 	if tmux has-session -t "$name" 2>/dev/null; then
 		printf 'crew: session %s already exists\n' "$name"
 	else
+		# Record crewmate metadata for `crew status` / `crew logs`.
+		mkdir -p "$sdir"
+		printf '%s\n' "$branch" > "$sdir/branch"
+		printf '%s\n' "$path"   > "$sdir/worktree"
+		printf '%s\n' "${task:-<interactive>}" > "$sdir/task"
+
 		tmux new-session -ds "$name" -c "$path"
-		# Build the launch command and send it so the shell survives the agent exit.
+
 		local launch
 		if [ -n "$task" ]; then
+			local full="$task. $TASK_SUFFIX"
 			case "$engine" in
-				claude) launch=$(printf 'claude -p %q' "$task") ;;
-				codex) launch=$(printf 'codex exec %q' "$task") ;;
-				opencode) launch=$(printf 'opencode run %q --agent build' "$task") ;;
+				claude)   launch=$(printf 'claude -p %q %s' "$full" "$CLAUDE_CREW_FLAGS") ;;
+				codex)    launch=$(printf 'codex exec %s %q' "$CODEX_CREW_FLAGS" "$full") ;;
+				opencode) launch=$(printf 'opencode run %q %s' "$full" "$OPENCODE_CREW_FLAGS") ;;
 				*) die "unknown engine: $engine" ;;
 			esac
+			# Wrap so we capture output to the log and record the real exit code on finish.
+			printf 'running\n' > "$sdir/status"
+			local wrapped
+			wrapped="( $launch ; echo done:\$? > \"$sdir/status\" ) 2>&1 | tee \"$sdir/log\""
+			tmux send-keys -t "$name" "$wrapped" C-m
 		else
-			launch="$engine"
+			printf 'interactive\n' > "$sdir/status"
+			tmux send-keys -t "$name" "$engine" C-m
 		fi
-		tmux send-keys -t "$name" "$launch" C-m
-		printf '✔ crew %s ready in %s\n' "$name" "$path"
-		printf '  attach: crew attach %s\n' "$branch"
+		printf 'crew %s ready in %s\n' "$name" "$path"
+		printf '  monitor: crew status %s   attach: crew attach %s\n' "$branch" "$branch"
 	fi
 
 	[ "$attach" -eq 1 ] && enter_session "$name"
+}
+
+# commits on the worktree HEAD not yet in the remote default branch
+commits_ahead() {
+	local wt="$1" base
+	base=$(git -C "$wt" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+	[ -n "$base" ] || { printf '?'; return; }
+	git -C "$wt" rev-list --count "$base..HEAD" 2>/dev/null || printf '?'
+}
+
+report_one() {
+	local sdir="$1"
+	[ -d "$sdir" ] || return 0
+	local branch wt status name last ahead
+	branch=$(cat "$sdir/branch" 2>/dev/null || basename "$sdir")
+	wt=$(cat "$sdir/worktree" 2>/dev/null || echo '?')
+	status=$(cat "$sdir/status" 2>/dev/null || echo '?')
+	name=$(session_name "$branch")
+	# A 'running' crewmate whose session is gone actually exited (crashed or killed).
+	if [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
+		status="exited?"
+	fi
+	ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
+	last=$(tail -n1 "$sdir/log" 2>/dev/null | tr -d '\r' | cut -c1-60)
+	printf '%-24s %-10s %3s commit(s)  %s\n' "$branch" "$status" "$ahead" "$last"
+}
+
+cmd_status() {
+	[ -d "$STATE_DIR" ] || { printf '(no crewmates)\n'; return 0; }
+	printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
+	if [ $# -ge 1 ]; then
+		report_one "$(state_dir_for "$1")"
+	else
+		local any=0
+		for d in "$STATE_DIR"/*/; do
+			[ -d "$d" ] || continue
+			any=1; report_one "${d%/}"
+		done
+		[ "$any" = 1 ] || printf '(no crewmates)\n'
+	fi
+}
+
+cmd_logs() {
+	local follow=0 branch=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			-f|--follow) follow=1 ;;
+			*) branch="$1" ;;
+		esac
+		shift
+	done
+	[ -n "$branch" ] || die "usage: crew logs <branch> [-f]"
+	local log; log="$(state_dir_for "$branch")/log"
+	[ -f "$log" ] || die "no log for '$branch' (interactive or not started?)"
+	if [ "$follow" = 1 ]; then tail -f "$log"; else cat "$log"; fi
+}
+
+# Best-effort notification: terminal bell + line, plus a desktop toast if available.
+# Never fails the watch loop.
+notify() {
+	local title="$1" body="$2"
+	printf '\a[%s] %s - %s\n' "$(date +%H:%M:%S)" "$title" "$body"
+	command -v notify-send >/dev/null 2>&1 && notify-send "$title" "$body" 2>/dev/null || true
+}
+
+# Watch the state dir and alert when a crewmate reaches an actionable state (done, blocked,
+# or crashed). This is the event-driven layer the captain agent cannot provide on its own:
+# it runs in its own pane, costs zero tokens, and only speaks up on a state transition.
+cmd_watch() {
+	local interval=5 once=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			-n|--interval) shift; interval="${1:-5}" ;;
+			-1|--once)     once=1 ;;
+			-*) die "unknown flag: $1" ;;
+		esac
+		shift
+	done
+	[ -d "$STATE_DIR" ] || die "no crewmates to watch (run 'crew new' first)"
+	trap 'printf "\ncrew watch: stopped\n"; exit 0' INT
+	[ "$once" = 1 ] || printf 'crew watch: polling every %ss (Ctrl-C to stop)\n' "$interval"
+
+	declare -A seen
+	while :; do
+		for d in "$STATE_DIR"/*/; do
+			[ -d "$d" ] || continue
+			local branch status name key blocked wt ahead
+			branch=$(cat "$d/branch" 2>/dev/null || basename "${d%/}")
+			status=$(cat "$d/status" 2>/dev/null || echo '?')
+			name=$(session_name "$branch")
+			# running but the tmux session is gone -> it exited unexpectedly
+			if [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
+				status="exited"
+			fi
+			blocked=$(grep -a -m1 'BLOCKED:' "$d/log" 2>/dev/null || true)
+			key="$status"; [ -n "$blocked" ] && key="blocked"
+			if [ "${seen[$branch]:-}" != "$key" ]; then
+				case "$key" in
+					blocked)
+						notify "crew: $branch BLOCKED" "${blocked##*BLOCKED:} - needs a decision" ;;
+					done:0)
+						wt=$(cat "$d/worktree" 2>/dev/null || true)
+						ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
+						notify "crew: $branch ready for review" "done, $ahead commit(s) - /review-diff then /ship-gate" ;;
+					done:*)
+						notify "crew: $branch finished with errors ($key)" "check: crew logs $branch" ;;
+					exited)
+						notify "crew: $branch exited unexpectedly" "session gone; check: crew logs $branch" ;;
+				esac
+				seen[$branch]="$key"
+			fi
+		done
+		[ "$once" = 1 ] && break
+		sleep "$interval"
+	done
 }
 
 cmd_ls() {
@@ -129,14 +275,16 @@ cmd_stop() {
 
 	if tmux has-session -t "$name" 2>/dev/null; then
 		tmux kill-session -t "$name"
-		printf '✔ killed session: %s\n' "$name"
+		printf 'killed session: %s\n' "$name"
 	else
 		printf 'crew: no session %s\n' "$name"
 	fi
 
+	rm -rf "$(state_dir_for "$branch")"
+
 	if [ "$del" -eq 1 ]; then
 		git wt rm "$branch" -D --force 2>/dev/null \
-			&& printf '✔ removed worktree + branch: %s\n' "$branch" \
+			&& printf 'removed worktree + branch: %s\n' "$branch" \
 			|| printf 'crew: could not remove worktree for %s (remove manually)\n' "$branch" >&2
 	fi
 }
@@ -147,6 +295,9 @@ main() {
 	local sub="${1:-help}"; shift || true
 	case "$sub" in
 		new)            cmd_new "$@" ;;
+		status|st)      cmd_status "$@" ;;
+		logs|log)       cmd_logs "$@" ;;
+		watch)          cmd_watch "$@" ;;
 		ls|list)        cmd_ls "$@" ;;
 		attach)         cmd_attach "$@" ;;
 		stop|rm)        cmd_stop "$@" ;;

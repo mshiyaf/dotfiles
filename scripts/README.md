@@ -92,20 +92,35 @@ git wt rm feature-x -D       # remove worktree + branch
 ## crew - tmux multi-agent orchestrator
 
 `crew` runs several agents in parallel, each in its own `git wt` worktree and its own
-detached tmux session. Our own lightweight take on firstmate - no daemon, no shared
-state, no external scripts. Run it from inside the target repo.
+detached tmux session. Our own lightweight take on firstmate - no daemon, no external
+scripts. Run it from inside the target repo. A crewmate with a task runs **bounded**: it may
+edit, run tests, and commit on its branch, then stops - it never pushes. Each engine is
+constrained to that effect - auto-approve everything except an explicit deny-list, never a full
+yolo mode: `opencode` via `--agent crewmate --auto` (auto-approves, but the agent still denies
+`git push`/`sudo`/hard-reset; `--auto` is required since headless `run` has no TTY to approve),
+`claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
+via the `workspace-write` sandbox (network off, so push is blocked).
 
 ```bash
-crew new feature-x "add dark mode"   # worktree + tmux session running `opencode run "..."`
+crew new feature-x "add dark mode"   # worktree + tmux session: opencode run "..." --agent crewmate
 crew new spike-y                     # no task -> interactive opencode in the worktree
 crew new fix-z --claude "fix flaky test" --attach   # use claude, jump straight in
-crew ls                              # list active crew sessions
+crew status                          # branch | running/done(rc) | commits-ahead | last log line
+crew logs feature-x -f               # follow a crewmate's captured output
+crew watch                           # bell + notify-send when a crewmate finishes or blocks
+crew ls                              # list active crew tmux sessions
 crew attach feature-x                # attach / switch-client to a crewmate
 crew stop feature-x -D               # kill session (-D also removes worktree + branch)
 ```
 
-Sessions are named `crew_<branch>`. `claude --tmux` / `claude --bg` are native
-alternatives if you prefer Claude Code's own worktree/background orchestration.
+Sessions are named `crew_<branch>`. Per-crewmate state lives in
+`~/.local/state/crew/<session>/` (`branch`, `worktree`, `task`, `log`, `status`) - this is
+what `crew status`, `crew logs`, and `crew watch` read and `crew stop` clears. Run `crew watch`
+in its own pane for zero-token, event-driven alerts (bell + `notify-send`) the moment a crewmate
+is ready or blocked - the push layer a chat agent cannot provide on its own. Prefer the captain?
+`/crew "build A, B, C"` in OpenCode dispatches crewmates and reports on request (it does not poll
+in a loop). `claude --tmux` / `claude --bg` are native alternatives if you prefer Claude Code's
+own worktree/background orchestration.
 
 ## gate - local AI ship gate
 

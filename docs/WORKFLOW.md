@@ -172,35 +172,82 @@ root, `wt`/`git wt new` runs it inside the new worktree (copy `.env`, install de
 
 **`crew` - many agents at once.** Our lightweight orchestrator (our own take on firstmate - no
 external scripts). Each crewmate = a branch in its own `wt` worktree running an agent in its own
-detached **tmux** session.
+detached **tmux** session. A crewmate with a task runs **bounded**: it may edit, run tests, and
+commit on its branch, then stops - it never pushes. Each engine is constrained differently but to
+the same effect - auto-approve everything except an explicit deny-list, never a full yolo mode:
+`opencode` via `--agent crewmate --auto` (auto-approves, but the `crewmate` agent still denies
+`git push`/`sudo`/hard-reset); `claude` via `--permission-mode acceptEdits` + a
+`git push`/`sudo`/hard-reset deny-list; `codex` via the `workspace-write` sandbox (network off, so
+push is blocked). Headless `opencode run` has no TTY to approve prompts, so **`--auto` is required**
+or every crewmate action is auto-rejected.
 
 ```bash
-crew new <branch> "<task>"   # worktree + tmux session running: opencode run "<task>" --agent build
+crew new <branch> "<task>"   # worktree + tmux session running: opencode run "<task>" --agent crewmate
                              #   no task   -> interactive opencode in the worktree
-                             #   --claude / --codex -> use claude or codex instead
+                             #   --claude / --codex -> use claude or codex (bounded the same way)
                              #   --attach  -> jump into the session now
                              #   --start <ref> -> branch from <ref>
-crew ls                      # list active crew sessions
+crew status [<branch>]       # table: branch | running/done(rc) | commits-ahead | last log line
+crew logs <branch> [-f]      # print (or -f follow) a crewmate's captured output
+crew watch [-n SECS]         # notify (bell + notify-send) when a crewmate finishes or blocks
+crew ls                      # list active crew tmux sessions
 crew attach <branch>         # attach / switch-client to a crewmate
 crew stop <branch> -D        # kill the session (-D also removes worktree + branch)
 ```
 
-**Worked example - a bug fix and a feature in parallel:**
+Per-crewmate state lives in `~/.local/state/crew/<session>/` (`branch`, `worktree`, `task`, `log`,
+`status`), which is what `crew status`/`crew logs` read and `crew stop` clears.
+
+**Two ways to drive it:**
+
+*Manual* - you run `crew` yourself and check in when you like:
 
 ```bash
 crew new fix/login    "fix the flaky login test"
 crew new feat/dark    "add a dark-mode toggle to settings"
-crew ls                       # see both running
-crew attach fix/login         # check in on one; detach and check the other
-# when each is done: review the branch (Playbook 6), ship via the gate (Playbook 10)
+crew status                   # see both: running -> done:0 with commits-ahead
+crew logs fix/login           # read what a crewmate did (or -f to follow)
+# when each shows done with commits: review the branch (Playbook 6), ship via the gate (Playbook 10)
 crew stop fix/login -D
 ```
 
-**When to use which:** one focused task → `wt`; two or more independent tasks you want running
-(semi-)unattended → `crew`. Native alternatives if you prefer Claude's own: `claude --tmux`, `claude --bg`.
+*Captain-driven* - converse with **one** agent that dispatches and monitors for you (the firstmate
+feel). `/crew` routes to the **`captain` agent**, which uses the `crew` skill:
 
-**Guardrails:** every worktree is fully isolated, so parallel agents never collide. Nothing is
-auto-pushed - always review each branch and run it through the gate before merging.
+```bash
+/crew "add a dark-mode toggle, fix the flaky login test, and add a /health endpoint"
+```
+
+The captain splits the request into independent features, runs `crew new` per feature, reports what
+it dispatched, then **stops** and hands control back. It does not sit in a polling loop; ask it to
+check in and it runs `crew status`/`crew logs` **once**, surfaces any `BLOCKED:` reason, and tells
+you which branches are `done` with commits - **ready for review**. The captain never edits code,
+pushes, or merges; it hands the ready branches back to you.
+
+**Hands-off alerts (`crew watch`).** The captain has no background loop, so between your check-ins it
+is idle - "report on request" is deliberate, not laziness. If you want to be *pushed* an alert the
+moment a crewmate finishes or blocks, run `crew watch` in its own pane. It tails the state dir, costs
+zero tokens, and fires a terminal bell + `notify-send` toast only on a real transition
+(ready / blocked / crashed), e.g. `crew: feat-dark ready for review - done, 2 commit(s)`. That is the
+event-driven layer an in-chat agent cannot provide on its own.
+
+**How agnostic is this?** The engine (`crew` CLI, worktrees, tmux, state tracking) is fully
+tool-agnostic - dispatch `opencode`, `claude`, or `codex` crewmates from any terminal, all bounded
+the same way. The `crew` **skill** is shared across all three tools, so any of them can play captain.
+Only the packaged `/crew` **command** and the `captain`/`crewmate` **agent** definitions are
+OpenCode-specific (commands and agents are per-tool). From **Claude**, get the same captain by
+invoking the `crew` skill - it surfaces as `/crew` (or just ask Claude to "use the crew skill to
+build A, B, C"); Claude then drives the same `crew` CLI. From **Codex**, invoke `$crew`.
+
+**When to use which:** one focused task → `wt`; several independent tasks you want running
+(semi-)unattended → `crew` (manual) or `/crew` (captain-driven). Native alternatives if you prefer
+Claude's own: `claude --tmux`, `claude --bg`.
+
+**Guardrails:** every worktree is fully isolated, so parallel agents never collide. Crewmates commit
+but never push; the captain never pushes or merges. Always review each ready branch and run it
+through the gate before merging - a `done:0` means the crewmate committed, not that the work is right.
+Features must be **independent**: crewmates do not coordinate edits to shared files, so merge or
+sequence any tasks that would touch the same core files.
 
 ### Playbook 10 - Shipping through the gate (our no-mistakes alternative)
 
@@ -246,7 +293,7 @@ passes, and the gate refuses to run on the default branch.
 
 ## Part 3 - Reference
 
-### Commands (34) - OpenCode `/slash`, grouped by stage
+### Commands (35) - OpenCode `/slash`, grouped by stage
 
 Each routes to a subagent (which fixes the model) and usually uses the linked skill.
 
@@ -277,6 +324,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/test-plan` | tester (gpt-5.5) | test-writer | Practical test plan for a change/feature |
 | `/qa-only` | tester (gpt-5.5) | - | Test changed behavior, report bugs, no code changes |
 | `/debug-tests` | debugger (gpt-5.5) | debugging | Debug failing tests, root-cause first |
+| `/crew` | captain (gpt-5.5) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
 | `/commit` | pr-writer (gpt-5.4-mini) | git-commit | Commit staged changes (this repo or child repos) |
 | `/commit-message` | pr-writer (gpt-5.4-mini) | git-commit | Draft a commit message (never commits) |
@@ -287,7 +335,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `/init-gate` | build (gpt-5.5) | - | Seed a `.gate.sh` ship-gate config |
 
-### Skills (28) - shared across Claude, Codex, OpenCode
+### Skills (29) - shared across Claude, Codex, OpenCode
 
 | Skill | For | Used by |
 |---|---|---|
@@ -311,6 +359,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `release-notes` | Changelogs / release notes | `/changelog` |
 | `documentation` | READMEs, docs, setup instructions | `/docs-update` |
 | `ship-gate` | Drive the `gate` CLI + `.gate.sh` | `/ship-gate` |
+| `crew` | Orchestrate parallel crewmates: split, dispatch, monitor, report | `/crew` |
 | `browser` | Headless web QA (`browser-cli.ts`) | (any agent) |
 | `find-skills` | Find/evaluate public skills before installing | (any agent) |
 | `autoplan` | End-to-end implementation, feature, and agentic workflow plans | `/autoplan`, `/plan-feature`, `/agentic-plan` |
@@ -349,12 +398,22 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.
 Generated Claude/Codex roles cover the 10 custom subagents above.
 
+**Orchestration agents (OpenCode-only, for `crew`):**
+
+| Agent | Model | Role | Can edit? |
+|---|---|---|---|
+| `captain` | gpt-5.5 | Split a request, dispatch/monitor crewmates via the `crew` skill | no (deny) |
+| `crewmate` | gpt-5.5 | Implement one task headless in a worktree and commit; never push | yes (bounded) |
+
+These two exist only in `opencode/.config/opencode/agents/` (they drive `crew`, which is OpenCode's
+headless runner) and are not generated for Claude/Codex.
+
 ### Scripts (`scripts/.local/bin`, on `$PATH`)
 
 | Tool | Subcommands | Purpose |
 |---|---|---|
 | `git wt` / `wt` | `new`, `ls`, `path`, `rm`, `prune` | Sibling worktrees; `wt` adds `cd`; `.worktrees-setup` post-create hook |
-| `crew` | `new`, `ls`, `attach`, `stop` | tmux multi-agent orchestrator over `wt`; supports `--claude` and `--codex` |
+| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex` |
 | `gate` | `init`, `run`, `status` | Ship gate: disposable-worktree validate → push → PR; `init --engine opencode|claude|codex` |
 | `codex-status` | `--json`, `--watch` | ChatGPT/Codex usage + rate-limit meter |
 
