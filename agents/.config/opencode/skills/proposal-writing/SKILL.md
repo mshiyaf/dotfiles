@@ -62,6 +62,9 @@ Use this structure unless the user asks for a different format:
 - Avoid exaggerated enterprise language and generic software-company wording.
 - Make included scope, assumptions, exclusions, payment terms, AMC, hosting, change requests, and third-party costs clear.
 - Use phase-wise delivery when the scope is broad, risky, or budget-sensitive.
+- MVP or Phase 1 must mean a polished, tested, deployable core system with limited scope. Do not imply that a later phase is needed to make it proper.
+- Do not split proposal options into "lean MVP" and "polished MVP" unless the user explicitly asks for that commercial structure.
+- Full System should mean extended scope such as integrations, automations, advanced reports, multi-branch/company support, or additional workflows.
 - Explain open-source products such as ERPNext as implementation value, not license resale.
 - Keep optional items separate from committed scope.
 - Do not overpromise integrations, migration, automation, AI, WhatsApp, SMS, OCR, mobile apps, or reporting unless explicitly scoped.
