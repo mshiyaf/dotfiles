@@ -201,12 +201,17 @@ crew status [<branch>]       # table: branch | running/done(rc) | commits-ahead 
 crew logs <branch> [-f]      # print (or -f follow) a crewmate's captured output
 crew watch [-n SECS]         # notify (bell + notify-send) when a crewmate finishes or blocks
 crew ls                      # list active crew tmux sessions
+                             #   status/watch/ls take --all to span every repo (default: this repo)
 crew attach <branch>         # attach / switch-client to a crewmate
 crew stop <branch> -D        # kill the session (-D also removes worktree + branch)
 ```
 
-Per-crewmate state lives in `~/.local/state/crew/<session>/` (`branch`, `worktree`, `task`, `log`,
-`status`), which is what `crew status`/`crew logs` read and `crew stop` clears.
+**crew is scoped per repository.** Sessions and state are namespaced by a repo key (derived from
+the shared `--git-common-dir`, so it is identical from the main repo or any of its worktrees).
+`crew ls`/`status`/`watch` therefore show only the current repo's crewmates - two different repos can
+each run a `feat-x` crewmate without colliding. Pass `--all` for the cross-repo view. Per-crewmate
+state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
+`log`, `status`), which is what `crew status`/`crew logs` read and `crew stop` clears.
 
 **Two ways to drive it:**
 

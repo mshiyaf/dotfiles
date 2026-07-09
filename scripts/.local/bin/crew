@@ -12,17 +12,19 @@
 #                                   With task -> headless agent that implements + commits.
 #                                 Flags: --attach (jump to it), --claude, --codex,
 #                                        --start <ref> (branch start-point).
-#   crew status [branch]          Report crewmates: running/done, commits, last log line.
+#   crew status [branch] [--all]  Report crewmates: running/done, commits, last log line.
 #   crew logs <branch> [-f]       Print (or follow with -f) a crewmate's captured output.
-#   crew watch [-n SECS] [-1]     Notify (notify-send + bell) when a crewmate finishes or blocks.
-#   crew ls                       List active crew tmux sessions.
+#   crew watch [-n SECS] [-1] [--all]  Notify (notify-send + bell) when a crewmate finishes/blocks.
+#   crew ls [--all]               List active crew tmux sessions.
 #   crew attach <branch>          Attach/switch to a crewmate's session.
 #   crew stop <branch> [-D]       Kill the session (-D also removes worktree + branch).
 #   crew help                     Show this help.
 #
-# Crewmates run headless and commit on their own branch; they never push. Review each
-# ready branch (/review-diff) and ship it (/ship-gate). Requires: tmux, git-wt (PATH),
-# opencode/claude/codex. Run from inside the target git repo.
+# crew is scoped per repository: sessions and state are namespaced by a repo key (stable
+# across the repo's worktrees), so ls/status/watch show only the current repo's crewmates.
+# Pass --all to span every repo. Crewmates run headless and commit on their own branch; they
+# never push. Review each ready branch (/review-diff) and ship it (/ship-gate). Requires:
+# tmux, git-wt (PATH), opencode/claude/codex. Run from inside the target git repo.
 
 set -euo pipefail
 
@@ -44,14 +46,48 @@ OPENCODE_CREW_FLAGS="--agent crewmate --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
 
-# Same sanitize as tmux-sessionizer: /, ., : -> _
-session_name() {
-	local s="${PREFIX}$1"
-	s="${s//\//_}"; s="${s//./_}"; s="${s//:/_}"
-	printf '%s' "$s"
+# Sanitize a name for use in tmux targets / paths: /, ., : -> _
+sanitize() { local s="$1"; s="${s//\//_}"; s="${s//./_}"; s="${s//:/_}"; printf '%s' "$s"; }
+
+# Per-repo key so crew is segregated by repository: sessions and state are namespaced by it,
+# and `ls`/`status`/`watch` scope to the current repo. Derived from `--git-common-dir`, which
+# is shared across a repo's worktrees, so the key is identical from the main repo or any
+# worktree of it. A short path hash disambiguates repos that share a basename.
+REPO_KEY=""
+compute_repo_key() {
+	local common root
+	common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
+		|| common=$(git rev-parse --git-common-dir 2>/dev/null) || return 1
+	case "$common" in /*) : ;; *) common="$PWD/$common" ;; esac
+	root=$(cd "$(dirname "$common")" 2>/dev/null && pwd -P) || return 1
+	local hash; hash=$(printf '%s' "$root" | cksum | cut -d' ' -f1)
+	printf '%s-%s' "$(sanitize "$(basename "$root")")" "${hash: -6}"
+}
+require_repo() {
+	[ -n "$REPO_KEY" ] && return 0
+	REPO_KEY=$(compute_repo_key) || die "not inside a git repository"
 }
 
-state_dir_for() { printf '%s/%s' "$STATE_DIR" "$(session_name "$1")"; }
+repo_state_dir() { require_repo; printf '%s/%s' "$STATE_DIR" "$REPO_KEY"; }
+state_dir_for()  { printf '%s/%s' "$(repo_state_dir)" "$(sanitize "$1")"; }
+session_name()   { require_repo; printf '%s%s_%s' "$PREFIX" "$REPO_KEY" "$(sanitize "$1")"; }
+
+# Echo each crewmate state dir, one per line. Arg "all" spans every repo; otherwise the
+# current repo only.
+iter_state_dirs() {
+	local d r
+	if [ "${1:-}" = "all" ]; then
+		[ -d "$STATE_DIR" ] || return 0
+		for r in "$STATE_DIR"/*/; do
+			[ -d "$r" ] || continue
+			for d in "$r"*/; do [ -d "$d" ] && printf '%s\n' "${d%/}"; done
+		done
+	else
+		local rsd; rsd=$(repo_state_dir)
+		[ -d "$rsd" ] || return 0
+		for d in "$rsd"/*/; do [ -d "$d" ] && printf '%s\n' "${d%/}"; done
+	fi
+}
 
 # Attach if outside tmux, switch-client if inside.
 enter_session() {
@@ -103,6 +139,7 @@ cmd_new() {
 		mkdir -p "$sdir"
 		printf '%s\n' "$branch" > "$sdir/branch"
 		printf '%s\n' "$path"   > "$sdir/worktree"
+		printf '%s\n' "$name"   > "$sdir/session"
 		printf '%s\n' "${task:-<interactive>}" > "$sdir/task"
 
 		tmux new-session -ds "$name" -c "$path"
@@ -141,35 +178,59 @@ commits_ahead() {
 }
 
 report_one() {
-	local sdir="$1"
+	local sdir="$1" label="${2:-}"
 	[ -d "$sdir" ] || return 0
 	local branch wt status name last ahead
 	branch=$(cat "$sdir/branch" 2>/dev/null || basename "$sdir")
 	wt=$(cat "$sdir/worktree" 2>/dev/null || echo '?')
 	status=$(cat "$sdir/status" 2>/dev/null || echo '?')
-	name=$(session_name "$branch")
+	name=$(cat "$sdir/session" 2>/dev/null || true)
 	# A 'running' crewmate whose session is gone actually exited (crashed or killed).
-	if [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
+	if [ -n "$name" ] && [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
 		status="exited?"
 	fi
 	ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
 	last=$(tail -n1 "$sdir/log" 2>/dev/null | tr -d '\r' | cut -c1-60)
-	printf '%-24s %-10s %3s commit(s)  %s\n' "$branch" "$status" "$ahead" "$last"
+	if [ -n "$label" ]; then
+		printf '%-20s %-22s %-10s %3s  %s\n' "$label" "$branch" "$status" "$ahead" "$last"
+	else
+		printf '%-24s %-10s %3s commit(s)  %s\n' "$branch" "$status" "$ahead" "$last"
+	fi
 }
 
 cmd_status() {
-	[ -d "$STATE_DIR" ] || { printf '(no crewmates)\n'; return 0; }
-	printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
-	if [ $# -ge 1 ]; then
-		report_one "$(state_dir_for "$1")"
-	else
-		local any=0
-		for d in "$STATE_DIR"/*/; do
-			[ -d "$d" ] || continue
-			any=1; report_one "${d%/}"
-		done
-		[ "$any" = 1 ] || printf '(no crewmates)\n'
+	local all=0 branch=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--all) all=1 ;;
+			-*) die "unknown flag: $1" ;;
+			*) branch="$1" ;;
+		esac
+		shift
+	done
+	[ "$all" = 1 ] || require_repo
+
+	if [ -n "$branch" ]; then
+		printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
+		report_one "$(state_dir_for "$branch")"
+		return
 	fi
+
+	local any=0 d
+	if [ "$all" = 1 ]; then
+		printf '%-20s %-22s %-10s %-4s %s\n' 'REPO' 'BRANCH' 'STATUS' 'AHD' 'LAST OUTPUT'
+		while IFS= read -r d; do
+			[ -n "$d" ] || continue
+			any=1; report_one "$d" "$(basename "$(dirname "$d")")"
+		done < <(iter_state_dirs all)
+	else
+		printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
+		while IFS= read -r d; do
+			[ -n "$d" ] || continue
+			any=1; report_one "$d"
+		done < <(iter_state_dirs)
+	fi
+	[ "$any" = 1 ] || printf '(no crewmates)\n'
 }
 
 cmd_logs() {
@@ -199,34 +260,38 @@ notify() {
 # or crashed). This is the event-driven layer the captain agent cannot provide on its own:
 # it runs in its own pane, costs zero tokens, and only speaks up on a state transition.
 cmd_watch() {
-	local interval=5 once=0
+	local interval=5 once=0 all=0
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			-n|--interval) shift; interval="${1:-5}" ;;
 			-1|--once)     once=1 ;;
+			--all)         all=1 ;;
 			-*) die "unknown flag: $1" ;;
 		esac
 		shift
 	done
-	[ -d "$STATE_DIR" ] || die "no crewmates to watch (run 'crew new' first)"
+	local mode=""; [ "$all" = 1 ] && mode="all" || require_repo
 	trap 'printf "\ncrew watch: stopped\n"; exit 0' INT
-	[ "$once" = 1 ] || printf 'crew watch: polling every %ss (Ctrl-C to stop)\n' "$interval"
+	local scope; [ "$all" = 1 ] && scope="all repos" || scope="$REPO_KEY"
+	[ "$once" = 1 ] || printf 'crew watch (%s): polling every %ss (Ctrl-C to stop)\n' "$scope" "$interval"
 
 	declare -A seen
 	while :; do
-		for d in "$STATE_DIR"/*/; do
-			[ -d "$d" ] || continue
+		local d
+		while IFS= read -r d; do
+			[ -n "$d" ] || continue
 			local branch status name key blocked wt ahead
-			branch=$(cat "$d/branch" 2>/dev/null || basename "${d%/}")
+			branch=$(cat "$d/branch" 2>/dev/null || basename "$d")
 			status=$(cat "$d/status" 2>/dev/null || echo '?')
-			name=$(session_name "$branch")
+			name=$(cat "$d/session" 2>/dev/null || true)
 			# running but the tmux session is gone -> it exited unexpectedly
-			if [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
+			if [ -n "$name" ] && [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
 				status="exited"
 			fi
 			blocked=$(grep -a -m1 'BLOCKED:' "$d/log" 2>/dev/null || true)
 			key="$status"; [ -n "$blocked" ] && key="blocked"
-			if [ "${seen[$branch]:-}" != "$key" ]; then
+			# de-dup per crewmate dir (unique across repos)
+			if [ "${seen[$d]:-}" != "$key" ]; then
 				case "$key" in
 					blocked)
 						notify "crew: $branch BLOCKED" "${blocked##*BLOCKED:} - needs a decision" ;;
@@ -239,18 +304,25 @@ cmd_watch() {
 					exited)
 						notify "crew: $branch exited unexpectedly" "session gone; check: crew logs $branch" ;;
 				esac
-				seen[$branch]="$key"
+				seen[$d]="$key"
 			fi
-		done
+		done < <(iter_state_dirs $mode)
 		[ "$once" = 1 ] && break
 		sleep "$interval"
 	done
 }
 
 cmd_ls() {
-	tmux list-sessions \
-		-F '#{session_name}  (#{session_windows}w, #{?session_attached,attached,detached})' 2>/dev/null \
-		| grep "^${PREFIX}" || printf '(no crew sessions)\n'
+	local fmt='#{session_name}  (#{session_windows}w, #{?session_attached,attached,detached})'
+	local out
+	if [ "${1:-}" = "--all" ]; then
+		out=$(tmux list-sessions -F "$fmt" 2>/dev/null | grep "^${PREFIX}")
+	else
+		require_repo
+		out=$(tmux list-sessions -F "$fmt" 2>/dev/null | grep "^${PREFIX}${REPO_KEY}_" \
+			| sed "s#^${PREFIX}${REPO_KEY}_##")
+	fi
+	[ -n "$out" ] && printf '%s\n' "$out" || printf '(no crew sessions)\n'
 }
 
 cmd_attach() {

@@ -113,9 +113,12 @@ crew attach feature-x                # attach / switch-client to a crewmate
 crew stop feature-x -D               # kill session (-D also removes worktree + branch)
 ```
 
-Sessions are named `crew_<branch>`. Per-crewmate state lives in
-`~/.local/state/crew/<session>/` (`branch`, `worktree`, `task`, `log`, `status`) - this is
-what `crew status`, `crew logs`, and `crew watch` read and `crew stop` clears. Run `crew watch`
+crew is **scoped per repository**: sessions are named `crew_<repo-key>_<branch>` and state lives
+in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`, `log`,
+`status`). The repo key is derived from the shared `--git-common-dir`, so it is stable from the
+main repo or any of its worktrees. `crew ls`/`status`/`watch` show only the current repo's
+crewmates (two repos can each run a `feat-x` without colliding); pass `--all` for the cross-repo
+view. This is what `crew status`, `crew logs`, and `crew watch` read and `crew stop` clears. Run `crew watch`
 in its own pane for zero-token, event-driven alerts (bell + `notify-send`) the moment a crewmate
 is ready or blocked - the push layer a chat agent cannot provide on its own. Prefer the captain?
 `/crew "build A, B, C"` in OpenCode dispatches crewmates and reports on request (it does not poll
