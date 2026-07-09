@@ -60,6 +60,19 @@ wt_path_for() { printf '%s/%s' "$(wt_base)" "$(sanitize "$1")"; }
 
 branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 
+remote_branch_exists() { git show-ref --verify --quiet "refs/remotes/origin/$1"; }
+
+normalize_upstream() {
+	local branch="$1"
+	if remote_branch_exists "$branch"; then
+		git branch --set-upstream-to="origin/$branch" "$branch" >/dev/null 2>&1 || true
+	else
+		# Creating from origin/main can auto-track origin/main via branch.autoSetupMerge.
+		# Feature worktrees should not compare themselves to main after creation.
+		git branch --unset-upstream "$branch" >/dev/null 2>&1 || true
+	fi
+}
+
 default_start_point() {
 	# Prefer origin's default branch, else current HEAD.
 	local ref
@@ -110,6 +123,7 @@ cmd_new() {
 		[ -n "$start" ] || start=$(default_start_point)
 		git worktree add -b "$branch" "$path" "$start"
 	fi
+	normalize_upstream "$branch"
 
 	[ "$run_setup" -eq 1 ] && run_setup_hook "$path" "$branch"
 

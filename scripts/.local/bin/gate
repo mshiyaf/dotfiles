@@ -505,6 +505,7 @@ cmd_run() {
 	# 6b. Push the validated commits to the remote branch.
 	info "pushing validated commits to $GATE_PUSH_REMOTE/$branch"
 	git -C "$root" push "$GATE_PUSH_REMOTE" "$gate_branch:refs/heads/$branch"
+	git -C "$root" branch --set-upstream-to="$GATE_PUSH_REMOTE/$branch" "$branch" >/dev/null 2>&1 || true
 
 	# 6c. Open a PR (best-effort; requires gh).
 	if command -v gh >/dev/null 2>&1; then
