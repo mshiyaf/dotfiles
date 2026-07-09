@@ -1,17 +1,17 @@
 ---
-description: Seed a .gate.sh ship-gate config in the current repo.
+description: Seed optional .gate.sh ship-gate overrides in the current repo.
 agent: build
 ---
-Set up the ship gate for this repo.
+Create optional ship-gate overrides for this repo. `gate run` works without this file;
+leave test/lint empty for agent auto-detection and docs empty to skip by default.
 
 Context:
 !`test -f .gate.sh && echo "exists" || echo "missing"`
-!`find . -maxdepth 2 -type f \( -name 'package.json' -o -name 'composer.json' -o -name 'go.mod' -o -name 'Cargo.toml' -o -name 'pyproject.toml' -o -name 'Makefile' \) | sort | head -20`
 
 Steps:
 1. If `.gate.sh` already exists, show it and stop.
-2. Otherwise run `gate init` to seed it:
+2. Otherwise run `gate init` to seed optional overrides:
    !`gate init 2>&1 || true`
-3. Read the manifests above and tell the user the correct `GATE_TEST` / `GATE_LINT`
-   commands to set for this stack (e.g. `go test ./...`, `php artisan test`, `pytest`).
-   Offer to edit `.gate.sh` accordingly. Do not commit.
+3. Tell the user they can keep `GATE_TEST` and `GATE_LINT` empty for auto-detection,
+   or set deterministic overrides such as `pnpm test`, `go test ./...`, `pytest`,
+   or `pnpm lint`. Do not commit.

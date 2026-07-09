@@ -250,10 +250,13 @@ Parallel agent work uses our own tools (in the `scripts` package, on `$PATH`):
 ## Ship gate
 
 `/ship-gate` runs our own **`gate`** CLI (in the `scripts` package): it validates a branch's
-committed work in a **disposable worktree** (advisory review → enforced test → enforced lint,
-each with a bounded auto-fix loop) and only pushes + opens a PR once the gate passes. On an
-unfixable failure it escalates and pushes nothing. No external binary. Seed config with
-`/init-gate` (writes a `.gate.sh`). See `skills/ship-gate/SKILL.md`.
+committed work in a **disposable worktree** (advisory review → test → docs → lint) and only
+pushes + opens a PR once the gate passes.
+If `.gate.sh` does not set test/lint commands, the build agent detects and runs relevant checks.
+On an unfixable failure it escalates and pushes nothing.
+No external binary.
+Use `/init-gate` only when you want optional `.gate.sh` deterministic overrides.
+See `skills/ship-gate/SKILL.md`.
 
 ## Token efficiency
 

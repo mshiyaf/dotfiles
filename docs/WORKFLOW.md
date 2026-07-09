@@ -270,17 +270,28 @@ sequence any tasks that would touch the same core files.
 passes. Our self-owned version of no-mistakes - no external binary; built on `git-wt` + the coding
 agent + `gh`.*
 
-**One-time per repo:**
+**Optional deterministic overrides:**
 
 ```bash
-/init-gate        # (or: gate init) writes .gate.sh
+/init-gate        # (or: gate init) writes optional .gate.sh overrides
 ```
 
-`.gate.sh` (plain sourced bash, not YAML) sets:
-`GATE_TEST`, `GATE_DOCS`, `GATE_LINT` (enforced), `GATE_REVIEW_CMD` (structured JSON review via
-`/gate-review`; empty to skip), `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational),
-`GATE_FIX_CMD` (how auto-fixes are requested), `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`,
-`GATE_PUSH_REMOTE`.
+`gate run` works without `.gate.sh`.
+When `GATE_TEST` or `GATE_LINT` is empty, the build agent detects and runs relevant checks.
+When `GATE_DOCS` is empty, docs are skipped by default.
+Use `.gate.sh` (plain sourced bash, not YAML) only for deterministic overrides:
+`GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review via `/gate-review`; empty to skip),
+`GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational), `GATE_FIX_CMD` (how auto-fixes
+are requested), `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`, `GATE_PUSH_REMOTE`.
+
+`gate` inherits the shell environment you run it from.
+Put worktree-specific bootstrap in `.worktrees-setup`, for example:
+
+```bash
+#!/usr/bin/env bash
+cp "$GIT_WT_MAIN/.env" . 2>/dev/null || true
+pnpm install --frozen-lockfile
+```
 
 **Ship a branch:**
 
@@ -297,8 +308,8 @@ Pipeline:
    gate** - prompted interactively (approve / fix / block), or **blocked** when headless
    (`GATE_REVIEW_APPROVE=0` makes them informational). Evidence is written under `GATE_EVIDENCE_DIR`.
    The LLM only classifies; you decide, so we still never trust an LLM verdict as an exit code.
-3. **test** → **docs** → **lint** - *enforced*, each with a bounded **auto-fix loop**: on failure it
-   runs the `build` agent to fix, commits the fix, and re-runs, up to `GATE_MAX_ROUNDS`.
+3. **test** → **docs** → **lint** - explicit commands run with a bounded auto-fix loop; empty
+   test/lint delegates detection and validation to the build agent, while empty docs is skipped.
 4. All green → fast-forward your local branch, push the validated commits, `gh pr create`.
 5. **CI monitor** (opt-in, `GATE_WATCH_CI=1`): watch the PR's checks; on failure, pull the failing
    logs, auto-fix, push, and re-watch, bounded by `GATE_MAX_ROUNDS`.
@@ -366,7 +377,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/pr-body` | pr-writer (gpt-5.4-mini) | pull-request | Draft a PR title + body from branch changes |
 | `/docs-update` | docs-writer (gpt-5.4-mini) | documentation | Update docs/README from current changes |
 | `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
-| `/init-gate` | build (gpt-5.5) | - | Seed a `.gate.sh` ship-gate config |
+| `/init-gate` | build (gpt-5.5) | - | Seed optional `.gate.sh` ship-gate overrides |
 
 ### Skills (32) - shared across Claude, Codex, OpenCode
 
@@ -393,7 +404,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `pull-request` | PR title/body/test-plan | `/pr-body` |
 | `release-notes` | Changelogs / release notes | `/changelog` |
 | `documentation` | READMEs, docs, setup instructions | `/docs-update` |
-| `ship-gate` | Drive the `gate` CLI + `.gate.sh` | `/ship-gate` |
+| `ship-gate` | Drive the `gate` CLI + optional `.gate.sh` overrides | `/ship-gate` |
 | `gate-review` | Structured JSON review for the ship gate (auto_fix vs ask_user) | `/gate-review`, `gate` |
 | `crew` | Orchestrate parallel crewmates: split, dispatch, monitor, report | `/crew` |
 | `browser` | Headless web QA (`browser-cli.ts`) | (any agent) |
@@ -465,7 +476,7 @@ Full usage: [`scripts/README.md`](../scripts/README.md).
 | Claude `settings.json` | Claude Code | Model, enabled plugins, marketplaces, permissions, statusline |
 | Codex `config.toml` | Codex | Model, per-project trust levels, features; not stowed |
 | Codex `rules/default.rules` | Codex | Exec-policy allow/forbid rules for shell approvals |
-| `.gate.sh` (per repo) | `gate` | Test/lint/review commands + auto-fix rounds for the ship gate |
+| `.gate.sh` (per repo, optional) | `gate` | Deterministic ship-gate overrides; empty test/lint uses auto-detection |
 | `.worktrees-setup` (per repo) | `git wt` | Post-create hook run inside each new worktree |
 | project `AGENTS.md` (per repo) | all 3 tools | Project-specific stack, commands, conventions, pitfalls |
 

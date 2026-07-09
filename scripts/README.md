@@ -132,24 +132,30 @@ opens a PR only if the gate passes. Our own take on no-mistakes - no external bi
 built on `git-wt` + `opencode`/`claude` + `gh`.
 
 ```bash
-gate init          # seed a .gate.sh config in the repo (once)
+gate init          # optional: seed .gate.sh deterministic overrides
 gate status        # show the resolved config
 gate run [branch]  # review → test → docs → lint (+auto-fix) → push → PR → CI monitor
 ```
 
 Pipeline: a **structured review** (the `gate-review` skill emits JSON findings classified
 `auto_fix` vs `ask_user` - `auto_fix` are applied automatically; `ask_user` are a human-approval
-gate: prompted interactively, or blocked when headless), then **enforced** `test` → `docs` →
-`lint` stages, each with a bounded auto-fix loop (`GATE_MAX_ROUNDS`). On pass it fast-forwards
+gate: prompted interactively, or blocked when headless), then `test` → `docs` → `lint` stages.
+If `GATE_TEST` or `GATE_LINT` is set, that deterministic command runs with a bounded auto-fix loop.
+If either is empty, the build agent detects and runs relevant checks for the repo.
+Docs run only when `GATE_DOCS` is set; empty docs is skipped by default.
+On pass it fast-forwards
 your local branch, pushes, and opens a PR; with `GATE_WATCH_CI=1` it then watches the PR's checks
 and auto-fixes CI failures from the logs. On an unfixable failure (or a blocked review) it
 **escalates** - nothing is pushed and the disposable worktree is kept. A review evidence trail is
-written under `GATE_EVIDENCE_DIR` (gitignored). Config lives in `.gate.sh` (plain sourced bash):
+written under `GATE_EVIDENCE_DIR` (gitignored). Optional overrides live in `.gate.sh` (plain sourced bash):
 
 ```bash
-GATE_TEST="npm test"
-GATE_DOCS=""                                                     # "" to skip
-GATE_LINT="npm run lint"
+GATE_TEST=""                                                     # empty = agent auto-detect
+GATE_DOCS=""                                                     # empty = skip
+GATE_LINT=""                                                     # empty = agent auto-detect
+# GATE_TEST="pnpm test"
+# GATE_LINT="pnpm lint"
+# GATE_DOCS="pnpm docs:check"
 GATE_REVIEW_CMD='opencode run "/gate-review" --agent reviewer'   # "" to skip
 GATE_REVIEW_APPROVE=1        # 1 = gate ask_user findings; 0 = informational
 GATE_MAX_ROUNDS=3
@@ -161,3 +167,5 @@ GATE_PUSH_REMOTE="origin"
 The LLM only classifies findings; you approve the judgment calls (or a headless run blocks on
 them), so an LLM verdict is never trusted as an exit code. Commit your work before running - the
 gate validates commits, and it refuses to run on the default branch. Requires `jq` and `gh`.
+`gate` inherits the shell environment you run it from. Put worktree-specific bootstrap in
+`.worktrees-setup`, for example copying `.env` from `$GIT_WT_MAIN` and installing dependencies.

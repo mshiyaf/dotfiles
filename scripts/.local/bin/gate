@@ -10,9 +10,9 @@
 #                ask_user. auto_fix findings are applied automatically; ask_user findings
 #                are gated on human approval (prompted interactively, or blocked when
 #                headless). An evidence trail is written under GATE_EVIDENCE_DIR.
-#   3. test    - enforced, with a bounded auto-fix loop.
-#   4. docs    - enforced, with a bounded auto-fix loop (empty = skip).
-#   5. lint    - enforced, with a bounded auto-fix loop.
+#   3. test    - explicit command if configured, else agent-detected validation.
+#   4. docs    - explicit command if configured, else skipped by default.
+#   5. lint    - explicit command if configured, else agent-detected validation.
 #   6. On pass: fast-forward push to the remote and `gh pr create`. Auto-fix commits
 #      (if any) are fast-forwarded back onto your local branch.
 #   7. CI monitor (opt-in): watch the PR's checks; on failure, auto-fix from the logs,
@@ -21,13 +21,13 @@
 #
 # Usage:
 #   gate init [--engine opencode|claude|codex]
-#                      Seed a .gate.sh config in the current repo.
+#                      Seed optional .gate.sh overrides in the current repo.
 #   gate run [branch]  Run the gate for <branch> (default: current branch).
 #   gate status        Show the resolved config.
 #   gate help
 #
-# Config: a sourced `.gate.sh` at the repo root (bash, not YAML). See `gate init`.
-# Requires: git-wt (PATH), jq, gh (for the PR/CI), and whatever your GATE_* commands need.
+# Config: optional sourced `.gate.sh` overrides at the repo root (bash, not YAML).
+# Requires: git-wt (PATH), jq, gh (for the PR/CI), and whatever checks the agent detects.
 
 set -euo pipefail
 
@@ -42,9 +42,9 @@ repo_root() {
 
 # --- config -----------------------------------------------------------------
 
-# Defaults; a repo's .gate.sh overrides these.
-GATE_TEST="npm test"
-GATE_LINT="npm run lint"
+# Defaults; a repo's .gate.sh may override these. Empty test/lint means agent detection.
+GATE_TEST=""
+GATE_LINT=""
 GATE_DOCS=""
 GATE_REVIEW_CMD='opencode run "/gate-review" --agent reviewer'
 GATE_REVIEW_APPROVE=1
@@ -93,14 +93,19 @@ cmd_init() {
 	local cfg; cfg="$(repo_root)/.gate.sh"
 	[ -e "$cfg" ] && die ".gate.sh already exists at $cfg"
 	cat > "$cfg" <<EOF
-# .gate.sh - ship-gate config (sourced by \`gate\`). Plain bash, not YAML.
-# Set a command to "" to skip that stage.
+# .gate.sh - optional ship-gate overrides (sourced by \`gate\`). Plain bash, not YAML.
+# Leave test/lint empty for agent auto-detection. Leave docs empty to skip by default.
 
-GATE_TEST="npm test"                 # enforced (with auto-fix loop)
-GATE_DOCS=""                         # enforced docs check (empty = skip). Examples:
-                                     #   GATE_DOCS="npx markdown-link-check README.md"
-                                     #   GATE_DOCS='opencode run "check docs cover this diff; update them if not" --agent docs-writer'
-GATE_LINT="npm run lint"             # enforced (with auto-fix loop)
+GATE_TEST=""
+GATE_DOCS=""
+GATE_LINT=""
+
+# Examples:
+# GATE_TEST="pnpm test"
+# GATE_LINT="pnpm lint"
+# GATE_DOCS="pnpm docs:check"
+# GATE_DOCS="npx markdown-link-check README.md"
+# GATE_DOCS='opencode run "check docs cover this diff; update them if not" --agent docs-writer'
 
 # Structured review: the command must output JSON findings (auto_fix vs ask_user).
 # auto_fix findings are applied automatically; ask_user findings are gated (below).
@@ -134,7 +139,7 @@ EOF
 		printf '.gate/\n' >> "$gi"
 		ok "added .gate/ to .gitignore"
 	fi
-	printf '  Review and tweak the GATE_* commands, then: gate run\n'
+	printf '  Optional overrides written. gate run also works without .gate.sh.\n'
 }
 
 # --- run --------------------------------------------------------------------
@@ -173,6 +178,59 @@ $out"
 			warn "auto-fix produced no changes"
 		fi
 	done
+}
+
+# Ask the build agent to detect and run the right validation for a stage. This is
+# the default path when deterministic commands are not configured in .gate.sh.
+run_agent_stage() {
+	local name="$1" prompt round=0 out
+	case "$name" in
+		test)
+			prompt="Detect this repository's relevant test commands from the actual files, run the appropriate tests for the current diff, fix safe failures if needed, and re-run until they pass. Do not push, open PRs, or edit unrelated code."
+			;;
+		lint)
+			prompt="Detect this repository's relevant lint, format, static analysis, or typecheck commands from the actual files, run the appropriate checks for the current diff, fix safe issues if needed, and re-run until they pass. Do not push, open PRs, or edit unrelated code."
+			;;
+		*) die "unknown agent stage: $name" ;;
+	esac
+
+	while :; do
+		info "$name (round $round): agent auto-detect"
+		# shellcheck disable=SC2059
+		out=$(eval "$(printf "$GATE_FIX_CMD" "$prompt")" 2>&1) && {
+			printf '%s\n' "$out" | tail -20
+			if [ -n "$(git status --porcelain)" ]; then
+				git add -A && git commit -q -m "gate: auto-fix $name (round $round)"
+				ok "committed agent changes for $name"
+			fi
+			ok "$name passed"
+			return 0
+		}
+		printf '%s\n' "$out" | tail -30
+		round=$((round + 1))
+		if [ "$round" -gt "$GATE_MAX_ROUNDS" ]; then
+			warn "$name still failing after $GATE_MAX_ROUNDS agent rounds - escalating"
+			return 1
+		fi
+		warn "$name failed - retrying agent validation (round $round/$GATE_MAX_ROUNDS)"
+		if [ -n "$(git status --porcelain)" ]; then
+			git add -A && git commit -q -m "gate: auto-fix $name (round $round)"
+			ok "committed agent changes for $name"
+		fi
+	done
+}
+
+run_stage() {
+	local name="$1" cmd="$2"
+	if [ -n "$cmd" ]; then
+		run_enforced "$name" "$cmd"
+		return
+	fi
+	case "$name" in
+		test|lint) run_agent_stage "$name" ;;
+		docs) info "skip docs (not configured)" ;;
+		*) die "unknown stage: $name" ;;
+	esac
 }
 
 # Apply one fix request via GATE_FIX_CMD and commit if it changed anything.
@@ -336,7 +394,6 @@ $logs" )
 
 cmd_run() {
 	local root; root=$(repo_root)
-	[ -f "$root/.gate.sh" ] || die "no .gate.sh in $root - run 'gate init' first"
 	load_config
 	command -v git-wt >/dev/null 2>&1 || die "git-wt not on PATH"
 	command -v jq >/dev/null 2>&1 || die "jq not on PATH (needed for structured review)"
@@ -356,7 +413,7 @@ cmd_run() {
 	local gate_branch="gate/$branch" wt
 	info "creating disposable worktree from $branch"
 	git -C "$root" wt rm "$gate_branch" --force >/dev/null 2>&1 || true
-	git -C "$root" wt new "$gate_branch" "$branch" --no-setup >/dev/null
+	git -C "$root" wt new "$gate_branch" "$branch" >/dev/null
 	wt=$(git -C "$root" wt path "$gate_branch")
 
 	local rc=0
@@ -365,10 +422,10 @@ cmd_run() {
 		local fail=0
 		# 2. structured review + human-approval gate (exit 2 = review blocked)
 		run_review "$root" "$branch" || exit 2
-		# 3-5. enforced gates - run all so every failure surfaces, then fail if any did.
-		run_enforced test "$GATE_TEST" || fail=1
-		run_enforced docs "$GATE_DOCS" || fail=1
-		run_enforced lint "$GATE_LINT" || fail=1
+		# 3-5. validation stages - run all so every failure surfaces, then fail if any did.
+		run_stage test "$GATE_TEST" || fail=1
+		run_stage docs "$GATE_DOCS" || fail=1
+		run_stage lint "$GATE_LINT" || fail=1
 		exit "$fail"
 	) || rc=$?
 
@@ -420,10 +477,10 @@ cmd_run() {
 cmd_status() {
 	load_config
 	printf 'repo:            %s\n' "$(repo_root)"
-	printf 'config:          %s\n' "$([ -f "$(repo_root)/.gate.sh" ] && echo "$(repo_root)/.gate.sh" || echo '(defaults - run: gate init)')"
-	printf 'GATE_TEST:       %s\n' "${GATE_TEST:-<skip>}"
+	printf 'config:          %s\n' "$([ -f "$(repo_root)/.gate.sh" ] && echo "$(repo_root)/.gate.sh" || echo '(optional - no .gate.sh)')"
+	printf 'GATE_TEST:       %s\n' "${GATE_TEST:-<auto>}"
 	printf 'GATE_DOCS:       %s\n' "${GATE_DOCS:-<skip>}"
-	printf 'GATE_LINT:       %s\n' "${GATE_LINT:-<skip>}"
+	printf 'GATE_LINT:       %s\n' "${GATE_LINT:-<auto>}"
 	printf 'GATE_REVIEW:     %s\n' "${GATE_REVIEW_CMD:-<skip>}"
 	printf 'GATE_REVIEW_APPROVE: %s\n' "$GATE_REVIEW_APPROVE"
 	printf 'GATE_EVIDENCE_DIR: %s\n' "$GATE_EVIDENCE_DIR"
