@@ -15,6 +15,7 @@ from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_T
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.shared import Inches, Pt, RGBColor
 
 
@@ -250,14 +251,39 @@ def set_cell_width(cell, width_in: float) -> None:
     tc_w.set(qn("w:type"), "dxa")
 
 
+def add_hyperlink(paragraph, text: str, url: str) -> None:
+    relationship_id = paragraph.part.relate_to(url, RT.HYPERLINK, is_external=True)
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), relationship_id)
+
+    run = OxmlElement("w:r")
+    run_properties = OxmlElement("w:rPr")
+    run_style = OxmlElement("w:rStyle")
+    run_style.set(qn("w:val"), "Hyperlink")
+    run_properties.append(run_style)
+    run.append(run_properties)
+
+    run_text = OxmlElement("w:t")
+    run_text.text = text
+    run.append(run_text)
+    hyperlink.append(run)
+    paragraph._p.append(hyperlink)
+
+
 def add_runs_from_inline(paragraph, text: str) -> None:
-    token_re = re.compile(r"(\*\*[^*]+\*\*|\*[^*]+\*)")
+    token_re = re.compile(r"(\[[^\]]+\]\((?:https?://|mailto:)[^)]+\)|<(?:(?:https?://|mailto:)[^>\s]+)>|\*\*[^*]+\*\*|\*[^*]+\*)")
     pos = 0
     for match in token_re.finditer(text):
         if match.start() > pos:
             paragraph.add_run(text[pos : match.start()])
         token = match.group(0)
-        if token.startswith("**"):
+        markdown_link = re.fullmatch(r"\[([^\]]+)\]\(((?:https?://|mailto:)[^)]+)\)", token)
+        if markdown_link:
+            add_hyperlink(paragraph, markdown_link.group(1), markdown_link.group(2))
+        elif token.startswith("<"):
+            url = token[1:-1]
+            add_hyperlink(paragraph, url, url)
+        elif token.startswith("**"):
             run = paragraph.add_run(token[2:-2])
             run.bold = True
         else:
