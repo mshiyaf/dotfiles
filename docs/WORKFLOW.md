@@ -277,8 +277,10 @@ agent + `gh`.*
 ```
 
 `.gate.sh` (plain sourced bash, not YAML) sets:
-`GATE_TEST`, `GATE_LINT` (enforced), `GATE_REVIEW_CMD` (advisory, e.g. `/review-diff`; empty to skip),
-`GATE_FIX_CMD` (how auto-fixes are requested), `GATE_MAX_ROUNDS` (auto-fix attempts), `GATE_PUSH_REMOTE`.
+`GATE_TEST`, `GATE_DOCS`, `GATE_LINT` (enforced), `GATE_REVIEW_CMD` (structured JSON review via
+`/gate-review`; empty to skip), `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational),
+`GATE_FIX_CMD` (how auto-fixes are requested), `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`,
+`GATE_PUSH_REMOTE`.
 
 **Ship a branch:**
 
@@ -290,25 +292,36 @@ agent + `gh`.*
 Pipeline:
 
 1. Copies the branch HEAD into a **disposable worktree** - your working tree is untouched.
-2. **review** - *advisory*: surfaces findings, never blocks (an LLM's verdict isn't a reliable
-   exit code, so review informs while tests/lint enforce).
-3. **test** then **lint** - *enforced*, each with a bounded **auto-fix loop**: on failure it runs
-   the `build` agent to fix, commits the fix, and re-runs, up to `GATE_MAX_ROUNDS`.
+2. **review** - *structured*: the `gate-review` skill emits JSON findings classified `auto_fix` vs
+   `ask_user`. `auto_fix` findings are applied automatically; `ask_user` findings are a **human-approval
+   gate** - prompted interactively (approve / fix / block), or **blocked** when headless
+   (`GATE_REVIEW_APPROVE=0` makes them informational). Evidence is written under `GATE_EVIDENCE_DIR`.
+   The LLM only classifies; you decide, so we still never trust an LLM verdict as an exit code.
+3. **test** → **docs** → **lint** - *enforced*, each with a bounded **auto-fix loop**: on failure it
+   runs the `build` agent to fix, commits the fix, and re-runs, up to `GATE_MAX_ROUNDS`.
 4. All green → fast-forward your local branch, push the validated commits, `gh pr create`.
-5. Can't fix within the cap → **escalates**: nothing is pushed, and the disposable worktree is
-   kept for you to inspect.
+5. **CI monitor** (opt-in, `GATE_WATCH_CI=1`): watch the PR's checks; on failure, pull the failing
+   logs, auto-fix, push, and re-watch, bounded by `GATE_MAX_ROUNDS`.
+6. Can't fix within the cap (or a blocked review) → **escalates**: nothing is pushed, and the
+   disposable worktree is kept for you to inspect.
 
-**How it fits with reviews:** the gate's review stage is a *quick advisory pass*. The deep,
-human-in-the-loop review (Playbook 7 - `ceo-review`, `security-review`, `claude-review`,
-`second-pass`) still happens **before** you run the gate. The gate then enforces the mechanical
-bar (tests + lint) and opens the PR. **No yolo:** push/PR happen only after every enforced stage
-passes, and the gate refuses to run on the default branch.
+**How it fits with reviews:** the gate's structured review auto-fixes the mechanical stuff and makes
+you approve the judgment calls, but the deep human-in-the-loop review (Playbook 7 - `ceo-review`,
+`security-review`, `claude-review`, `second-pass`) still happens **before** you run the gate. The gate
+then enforces the mechanical bar (tests + docs + lint), opens the PR, and (opt-in) babysits CI.
+**No yolo:** push/PR happen only after every enforced stage passes, `ask_user` findings block a
+headless run, and the gate refuses to run on the default branch.
+
+**Parity note:** this closes the gaps with Kun Chen's no-mistakes on *workflow* (docs stage, structured
+auto-fix/ask-user review with evidence, CI monitor). We deliberately keep the *tech stack* different -
+a ~350-line bash script, not a Go binary or git-proxy - so a plain `git push` still bypasses it (run
+`/ship-gate` to gate).
 
 ---
 
 ## Part 3 - Reference
 
-### Commands (39) - OpenCode `/slash`, grouped by stage
+### Commands (40) - OpenCode `/slash`, grouped by stage
 
 Each routes to a subagent (which fixes the model) and usually uses the linked skill.
 
@@ -344,6 +357,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/qa-only` | tester (gpt-5.5) | - | Test changed behavior, report bugs, no code changes |
 | `/debug-tests` | debugger (gpt-5.5) | debugging | Debug failing tests, root-cause first |
 | `/crew` | captain (gpt-5.5) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
+| `/gate-review` | reviewer (gpt-5.5) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
 | `/commit` | pr-writer (gpt-5.4-mini) | git-commit | Commit staged changes (this repo or child repos) |
 | `/commit-message` | pr-writer (gpt-5.4-mini) | git-commit | Draft a commit message (never commits) |
@@ -354,7 +368,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `/init-gate` | build (gpt-5.5) | - | Seed a `.gate.sh` ship-gate config |
 
-### Skills (31) - shared across Claude, Codex, OpenCode
+### Skills (32) - shared across Claude, Codex, OpenCode
 
 | Skill | For | Used by |
 |---|---|---|
@@ -380,6 +394,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `release-notes` | Changelogs / release notes | `/changelog` |
 | `documentation` | READMEs, docs, setup instructions | `/docs-update` |
 | `ship-gate` | Drive the `gate` CLI + `.gate.sh` | `/ship-gate` |
+| `gate-review` | Structured JSON review for the ship gate (auto_fix vs ask_user) | `/gate-review`, `gate` |
 | `crew` | Orchestrate parallel crewmates: split, dispatch, monitor, report | `/crew` |
 | `browser` | Headless web QA (`browser-cli.ts`) | (any agent) |
 | `find-skills` | Find/evaluate public skills before installing | (any agent) |
@@ -435,7 +450,7 @@ headless runner) and are not generated for Claude/Codex.
 |---|---|---|
 | `git wt` / `wt` | `new`, `ls`, `path`, `rm`, `prune` | Sibling worktrees; `wt` adds `cd`; `.worktrees-setup` post-create hook |
 | `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex` |
-| `gate` | `init`, `run`, `status` | Ship gate: disposable-worktree validate → push → PR; `init --engine opencode|claude|codex` |
+| `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex` |
 | `codex-status` | `--json`, `--watch` | ChatGPT/Codex usage + rate-limit meter |
 
 Full usage: [`scripts/README.md`](../scripts/README.md).
