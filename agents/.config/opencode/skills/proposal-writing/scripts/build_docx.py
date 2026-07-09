@@ -11,7 +11,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from docx import Document
-from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -202,6 +202,37 @@ def style_table(table) -> None:
                 paragraph.paragraph_format.space_after = Pt(0)
 
 
+def set_cell_shading(cell, fill: str) -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    shading = tc_pr.first_child_found_in("w:shd")
+    if shading is None:
+        shading = OxmlElement("w:shd")
+        tc_pr.append(shading)
+    shading.set(qn("w:fill"), fill)
+
+
+def repeat_table_header(row) -> None:
+    tr_pr = row._tr.get_or_add_trPr()
+    tbl_header = OxmlElement("w:tblHeader")
+    tbl_header.set(qn("w:val"), "true")
+    tr_pr.append(tbl_header)
+
+
+def set_cell_margins(cell, top: int = 80, bottom: int = 80, left: int = 90, right: int = 90) -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_mar = tc_pr.first_child_found_in("w:tcMar")
+    if tc_mar is None:
+        tc_mar = OxmlElement("w:tcMar")
+        tc_pr.append(tc_mar)
+    for edge, value in (("top", top), ("bottom", bottom), ("left", left), ("right", right)):
+        margin = tc_mar.find(qn(f"w:{edge}"))
+        if margin is None:
+            margin = OxmlElement(f"w:{edge}")
+            tc_mar.append(margin)
+        margin.set(qn("w:w"), str(value))
+        margin.set(qn("w:type"), "dxa")
+
+
 def set_cell_nowrap(cell) -> None:
     tc_pr = cell._tc.get_or_add_tcPr()
     no_wrap = OxmlElement("w:noWrap")
@@ -253,6 +284,15 @@ def set_hanging_list_indent(paragraph, level: int = 0) -> None:
     paragraph.paragraph_format.line_spacing = 1.1
 
 
+def set_paragraph_outline_level(paragraph, level: int) -> None:
+    p_pr = paragraph._p.get_or_add_pPr()
+    outline_level = p_pr.first_child_found_in("w:outlineLvl")
+    if outline_level is None:
+        outline_level = OxmlElement("w:outlineLvl")
+        p_pr.append(outline_level)
+    outline_level.set(qn("w:val"), str(level - 1))
+
+
 def add_styled_heading(document: Document, text: str, level: int) -> None:
     paragraph = document.add_paragraph()
     set_body_paragraph_spacing(
@@ -261,6 +301,7 @@ def add_styled_heading(document: Document, text: str, level: int) -> None:
         after=6 if level == 1 else 4,
         line=1.0,
     )
+    set_paragraph_outline_level(paragraph, level)
     run = paragraph.add_run(text)
     run.bold = True
     run.font.name = "Montserrat"
@@ -275,6 +316,59 @@ def add_page_field(paragraph) -> None:
     run = OxmlElement("w:r")
     fld.append(run)
     paragraph._p.append(fld)
+
+
+def mark_fields_for_update(document: Document) -> None:
+    settings = document.settings._element
+    update_fields = settings.find(qn("w:updateFields"))
+    if update_fields is None:
+        update_fields = OxmlElement("w:updateFields")
+        settings.append(update_fields)
+    update_fields.set(qn("w:val"), "true")
+
+
+def add_field(paragraph, instruction: str, placeholder: str) -> None:
+    begin_run = OxmlElement("w:r")
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    begin.set(qn("w:dirty"), "true")
+    begin_run.append(begin)
+    paragraph._p.append(begin_run)
+
+    instruction_run = OxmlElement("w:r")
+    instruction_text = OxmlElement("w:instrText")
+    instruction_text.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    instruction_text.text = instruction
+    instruction_run.append(instruction_text)
+    paragraph._p.append(instruction_run)
+
+    separate_run = OxmlElement("w:r")
+    separate = OxmlElement("w:fldChar")
+    separate.set(qn("w:fldCharType"), "separate")
+    separate_run.append(separate)
+    paragraph._p.append(separate_run)
+
+    paragraph.add_run(placeholder)
+
+    end_run = OxmlElement("w:r")
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    end_run.append(end)
+    paragraph._p.append(end_run)
+
+
+def add_table_of_contents(document: Document) -> None:
+    heading = document.add_paragraph()
+    set_body_paragraph_spacing(heading, before=12, after=12, line=1.0)
+    run = heading.add_run("Table of Contents")
+    run.bold = True
+    run.font.name = "Montserrat"
+    run.font.color.rgb = RGBColor(55, 96, 146)
+    run.font.size = Pt(15)
+
+    toc = document.add_paragraph()
+    add_field(toc, 'TOC \\o "1-2" \\h \\z \\u', "Update table of contents in Word or LibreOffice.")
+    document.add_page_break()
 
 
 def configure_header_footer(document: Document, company_key: str, company: Company, document_id: str) -> None:
@@ -408,25 +502,49 @@ def parse_table(lines: list[str], start: int) -> tuple[list[list[str]], int]:
     return rows, index
 
 
+def markdown_table_column_widths(column_count: int) -> list[float]:
+    if column_count == 2:
+        return [2.1, 4.4]
+    if column_count == 3:
+        return [0.9, 4.15, 1.45]
+    if column_count == 4:
+        return [1.1, 2.6, 1.4, 1.4]
+    usable_width = 6.5
+    return [usable_width / column_count] * column_count
+
+
 def add_markdown_table(document: Document, rows: list[list[str]]) -> None:
     if not rows:
         return
     width = max(len(row) for row in rows)
-    if width >= 3 and len(rows) >= 3:
-        document.add_page_break()
     table = document.add_table(rows=len(rows), cols=width)
     style_table(table)
+    column_widths = markdown_table_column_widths(width)
+    repeat_table_header(table.rows[0])
     for row_idx, row in enumerate(rows):
+        table_row = table.rows[row_idx]
+        table_row.height = Pt(22 if row_idx == 0 else 20)
+        table_row.height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
         for col_idx in range(width):
             text = row[col_idx] if col_idx < len(row) else ""
             cell = table.cell(row_idx, col_idx)
+            set_cell_width(cell, column_widths[col_idx])
+            set_cell_margins(cell)
             paragraph = cell.paragraphs[0]
             paragraph.text = ""
             add_runs_from_inline(paragraph, text)
             if row_idx == 0:
+                set_cell_shading(cell, "376092")
                 for run in paragraph.runs:
                     run.bold = True
+                    run.font.color.rgb = RGBColor(255, 255, 255)
+                    run.font.size = Pt(9)
+            else:
+                for run in paragraph.runs:
+                    run.font.size = Pt(9)
             set_body_paragraph_spacing(paragraph, after=0, line=1.0)
+    spacer = document.add_paragraph()
+    set_body_paragraph_spacing(spacer, before=0, after=4, line=0.4)
 
 
 def normalize_heading_text(text: str) -> str:
@@ -543,7 +661,9 @@ def main() -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     add_cover(document, metadata, company_key, company, args)
+    add_table_of_contents(document)
     add_markdown_body(document, markdown, title)
+    mark_fields_for_update(document)
     document.core_properties.title = title
     document.core_properties.author = company.legal_name
 
