@@ -100,7 +100,8 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 2. `/proposal-draft <requirement or notes>` - draft a business proposal from requirements, notes, or sample references.
 3. `/proposal-review <proposal path or text>` - review clarity, missing sections, scope ambiguity, assumptions, exclusions, and timeline consistency.
 4. `/proposal-commercial-review <proposal path or text>` - review pricing, AMC, hosting, payment terms, third-party costs, add-ons, and commercial risk.
-5. Use `/plan-eng-review` for complex technical feasibility and `/plan-ceo-review` for final business/scope sanity before sending numbers.
+5. `/proposal-prototype <proposal path or text>` - create a prototype plan, HTML prototype, or image prompts from the reviewed proposal for the initial client conversation.
+6. Use `/plan-eng-review` for complex technical feasibility and `/plan-ceo-review` for final business/scope sanity before sending numbers.
 
 ### 3. Planning a feature
 
@@ -358,6 +359,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/proposal-draft` | docs-writer (gpt-5.4-mini) | proposal-writing | Draft a client proposal from requirements or notes |
 | `/proposal-review` | critic (gpt-5.5) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
 | `/proposal-commercial-review` | critic (gpt-5.5) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
+| `/proposal-prototype` | docs-writer (gpt-5.4-mini) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
 | `/review-diff` | reviewer (gpt-5.5) | code-review | Review unstaged+staged diffs for bugs/regressions |
 | `/review-staged` | reviewer (gpt-5.5) | code-review | Review only staged changes pre-commit |
 | `/long-context-review` | reviewer (gpt-5.5) | code-review | Review across many files / a long diff |
@@ -399,6 +401,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `frontend-design` | Building UI: layout, a11y, responsive | `/ui-review` |
 | `effort-estimate` | Structured effort, timeline, cost, budget, and phase estimates | `/effort-estimate`, `/proposal-commercial-review` |
 | `proposal-writing` | Client proposal drafting/review: scope, commercials, AMC, payment terms, assumptions, exclusions | `/proposal-draft`, `/proposal-review`, `/proposal-commercial-review` |
+| `prototyping-proposals` | Proposal-aligned prototype plans, HTML prototypes, image briefs, and image-generation prompts | `/proposal-prototype` |
 | `debugging` | Lightweight diagnosis (escalates to systematic) | `/debug-tests` |
 | `systematic-debugging` | Root-cause investigation | `/investigate` |
 | `test-writer` | Create/update/review tests | `/test-plan` |

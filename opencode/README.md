@@ -139,14 +139,14 @@ To change routing on a new machine, edit `~/.config/opencode/opencode.json` only
 | `/review-diff`, `/review-staged`, `/ship-check`, `/ui-review`, `/long-context-review`, `/second-pass`, `/claude-review` | `reviewer`          |
 | `/security-review`                                                                    | `security-reviewer` |
 | `/plan-feature`, `/architecture-check`, `/agentic-plan`, `/autoplan`, `/plan-design-review`, `/plan-eng-review` | `architect`         |
-| `/plan-ceo-review`, `/ceo-review`, `/second-opinion`, `/critique`                     | `critic`            |
+| `/plan-ceo-review`, `/ceo-review`, `/second-opinion`, `/critique`, `/proposal-review`, `/proposal-commercial-review` | `critic`            |
 | `/ship-gate`, `/init-gate`, `/init-agents-md`                                          | `build`             |
 | `/debug-tests`, `/investigate`, `/explain`                                             | `debugger`          |
 | `/test-plan`                                                                          | `tester`            |
 | `/qa-only`                                                                            | `tester`            |
 | `/refactor-plan`                                                                      | `refactor-planner`  |
 | `/commit`, `/commit-message`, `/branch-name`, `/changelog`, `/pr-body`                | `pr-writer`         |
-| `/docs-update`                                                                        | `docs-writer`       |
+| `/docs-update`, `/proposal-draft`, `/proposal-prototype`                              | `docs-writer`       |
 
 Model fallback or escalation is handled by editing the relevant agent model in `opencode.json`, not by keeping duplicate model-specific commands.
 
