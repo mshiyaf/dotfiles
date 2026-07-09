@@ -16,7 +16,6 @@
       "Bash(git push*)"
     ]
   },
-  "model": "opus",
   "statusLine": {
     "type": "command",
     "command": "~/.local/bin/claude-statusline"

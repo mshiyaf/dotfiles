@@ -34,6 +34,41 @@ Use the correct sender identity in proposal headers, footers, closing notes, and
 Choose the sender from the user's requested company, project folder, client context, or location context.
 If it is unclear, ask one short question before drafting the final proposal header.
 
+## DOCX Output
+
+Do not create DOCX files unless the user explicitly requests DOCX output.
+When DOCX output is requested, use the committed builder instead of improvising a converter.
+The builder reuses the sanitized proposal Word template derived from the accepted sample layout.
+It keeps the same proposal structure, header, footer, heading styles, numbering, and commercial table treatment while replacing the proposal content.
+
+Run it through `uv` so dependencies are not installed globally:
+
+```bash
+uv run --with python-docx ~/.config/opencode/skills/proposal-writing/scripts/build_docx.py draft.md --company sprdh -o proposal.docx
+```
+
+Use `--company texol` for Texol proposals.
+The logo follows the resolved sender identity automatically; do not pick a logo by hand.
+If the company cannot be resolved to `sprdh` or `texol`, ask one short question before building the DOCX.
+
+Expected draft frontmatter:
+
+```yaml
+---
+company: sprdh
+title: Techno-Commercial Proposal for Example Project
+client: Example Client Pvt. Ltd
+date: 09 July 2026
+document_id: SP/CLIENT/090726/TCP/1.0
+version: "1.0"
+---
+```
+
+CLI flags override frontmatter.
+Useful flags are `--title`, `--client`, `--date`, `--document-id`, `--version`, `--author`, `--approver`, and `--client-logo`.
+The Markdown body may contain headings, paragraphs, bullet lists, numbered lists, inline bold/italic, and pipe tables for commercial sections.
+Run the script by absolute skill path because the agent's working directory is usually the client/project folder, not the skill directory.
+
 ## Proposal Draft Structure
 
 Use this structure unless the user asks for a different format:
