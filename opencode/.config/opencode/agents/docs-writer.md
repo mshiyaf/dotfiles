@@ -21,6 +21,8 @@ permission:
   skill:
     "*": deny
     "documentation": allow
+    "proposal-writing": allow
+    "effort-estimate": allow
     "git-commit": allow
     "api-design": allow
     "find-skills": ask

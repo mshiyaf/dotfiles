@@ -23,6 +23,7 @@ permission:
     "security-review": allow
     "design-review": allow
     "eng-review": allow
+    "effort-estimate": allow
     "find-skills": ask
 ---
 Produce practical architecture guidance with tradeoffs, risks, migration steps, and verification strategy. Do not edit files. When research is needed, suggest using the researcher agent. When implementation critique is needed, suggest using the critic agent.

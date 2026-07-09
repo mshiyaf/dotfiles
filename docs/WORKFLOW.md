@@ -18,8 +18,8 @@ stow packages (`agents/`, `opencode/`, `scripts/`).
 | Layer | Shared across all 3? | Where it lives |
 |---|---|---|
 | **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → symlinked into each tool |
-| **Skills** (28) | ✅ identical | `agents/.config/opencode/skills/` → symlinked into each tool |
-| **Commands** (34 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
+| **Skills** (31) | ✅ identical | `agents/.config/opencode/skills/` → symlinked into each tool |
+| **Commands** (39 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
 | **Subagents** (10 generated roles + OpenCode built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files |
 | **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` |
 
@@ -92,7 +92,17 @@ In Claude/Codex, use the same-named skill instead of the slash command.
    cut, stronger alternatives (critic · gpt-5.5). **Framing before features.**
 4. Capture the agreed scope + non-goals in the repo's `AGENTS.md` (seed with `/init-agents-md`).
 
-### 2. Planning a feature
+### 2. Client proposal / estimation
+
+*Goal: turn requirements into commercially safe estimates and proposal text without hiding scope risk.*
+
+1. `/effort-estimate <requirement>` - structured effort, timeline, and cost estimate. Defaults to INR unless another currency is specified.
+2. `/proposal-draft <requirement or notes>` - draft a business proposal from requirements, notes, or sample references.
+3. `/proposal-review <proposal path or text>` - review clarity, missing sections, scope ambiguity, assumptions, exclusions, and timeline consistency.
+4. `/proposal-commercial-review <proposal path or text>` - review pricing, AMC, hosting, payment terms, third-party costs, add-ons, and commercial risk.
+5. Use `/plan-eng-review` for complex technical feasibility and `/plan-ceo-review` for final business/scope sanity before sending numbers.
+
+### 3. Planning a feature
 
 *Goal: a locked, reviewed implementation plan - no code yet.*
 
@@ -102,16 +112,16 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 4. `/plan-ceo-review` - scope/value gut-check (critic).
 5. Lock the plan; only then build.
 
-### 3. Building
+### 4. Building
 
 *Goal: implement in small, isolated, repo-patterned changes.*
 
 1. Work on the default `build` agent (gpt-5.5).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
-3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 9**.
+3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
 
-### 4. Fixing a bug
+### 5. Fixing a bug
 
 *Goal: reproduce first, then fix, then prove it's fixed.*
 
@@ -122,13 +132,13 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 4. `/review-diff` - catch regressions (reviewer · gpt-5.5).
 5. `/second-pass <prior findings>` - after fixes, confirm resolved + no new regressions (reviewer).
 
-### 5. Refactoring
+### 6. Refactoring
 
 1. `/refactor-plan <target>` - safe sequencing + verification points (refactor-planner · gpt-5.5).
 2. Apply in small steps on `build`.
 3. `/review-diff` and run the tests after each step.
 
-### 6. Reviewing a change (human-in-the-loop)
+### 7. Reviewing a change (human-in-the-loop)
 
 *Goal: deep review before you hand off to the gate.*
 
@@ -140,7 +150,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 6. `/second-pass` - after you apply fixes, re-check.
 7. `/long-context-review` - for very large diffs spanning many files.
 
-### 7. Testing
+### 8. Testing
 
 1. `/test-plan <change>` - a practical test plan (tester).
 2. Write tests with the **`test-writer`** skill, or **`test-driven-development`** when a failing
@@ -148,12 +158,12 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 3. `/qa-only` - behavior testing without code changes; for web use the **`browser`** skill
    (headless: fetch text, screenshot, click, fill, assert, axe a11y).
 
-### 8. Reflect
+### 9. Reflect
 
 - `/critique` or `/second-opinion` - an independent gut-check on your analysis or a review, to
   surface what the first pass missed (critic · gpt-5.5).
 
-### Playbook 9 - Parallel multi-agent development (`wt` + `crew`)
+### Playbook 10 - Parallel multi-agent development (`wt` + `crew`)
 
 *Run several agents at once, each fully isolated, without them clobbering each other.*
 
@@ -207,7 +217,7 @@ crew new fix/login    "fix the flaky login test"
 crew new feat/dark    "add a dark-mode toggle to settings"
 crew status                   # see both: running -> done:0 with commits-ahead
 crew logs fix/login           # read what a crewmate did (or -f to follow)
-# when each shows done with commits: review the branch (Playbook 6), ship via the gate (Playbook 10)
+# when each shows done with commits: review the branch (Playbook 7), ship via the gate (Playbook 11)
 crew stop fix/login -D
 ```
 
@@ -249,7 +259,7 @@ through the gate before merging - a `done:0` means the crewmate committed, not t
 Features must be **independent**: crewmates do not coordinate edits to shared files, so merge or
 sequence any tasks that would touch the same core files.
 
-### Playbook 10 - Shipping through the gate (our no-mistakes alternative)
+### Playbook 11 - Shipping through the gate (our no-mistakes alternative)
 
 *`gate` validates committed work in a disposable worktree and only pushes + opens a PR once it
 passes. Our self-owned version of no-mistakes - no external binary; built on `git-wt` + the coding
@@ -284,7 +294,7 @@ Pipeline:
    kept for you to inspect.
 
 **How it fits with reviews:** the gate's review stage is a *quick advisory pass*. The deep,
-human-in-the-loop review (Playbook 6 - `ceo-review`, `security-review`, `claude-review`,
+human-in-the-loop review (Playbook 7 - `ceo-review`, `security-review`, `claude-review`,
 `second-pass`) still happens **before** you run the gate. The gate then enforces the mechanical
 bar (tests + lint) and opens the PR. **No yolo:** push/PR happen only after every enforced stage
 passes, and the gate refuses to run on the default branch.
@@ -293,7 +303,7 @@ passes, and the gate refuses to run on the default branch.
 
 ## Part 3 - Reference
 
-### Commands (35) - OpenCode `/slash`, grouped by stage
+### Commands (39) - OpenCode `/slash`, grouped by stage
 
 Each routes to a subagent (which fixes the model) and usually uses the linked skill.
 
@@ -304,12 +314,16 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/investigate` | debugger (gpt-5.5) | investigate | Investigate a bug/failure before proposing fixes |
 | `/autoplan` | architect (gpt-5.5) | autoplan | End-to-end implementation plan, no edits |
 | `/plan-feature` | architect (gpt-5.5) | autoplan | Plan a feature implementation, no changes |
+| `/effort-estimate` | architect (gpt-5.5) | effort-estimate | Structured effort, timeline, and cost estimate |
 | `/architecture-check` | architect (gpt-5.5) | api-design, refactor-planner | Architecture review of a design/change |
 | `/agentic-plan` | architect (gpt-5.5) | autoplan | Plan an agentic workflow (subagents, tools, orchestration) |
 | `/refactor-plan` | refactor-planner (gpt-5.5) | refactor-planner | Safe refactor plan with sequencing + verification |
 | `/plan-ceo-review` | critic (gpt-5.5) | ceo-review | Founder-lens review of a **plan** |
 | `/plan-design-review` | architect (gpt-5.5) | design-review | Plan-stage UX/design-system/a11y review |
 | `/plan-eng-review` | architect (gpt-5.5) | eng-review | Plan-stage architecture/edge-case/test review |
+| `/proposal-draft` | docs-writer (gpt-5.4-mini) | proposal-writing | Draft a client proposal from requirements or notes |
+| `/proposal-review` | critic (gpt-5.5) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
+| `/proposal-commercial-review` | critic (gpt-5.5) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
 | `/review-diff` | reviewer (gpt-5.5) | code-review | Review unstaged+staged diffs for bugs/regressions |
 | `/review-staged` | reviewer (gpt-5.5) | code-review | Review only staged changes pre-commit |
 | `/long-context-review` | reviewer (gpt-5.5) | code-review | Review across many files / a long diff |
@@ -335,7 +349,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `/init-gate` | build (gpt-5.5) | - | Seed a `.gate.sh` ship-gate config |
 
-### Skills (29) - shared across Claude, Codex, OpenCode
+### Skills (31) - shared across Claude, Codex, OpenCode
 
 | Skill | For | Used by |
 |---|---|---|
@@ -348,6 +362,8 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `database-review` | Schema/migration/query/index review | (architect/reviewer) |
 | `api-design` | HTTP API / interface / schema review | `/architecture-check` |
 | `frontend-design` | Building UI: layout, a11y, responsive | `/ui-review` |
+| `effort-estimate` | Structured effort, timeline, cost, budget, and phase estimates | `/effort-estimate`, `/proposal-commercial-review` |
+| `proposal-writing` | Client proposal drafting/review: scope, commercials, AMC, payment terms, assumptions, exclusions | `/proposal-draft`, `/proposal-review`, `/proposal-commercial-review` |
 | `debugging` | Lightweight diagnosis (escalates to systematic) | `/debug-tests` |
 | `systematic-debugging` | Root-cause investigation | `/investigate` |
 | `test-writer` | Create/update/review tests | `/test-plan` |

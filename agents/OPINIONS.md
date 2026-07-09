@@ -139,6 +139,14 @@ Each `###` is a stance; the bullets under it are the specifics.
 - It is acceptable to reduce cost for strategic clients, mentees, friends, or early-stage opportunities, but not in a way that destroys perceived value or creates unsustainable support.
 - For budget-sensitive clients, reduce scope or split phases before cutting quality.
 
+### AI-assisted delivery changes effort, not responsibility
+
+- AI agents can reduce implementation effort significantly compared to older human-only delivery timelines.
+- Proposal and estimation work should account for that efficiency, but not reduce pricing or timelines drastically just because coding is faster.
+- Keep room for discovery, architecture, human review, QA, security checks, client feedback, deployment, documentation, training, stabilization, and long-term support.
+- Price and timeline should reflect delivered value, risk, accountability, and support responsibility, not only raw coding hours.
+- When AI-assisted delivery makes work faster, pass some benefit to the client through a reasonable timeline or cost reduction while preserving quality and commercial sustainability.
+
 ### AMC is real recurring cost
 
 - AMC should not be treated casually.
@@ -154,6 +162,22 @@ Each `###` is a stance; the bullets under it are the specifics.
 
 - SPRDH Solutions Private Limited
 - Hattec Solutions
+
+### Use the correct proposal sender identity
+
+- For SPRDH proposals, use:
+  - SPRDH Solutions Private Limited.
+  - First Floor, Kerala Startup Mission, Kerala Technology Innovation Zone, Kalamassery, Kochi, Kerala 683503, India.
+  - hello@sprdh.com
+  - +91 799 428 66 60
+- For Texol proposals, use:
+  - Texol
+  - iCohort Business Ventures Pvt. Ltd
+  - Pantheerankavu, Kozhikode, Kerala, India, 673019
+  - support@texolworld.com
+  - +91 90379 81865
+- Choose the sender identity from the user's requested company, project folder, client context, or location context.
+- If the proposal sender is unclear, ask one short clarification question before drafting the final proposal header.
 
 ## Client Communication
 
