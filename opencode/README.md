@@ -251,7 +251,7 @@ Parallel agent work uses our own tools (in the `scripts` package, on `$PATH`):
 ## Ship gate
 
 `/ship-gate` runs our own **`gate`** CLI (in the `scripts` package): it validates a branch's
-committed work in a **disposable worktree** (advisory review → test → docs → lint) and only
+committed work in a **disposable worktree** (structured review → test → docs → lint) and only
 pushes + opens a PR once the gate passes.
 If `.gate.sh` does not set test/lint commands, the build agent detects and runs relevant checks.
 On an unfixable failure it escalates and pushes nothing.

@@ -150,7 +150,7 @@ gate status        # show the resolved config
 gate run [branch]  # review → test → docs → lint (+auto-fix) → push → PR → CI monitor
 ```
 
-Pipeline: a **structured review** (the `gate-review` skill emits JSON findings classified
+Pipeline: a **structured review** (JSON findings classified
 `auto_fix` vs `ask_user` - `auto_fix` are applied automatically; `ask_user` are a human-approval
 gate: prompted interactively, or blocked when headless), then `test` → `docs` → `lint` stages.
 If `GATE_TEST` or `GATE_LINT` is set, that deterministic command runs with a bounded auto-fix loop.
@@ -169,8 +169,9 @@ GATE_LINT=""                                                     # empty = agent
 # GATE_TEST="pnpm test"
 # GATE_LINT="pnpm lint"
 # GATE_DOCS="pnpm docs:check"
-GATE_REVIEW_CMD='opencode run "/gate-review" --agent reviewer'   # "" to skip
+GATE_REVIEW_CMD='gate_review_opencode'                            # "" to skip
 GATE_REVIEW_APPROVE=1        # 1 = gate ask_user findings; 0 = informational
+GATE_FIX_CMD='opencode run "$GATE_PROMPT" --agent build --auto'
 GATE_MAX_ROUNDS=3
 GATE_EVIDENCE_DIR=".gate/evidence"
 GATE_WATCH_CI=0             # 1 = watch CI after the PR and auto-fix failures

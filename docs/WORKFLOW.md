@@ -286,9 +286,11 @@ agent + `gh`.*
 When `GATE_TEST` or `GATE_LINT` is empty, the build agent detects and runs relevant checks.
 When `GATE_DOCS` is empty, docs are skipped by default.
 Use `.gate.sh` (plain sourced bash, not YAML) only for deterministic overrides:
-`GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review via `/gate-review`; empty to skip),
+`GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review; empty to skip),
 `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational), `GATE_FIX_CMD` (how auto-fixes
 are requested), `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`, `GATE_PUSH_REMOTE`.
+The default OpenCode fix command uses `--auto` inside the disposable gate worktree; dangerous commands
+remain denied by `opencode.json`.
 
 `gate` inherits the shell environment you run it from.
 Put worktree-specific bootstrap in `.worktrees-setup`, for example:
@@ -309,7 +311,7 @@ pnpm install --frozen-lockfile
 Pipeline:
 
 1. Copies the branch HEAD into a **disposable worktree** - your working tree is untouched.
-2. **review** - *structured*: the `gate-review` skill emits JSON findings classified `auto_fix` vs
+2. **review** - *structured*: the reviewer emits JSON findings classified `auto_fix` vs
    `ask_user`. `auto_fix` findings are applied automatically; `ask_user` findings are a **human-approval
    gate** - prompted interactively (approve / fix / block), or **blocked** when headless
    (`GATE_REVIEW_APPROVE=0` makes them informational). Evidence is written under `GATE_EVIDENCE_DIR`.

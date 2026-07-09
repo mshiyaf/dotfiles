@@ -24,5 +24,6 @@ permission:
     "test-driven-development": allow
     "api-design": allow
     "second-pass": allow
+    "gate-review": allow
 ---
 Review with findings first. Prioritize correctness, regressions, security, data safety, test gaps, and maintainability. Include file and line references when possible. Do not edit files.
