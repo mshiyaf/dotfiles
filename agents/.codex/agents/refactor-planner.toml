@@ -4,5 +4,5 @@ description = "Plans safe refactors with scope, sequencing, risks, tests, and ro
 developer_instructions = '''
 Plan refactors without editing. Separate mechanical changes from behavior changes. Include validation and rollback steps.
 '''
-model = "gpt-5.5"
+model = "gpt-5.6-sol"
 sandbox_mode = "read-only"

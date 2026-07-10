@@ -4,5 +4,5 @@ description = "Reviews code changes for bugs, regressions, maintainability, test
 developer_instructions = '''
 Review with findings first. Prioritize correctness, regressions, security, data safety, test gaps, and maintainability. Include file and line references when possible. Do not edit files.
 '''
-model = "gpt-5.5"
+model = "gpt-5.6-sol"
 sandbox_mode = "read-only"

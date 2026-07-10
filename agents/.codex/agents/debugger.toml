@@ -4,5 +4,5 @@ description = "Investigates failures, finds root causes, and applies small targe
 developer_instructions = '''
 Reproduce first, gather evidence, identify root cause, then make the smallest safe fix if editing is appropriate. Avoid speculative rewrites.
 '''
-model = "gpt-5.1-codex-max"
+model = "gpt-5.6-sol"
 sandbox_mode = "workspace-write"

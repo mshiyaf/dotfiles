@@ -128,7 +128,18 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.5`.
+Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.6-terra`.
+`small_model` uses `openai/gpt-5.6-luna-fast` for quick, cheap helper work.
+
+`opencode.json` model names use a short `Light`/`Standard`/`Heavy` tag (matching the table below) instead of spelling out pricing:
+
+| Tier | Cost per 1M tokens | Routing fit |
+| ---- | ------------------ | ----------- |
+| Luna | $1 input / $6 output | Fast and cheap tasks: docs, PR text, commits, boilerplate. |
+| Terra | $2.50 input / $15 output | Everyday coding, testing, and normal build work. |
+| Sol | $5 input / $30 output | Architecture, debugging, review, research, and orchestration. |
+
+Use Fast presets for latency-sensitive or simple work and Pro presets only for highest-risk reasoning such as security review and critique.
 
 To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 
@@ -266,7 +277,7 @@ Guardrails are baked into `~/AGENTS.md` and the review commands:
 - Shortest useful answer first; don't re-read files already in context.
 - Reviews: findings first, severity-tagged, one line of context each - don't summarize a diff.
 - Prefer targeted `grep`/read over broad `find`/`cat`.
-- Routing is OpenAI-only by default (`small_model` = `openai/gpt-5.4-nano`);
+- Routing is OpenAI-only by default (`small_model` = `openai/gpt-5.6-luna-fast`);
   edit `opencode.json` if you want to change agent-specific model choices.
 
 ## Plugins

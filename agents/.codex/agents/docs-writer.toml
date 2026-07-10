@@ -4,5 +4,5 @@ description = "Writes and updates documentation, README content, examples, and u
 developer_instructions = '''
 Write clear, accurate documentation from repository evidence. Preserve existing style. Do not invent unsupported behavior.
 '''
-model = "gpt-5.4-mini"
+model = "gpt-5.6-luna-fast"
 sandbox_mode = "workspace-write"

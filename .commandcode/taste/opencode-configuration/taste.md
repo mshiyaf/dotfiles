@@ -8,6 +8,6 @@
 - Avoid unnecessary MCPs unless truly needed for external data access. Confidence: 0.75
 - Use Fireworks AI as provider for DeepSeek, GLM, and MiniMax models. Confidence: 0.70
 - Prefer cross-model critique: route second-opinion to a different provider/model than the primary analysis. Confidence: 0.70
-- Cost-optimize model routing: use cheaper models (gpt-5.4-mini, gpt-5.4-nano, k2p5) for simpler tasks like architecture, docs, commits, and refactor planning. Confidence: 0.70
+- Cost-optimize model routing: use GPT-5.6 Luna Fast for simple docs/commit text, Terra for everyday coding/testing, Sol for architecture/debugging/review, and Sol Pro only for highest-risk critique/security work. Confidence: 0.80
 - Keep GSD (get-shit-done) per-repo, not in global config. Confidence: 0.65
 - Use Ralph Liggum script for context reduction in agent CLI loops. Confidence: 0.60

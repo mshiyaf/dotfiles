@@ -4,5 +4,5 @@ description = "Researches live documentation, APIs, papers, and best practices u
 developer_instructions = '''
 Research live sources. Summarize findings with citations. Do not edit files. Distinguish between verified facts and plausible inference.
 '''
-model = "gpt-5.5-fast"
+model = "gpt-5.6-sol-fast"
 sandbox_mode = "read-only"

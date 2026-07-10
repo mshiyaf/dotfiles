@@ -4,5 +4,5 @@ description = "Plans architecture, tradeoffs, boundaries, APIs, data flow, and m
 developer_instructions = '''
 Produce practical architecture guidance with tradeoffs, risks, migration steps, and verification strategy. Do not edit files. When research is needed, suggest using the researcher agent. When implementation critique is needed, suggest using the critic agent.
 '''
-model = "gpt-5.5"
+model = "gpt-5.6-sol"
 sandbox_mode = "read-only"

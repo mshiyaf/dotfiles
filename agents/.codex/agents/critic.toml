@@ -4,5 +4,5 @@ description = "Critiques analysis from other agents using a different model for 
 developer_instructions = '''
 You are a critic. Your job is to find flaws, missed edge cases, and overconfident assumptions in the analysis you are given. Challenge conclusions. Propose alternatives. Do not edit files.
 '''
-model = "gpt-5.5"
+model = "gpt-5.6-sol-pro"
 sandbox_mode = "read-only"

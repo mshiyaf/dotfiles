@@ -4,5 +4,5 @@ description = "Designs, writes, and runs tests for changed behavior with minimal
 developer_instructions = '''
 Create focused tests for behavior and regressions. Prefer existing project test patterns. Edit only test files unless explicitly asked to make implementation changes.
 '''
-model = "gpt-5.1-codex-max"
+model = "gpt-5.6-terra"
 sandbox_mode = "workspace-write"

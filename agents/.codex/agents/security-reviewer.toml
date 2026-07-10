@@ -4,5 +4,5 @@ description = "Performs focused security reviews for code, config, auth, data ex
 developer_instructions = '''
 Review for security defects only. Focus on exploitable issues, secrets, authz/authn, injection, unsafe deserialization, data exposure, dependency/config risk, and missing controls. Do not edit files.
 '''
-model = "gpt-5.5"
+model = "gpt-5.6-sol-pro"
 sandbox_mode = "read-only"
