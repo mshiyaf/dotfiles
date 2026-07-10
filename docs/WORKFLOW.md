@@ -48,19 +48,21 @@ Think → Plan → Plan-review → Build → Review → Test → Ship → Reflec
 ### Model-routing philosophy (in `opencode.json`)
 
 OpenCode routing is OpenAI-only.
-GPT-5.5 handles coding, planning, debugging, testing, review, and critique.
-Mini/nano variants are kept for lighter writing and small-model operations.
+Luna Fast handles lightweight writing, Terra handles everyday implementation, and Sol handles
+reasoning-intensive planning, debugging, and review.
+Sol Pro is reserved for the highest-risk security and critique work.
 
 | Tier | Agents | Model |
 |---|---|---|
-| Workhorse | `build`, `debugger`, `tester` | `openai/gpt-5.5` |
-| Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.5` |
-| Review | `reviewer`, `security-reviewer` | `openai/gpt-5.5` |
-| Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.4-mini` |
-| Research | `researcher` | `openai/gpt-5.5-fast` |
-| Challenge | `critic` | `openai/gpt-5.5` |
+| Workhorse | `build`, `tester`, `crewmate` | `openai/gpt-5.6-terra` |
+| Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.6-sol` |
+| Debugging / review | `debugger`, `reviewer` | `openai/gpt-5.6-sol` |
+| Security / critique | `security-reviewer`, `critic` | `openai/gpt-5.6-sol-pro` |
+| Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.6-luna-fast` |
+| Research | `researcher` | `openai/gpt-5.6-sol-fast` |
+| Orchestration | `captain` | `openai/gpt-5.6-terra-fast` |
 
-`small_model = openai/gpt-5.4-nano` (lightweight ops); `default_agent = build`.
+`small_model = openai/gpt-5.6-luna-fast` (lightweight ops); `default_agent = build`.
 On-demand escalation: `/claude-review` shells out to the `claude` CLI (your Claude subscription)
 for a different-family second opinion - spend only when you ask.
 
@@ -68,12 +70,13 @@ Generated Claude/Codex model map:
 
 | Role | OpenCode | Claude | Codex |
 |---|---|---|---|
-| `reviewer`, `security-reviewer` | gpt-5.5 | opus | gpt-5.5 |
-| `critic` | gpt-5.5 | opus | gpt-5.5 |
-| `architect`, `refactor-planner` | gpt-5.5 | opus | gpt-5.5 |
-| `researcher` | gpt-5.5-fast | sonnet | gpt-5.5-fast |
-| `debugger`, `tester` | gpt-5.5 | sonnet | gpt-5.1-codex-max |
-| `docs-writer`, `pr-writer` | gpt-5.4-mini | haiku | gpt-5.4-mini |
+| `reviewer` | gpt-5.6-sol | opus | gpt-5.6-sol |
+| `security-reviewer`, `critic` | gpt-5.6-sol-pro | opus | gpt-5.6-sol-pro |
+| `architect`, `refactor-planner` | gpt-5.6-sol | opus | gpt-5.6-sol |
+| `researcher` | gpt-5.6-sol-fast | sonnet | gpt-5.6-sol-fast |
+| `debugger` | gpt-5.6-sol | sonnet | gpt-5.6-sol |
+| `tester` | gpt-5.6-terra | sonnet | gpt-5.6-terra |
+| `docs-writer`, `pr-writer` | gpt-5.6-luna-fast | haiku | gpt-5.6-luna-fast |
 
 ---
 
@@ -86,10 +89,10 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: decide whether and what to build before designing anything.*
 
-1. `/research <topic>` - gather live context (researcher · gpt-5.5-fast).
-2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · gpt-5.5).
+1. `/research <topic>` - gather live context (researcher · gpt-5.6-sol-fast).
+2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · gpt-5.6-sol).
 3. `/plan-ceo-review <the idea>` - founder lens: is the problem real, who's the user, what to
-   cut, stronger alternatives (critic · gpt-5.5). **Framing before features.**
+   cut, stronger alternatives (critic · gpt-5.6-sol-pro). **Framing before features.**
 4. Capture the agreed scope + non-goals in the repo's `AGENTS.md` (seed with `/init-agents-md`).
 
 ### 2. Client proposal / estimation
@@ -107,7 +110,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: a locked, reviewed implementation plan - no code yet.*
 
-1. `/plan-feature <feature>` - implementation plan (architect · gpt-5.5).
+1. `/plan-feature <feature>` - implementation plan (architect · gpt-5.6-sol).
 2. `/plan-eng-review` - architecture, data flow, edge cases, tests, failure modes (architect).
 3. `/plan-design-review` - if there's UI: flow, design-system fit, a11y, AI-slop (architect).
 4. `/plan-ceo-review` - scope/value gut-check (critic).
@@ -117,7 +120,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: implement in small, isolated, repo-patterned changes.*
 
-1. Work on the default `build` agent (gpt-5.5).
+1. Work on the default `build` agent (gpt-5.6-terra).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
 3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
@@ -127,15 +130,15 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 *Goal: reproduce first, then fix, then prove it's fixed.*
 
 1. `/investigate <bug>` or `/debug-tests` - root-cause first, using the **`systematic-debugging`**
-   skill (debugger · gpt-5.5). **Reproduce before fixing.**
+   skill (debugger · gpt-5.6-sol). **Reproduce before fixing.**
 2. Fix on the `build` agent.
 3. `/qa-only` - exercise the changed behavior, report what still breaks (tester).
-4. `/review-diff` - catch regressions (reviewer · gpt-5.5).
+4. `/review-diff` - catch regressions (reviewer · gpt-5.6-sol).
 5. `/second-pass <prior findings>` - after fixes, confirm resolved + no new regressions (reviewer).
 
 ### 6. Refactoring
 
-1. `/refactor-plan <target>` - safe sequencing + verification points (refactor-planner · gpt-5.5).
+1. `/refactor-plan <target>` - safe sequencing + verification points (refactor-planner · gpt-5.6-sol).
 2. Apply in small steps on `build`.
 3. `/review-diff` and run the tests after each step.
 
@@ -144,7 +147,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 *Goal: deep review before you hand off to the gate.*
 
 1. `/review-diff` (unstaged+staged) or `/review-staged` (pre-commit) - correctness/regressions (reviewer).
-2. `/security-review` - auth, data handling, dependencies, risky code (security-reviewer · gpt-5.5).
+2. `/security-review` - auth, data handling, dependencies, risky code (security-reviewer · gpt-5.6-sol-pro).
 3. `/ui-review` - if UI: visual hierarchy, states, tokens (reviewer + frontend-design skill).
 4. `/ceo-review` - is this the right change / right scope (critic).
 5. `/claude-review` - independent second opinion via the `claude` CLI (reviewer → Claude).
@@ -162,7 +165,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 ### 9. Reflect
 
 - `/critique` or `/second-opinion` - an independent gut-check on your analysis or a review, to
-  surface what the first pass missed (critic · gpt-5.5).
+  surface what the first pass missed (critic · gpt-5.6-sol-pro).
 
 ### Playbook 10 - Parallel multi-agent development (`wt` + `crew`)
 
@@ -197,9 +200,10 @@ push is blocked). Headless `opencode run` has no TTY to approve prompts, so **`-
 or every crewmate action is auto-rejected.
 
 ```bash
-crew new "<task>"            # AI-name a branch, then worktree + tmux session running:
+crew new "<task>"            # standard profile (the default): AI-name a branch, then worktree + tmux session running:
                              #   opencode run "<task>" --agent crewmate
-                             #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
+                              #   --profile fast|standard|deep -> explicit per-engine model tier
+                              #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
                              #   --claude / --codex -> use claude or codex (bounded the same way)
                              #   --attach  -> jump into the session now
                              #   --start <ref> -> branch from <ref>
@@ -244,6 +248,17 @@ it dispatched, then **stops** and hands control back. It does not sit in a polli
 check in and it runs `crew status`/`crew logs` **once**, surfaces any `BLOCKED:` reason, and tells
 you which branches are `done` with commits - **ready for review**. The captain never edits code,
 pushes, or merges; it hands the ready branches back to you.
+
+Crew profiles select explicit models for every engine rather than inheriting machine defaults:
+
+| Profile | Use for | OpenCode | Claude | Codex |
+|---|---|---|---|---|
+| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast |
+| `standard` | Normal implementation and tests | Terra | Sonnet | Terra |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol |
+
+The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
+and `deep` only when stronger reasoning is justified.
 
 **Hands-off alerts (`crew watch`).** The captain has no background loop, so between your check-ins it
 is idle - "report on request" is deliberate, not laziness. If you want to be *pushed* an alert the
@@ -346,47 +361,47 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 
 | Command | Agent (model) | Uses skill | Purpose |
 |---|---|---|---|
-| `/research` | researcher (gpt-5.5-fast) | research | Research a topic using live web sources |
-| `/explain` | debugger (gpt-5.5) | explain | Explain code, behavior, or repo structure |
-| `/investigate` | debugger (gpt-5.5) | investigate | Investigate a bug/failure before proposing fixes |
-| `/autoplan` | architect (gpt-5.5) | autoplan | End-to-end implementation plan, no edits |
-| `/plan-feature` | architect (gpt-5.5) | autoplan | Plan a feature implementation, no changes |
-| `/effort-estimate` | architect (gpt-5.5) | effort-estimate | Structured effort, timeline, and cost estimate |
-| `/architecture-check` | architect (gpt-5.5) | api-design, refactor-planner | Architecture review of a design/change |
-| `/agentic-plan` | architect (gpt-5.5) | autoplan | Plan an agentic workflow (subagents, tools, orchestration) |
-| `/refactor-plan` | refactor-planner (gpt-5.5) | refactor-planner | Safe refactor plan with sequencing + verification |
-| `/plan-ceo-review` | critic (gpt-5.5) | ceo-review | Founder-lens review of a **plan** |
-| `/plan-design-review` | architect (gpt-5.5) | design-review | Plan-stage UX/design-system/a11y review |
-| `/plan-eng-review` | architect (gpt-5.5) | eng-review | Plan-stage architecture/edge-case/test review |
-| `/proposal-draft` | docs-writer (gpt-5.4-mini) | proposal-writing | Draft a client proposal from requirements or notes |
-| `/proposal-review` | critic (gpt-5.5) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
-| `/proposal-commercial-review` | critic (gpt-5.5) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
-| `/proposal-prototype` | docs-writer (gpt-5.4-mini) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
-| `/review-diff` | reviewer (gpt-5.5) | code-review | Review unstaged+staged diffs for bugs/regressions |
-| `/review-staged` | reviewer (gpt-5.5) | code-review | Review only staged changes pre-commit |
-| `/long-context-review` | reviewer (gpt-5.5) | code-review | Review across many files / a long diff |
-| `/ui-review` | reviewer (gpt-5.5) | frontend-design | Visual/UI review of implemented components |
-| `/ship-check` | reviewer (gpt-5.5) | - | Final readiness review before merge/release |
-| `/security-review` | security-reviewer (gpt-5.5) | security-review | Security review of changes + nearby risky code |
-| `/ceo-review` | critic (gpt-5.5) | ceo-review | Founder-lens review of a **change/diff** |
-| `/second-opinion` | critic (gpt-5.5) | critique | Independent second opinion on a plan/diff/review |
-| `/critique` | critic (gpt-5.5) | critique | Critique of recent analysis/review |
+| `/research` | researcher (gpt-5.6-sol-fast) | research | Research a topic using live web sources |
+| `/explain` | debugger (gpt-5.6-sol) | explain | Explain code, behavior, or repo structure |
+| `/investigate` | debugger (gpt-5.6-sol) | investigate | Investigate a bug/failure before proposing fixes |
+| `/autoplan` | architect (gpt-5.6-sol) | autoplan | End-to-end implementation plan, no edits |
+| `/plan-feature` | architect (gpt-5.6-sol) | autoplan | Plan a feature implementation, no changes |
+| `/effort-estimate` | architect (gpt-5.6-sol) | effort-estimate | Structured effort, timeline, and cost estimate |
+| `/architecture-check` | architect (gpt-5.6-sol) | api-design, refactor-planner | Architecture review of a design/change |
+| `/agentic-plan` | architect (gpt-5.6-sol) | autoplan | Plan an agentic workflow (subagents, tools, orchestration) |
+| `/refactor-plan` | refactor-planner (gpt-5.6-sol) | refactor-planner | Safe refactor plan with sequencing + verification |
+| `/plan-ceo-review` | critic (gpt-5.6-sol-pro) | ceo-review | Founder-lens review of a **plan** |
+| `/plan-design-review` | architect (gpt-5.6-sol) | design-review | Plan-stage UX/design-system/a11y review |
+| `/plan-eng-review` | architect (gpt-5.6-sol) | eng-review | Plan-stage architecture/edge-case/test review |
+| `/proposal-draft` | docs-writer (gpt-5.6-luna-fast) | proposal-writing | Draft a client proposal from requirements or notes |
+| `/proposal-review` | critic (gpt-5.6-sol-pro) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
+| `/proposal-commercial-review` | critic (gpt-5.6-sol-pro) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
+| `/proposal-prototype` | docs-writer (gpt-5.6-luna-fast) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
+| `/review-diff` | reviewer (gpt-5.6-sol) | code-review | Review unstaged+staged diffs for bugs/regressions |
+| `/review-staged` | reviewer (gpt-5.6-sol) | code-review | Review only staged changes pre-commit |
+| `/long-context-review` | reviewer (gpt-5.6-sol) | code-review | Review across many files / a long diff |
+| `/ui-review` | reviewer (gpt-5.6-sol) | frontend-design | Visual/UI review of implemented components |
+| `/ship-check` | reviewer (gpt-5.6-sol) | - | Final readiness review before merge/release |
+| `/security-review` | security-reviewer (gpt-5.6-sol-pro) | security-review | Security review of changes + nearby risky code |
+| `/ceo-review` | critic (gpt-5.6-sol-pro) | ceo-review | Founder-lens review of a **change/diff** |
+| `/second-opinion` | critic (gpt-5.6-sol-pro) | critique | Independent second opinion on a plan/diff/review |
+| `/critique` | critic (gpt-5.6-sol-pro) | critique | Critique of recent analysis/review |
 | `/claude-review` | reviewer → `claude` CLI | - | Second opinion from the Claude CLI (your Claude sub) |
-| `/second-pass` | reviewer (gpt-5.5) | second-pass | Re-review after fixes; confirm resolved, no regressions |
-| `/test-plan` | tester (gpt-5.5) | test-writer | Practical test plan for a change/feature |
-| `/qa-only` | tester (gpt-5.5) | - | Test changed behavior, report bugs, no code changes |
-| `/debug-tests` | debugger (gpt-5.5) | debugging | Debug failing tests, root-cause first |
-| `/crew` | captain (gpt-5.5) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
-| `/gate-review` | reviewer (gpt-5.5) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
+| `/second-pass` | reviewer (gpt-5.6-sol) | second-pass | Re-review after fixes; confirm resolved, no regressions |
+| `/test-plan` | tester (gpt-5.6-terra) | test-writer | Practical test plan for a change/feature |
+| `/qa-only` | tester (gpt-5.6-terra) | - | Test changed behavior, report bugs, no code changes |
+| `/debug-tests` | debugger (gpt-5.6-sol) | debugging | Debug failing tests, root-cause first |
+| `/crew` | captain (gpt-5.6-terra-fast) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
+| `/gate-review` | reviewer (gpt-5.6-sol) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
-| `/commit` | pr-writer (gpt-5.4-mini) | git-commit | Commit staged changes (this repo or child repos) |
-| `/commit-message` | pr-writer (gpt-5.4-mini) | git-commit | Draft a commit message (never commits) |
-| `/branch-name` | pr-writer (gpt-5.4-mini) | - | Suggest short branch names from worktree context |
-| `/changelog` | pr-writer (gpt-5.4-mini) | release-notes | Draft changelog/release notes from commits+diffs |
-| `/pr-body` | pr-writer (gpt-5.4-mini) | pull-request | Draft a PR title + body from branch changes |
-| `/docs-update` | docs-writer (gpt-5.4-mini) | documentation | Update docs/README from current changes |
-| `/init-agents-md` | build (gpt-5.5) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
-| `/init-gate` | build (gpt-5.5) | - | Seed optional `.gate.sh` ship-gate overrides |
+| `/commit` | pr-writer (gpt-5.6-luna-fast) | git-commit | Commit staged changes (this repo or child repos) |
+| `/commit-message` | pr-writer (gpt-5.6-luna-fast) | git-commit | Draft a commit message (never commits) |
+| `/branch-name` | pr-writer (gpt-5.6-luna-fast) | - | Suggest short branch names from worktree context |
+| `/changelog` | pr-writer (gpt-5.6-luna-fast) | release-notes | Draft changelog/release notes from commits+diffs |
+| `/pr-body` | pr-writer (gpt-5.6-luna-fast) | pull-request | Draft a PR title + body from branch changes |
+| `/docs-update` | docs-writer (gpt-5.6-luna-fast) | documentation | Update docs/README from current changes |
+| `/init-agents-md` | build (gpt-5.6-terra) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
+| `/init-gate` | build (gpt-5.6-terra) | - | Seed optional `.gate.sh` ship-gate overrides |
 
 ### Skills (32) - shared across Claude, Codex, OpenCode
 
@@ -441,16 +456,16 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 
 | Agent | Model | Role | Can edit? |
 |---|---|---|---|
-| `architect` | gpt-5.5 | Architecture / plan reviews | no |
-| `debugger` | gpt-5.5 | Investigate bugs / failing tests | limited |
-| `tester` | gpt-5.5 | Test plans / QA, no code changes | no |
-| `reviewer` | gpt-5.5 | Code/UI/ship review, findings-first | no (deny) |
-| `security-reviewer` | gpt-5.5 | Security review | no |
-| `docs-writer` | gpt-5.4-mini | Docs / README | docs only |
-| `pr-writer` | gpt-5.4-mini | Commits, PR bodies, changelogs | commit-scope |
-| `refactor-planner` | gpt-5.5 | Refactor planning | no |
-| `researcher` | gpt-5.5-fast | Live web research | no |
-| `critic` | gpt-5.5 | Founder/critique/second-opinion | no |
+| `architect` | gpt-5.6-sol | Architecture / plan reviews | no |
+| `debugger` | gpt-5.6-sol | Investigate bugs / failing tests | limited |
+| `tester` | gpt-5.6-terra | Test plans / QA, no code changes | no |
+| `reviewer` | gpt-5.6-sol | Code/UI/ship review, findings-first | no (deny) |
+| `security-reviewer` | gpt-5.6-sol-pro | Security review | no |
+| `docs-writer` | gpt-5.6-luna-fast | Docs / README | docs only |
+| `pr-writer` | gpt-5.6-luna-fast | Commits, PR bodies, changelogs | commit-scope |
+| `refactor-planner` | gpt-5.6-sol | Refactor planning | no |
+| `researcher` | gpt-5.6-sol-fast | Live web research | no |
+| `critic` | gpt-5.6-sol-pro | Founder/critique/second-opinion | no |
 
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.
 Generated Claude/Codex roles cover the 10 custom subagents above.
@@ -459,8 +474,8 @@ Generated Claude/Codex roles cover the 10 custom subagents above.
 
 | Agent | Model | Role | Can edit? |
 |---|---|---|---|
-| `captain` | gpt-5.5 | Split a request, dispatch/monitor crewmates via the `crew` skill | no (deny) |
-| `crewmate` | gpt-5.5 | Implement one task headless in a worktree and commit; never push | yes (bounded) |
+| `captain` | gpt-5.6-terra-fast | Split a request, dispatch/monitor crewmates via the `crew` skill | no (deny) |
+| `crewmate` | profile-selected | Implement one task headless in a worktree and commit; never push | yes (bounded) |
 
 These two exist only in `opencode/.config/opencode/agents/` (they drive `crew`, which is OpenCode's
 headless runner) and are not generated for Claude/Codex.

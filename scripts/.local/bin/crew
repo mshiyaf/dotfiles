@@ -14,8 +14,9 @@
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
 #                                        --attach (jump to it), --claude, --codex,
+#                                        --profile fast|standard|deep,
 #                                        --start <ref> (branch start-point).
-#   crew status [branch] [--all]  Report crewmates: running/done, commits, last log line.
+#   crew status [branch] [--all]  Report crewmates: engine, profile, model, running/done, commits, last log line.
 #   crew logs <branch> [-f]       Print (or follow with -f) a crewmate's captured output.
 #   crew watch [-n SECS] [-1] [--all]  Notify (notify-send + bell) when a crewmate finishes/blocks.
 #   crew ls [--all]               List active crew tmux sessions.
@@ -48,6 +49,24 @@ TASK_SUFFIX="When done, commit your work on this branch with a Conventional-comm
 OPENCODE_CREW_FLAGS="--agent crewmate --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
+
+# Profiles make autonomous work predictable across engines instead of inheriting each CLI's
+# machine-local default. Standard is deliberately the default for implementation work.
+resolve_profile() {
+	local profile="$1" engine="$2"
+	case "$profile:$engine" in
+		fast:opencode)   printf '%s' 'openai/gpt-5.6-luna-fast' ;;
+		standard:opencode) printf '%s' 'openai/gpt-5.6-terra' ;;
+		deep:opencode)   printf '%s' 'openai/gpt-5.6-sol' ;;
+		fast:claude)     printf '%s' 'haiku' ;;
+		standard:claude) printf '%s' 'sonnet' ;;
+		deep:claude)     printf '%s' 'opus' ;;
+		fast:codex)      printf '%s' 'gpt-5.6-luna-fast' ;;
+		standard:codex)  printf '%s' 'gpt-5.6-terra' ;;
+		deep:codex)      printf '%s' 'gpt-5.6-sol' ;;
+		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
+	esac
+}
 
 # Sanitize a name for use in tmux targets / paths: /, ., : -> _
 sanitize() { local s="$1"; s="${s//\//_}"; s="${s//./_}"; s="${s//:/_}"; printf '%s' "$s"; }
@@ -103,13 +122,14 @@ enter_session() {
 }
 
 cmd_new() {
-	local branch="" start="" task="" attach=0 engine="opencode"
+	local branch="" start="" task="" attach=0 engine="opencode" profile="standard"
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			-b|--branch) shift; branch="${1:-}" ;;
 			--attach) attach=1 ;;
 			--claude) engine="claude" ;;
 			--codex) engine="codex" ;;
+			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
 			--) shift; break ;;
 			-*) die "unknown flag: $1" ;;
@@ -122,6 +142,7 @@ cmd_new() {
 
 	git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
 	command -v "$engine" >/dev/null 2>&1 || die "$engine not on PATH"
+	local model; model=$(resolve_profile "$profile" "$engine")
 
 	# Resolve the branch: explicit -b wins; otherwise AI-name it from the task.
 	if [ -z "$branch" ]; then
@@ -151,6 +172,9 @@ cmd_new() {
 		printf '%s\n' "$path"   > "$sdir/worktree"
 		printf '%s\n' "$name"   > "$sdir/session"
 		printf '%s\n' "${task:-<interactive>}" > "$sdir/task"
+		printf '%s\n' "$engine" > "$sdir/engine"
+		printf '%s\n' "$profile" > "$sdir/profile"
+		printf '%s\n' "$model" > "$sdir/model"
 
 		tmux new-session -ds "$name" -c "$path"
 
@@ -158,9 +182,9 @@ cmd_new() {
 		if [ -n "$task" ]; then
 			local full="$task. $TASK_SUFFIX"
 			case "$engine" in
-				claude)   launch=$(printf 'claude -p %q %s' "$full" "$CLAUDE_CREW_FLAGS") ;;
-				codex)    launch=$(printf 'codex exec %s %q' "$CODEX_CREW_FLAGS" "$full") ;;
-				opencode) launch=$(printf 'opencode run %q %s' "$full" "$OPENCODE_CREW_FLAGS") ;;
+				claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
+				codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
+				opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 				*) die "unknown engine: $engine" ;;
 			esac
 			# Wrap so we capture output to the log and record the real exit code on finish.
@@ -172,7 +196,7 @@ cmd_new() {
 			printf 'interactive\n' > "$sdir/status"
 			tmux send-keys -t "$name" "$engine" C-m
 		fi
-		printf 'crew %s ready in %s\n' "$name" "$path"
+		printf 'crew %s ready in %s (%s, %s)\n' "$name" "$path" "$profile" "$model"
 		printf '  monitor: crew status %s   attach: crew attach %s\n' "$branch" "$branch"
 	fi
 
@@ -190,11 +214,14 @@ commits_ahead() {
 report_one() {
 	local sdir="$1" label="${2:-}"
 	[ -d "$sdir" ] || return 0
-	local branch wt status name last ahead
+	local branch wt status name engine profile model last ahead
 	branch=$(cat "$sdir/branch" 2>/dev/null || basename "$sdir")
 	wt=$(cat "$sdir/worktree" 2>/dev/null || echo '?')
 	status=$(cat "$sdir/status" 2>/dev/null || echo '?')
 	name=$(cat "$sdir/session" 2>/dev/null || true)
+	engine=$(cat "$sdir/engine" 2>/dev/null || printf '?')
+	profile=$(cat "$sdir/profile" 2>/dev/null || printf '?')
+	model=$(cat "$sdir/model" 2>/dev/null || printf '?')
 	# A 'running' crewmate whose session is gone actually exited (crashed or killed).
 	if [ -n "$name" ] && [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
 		status="exited?"
@@ -202,9 +229,9 @@ report_one() {
 	ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
 	last=$(tail -n1 "$sdir/log" 2>/dev/null | tr -d '\r' | cut -c1-60)
 	if [ -n "$label" ]; then
-		printf '%-20s %-22s %-10s %3s  %s\n' "$label" "$branch" "$status" "$ahead" "$last"
+		printf '%-20s %-22s %-10s %-10s %-20s %-10s %3s  %s\n' "$label" "$branch" "$engine" "$profile" "$model" "$status" "$ahead" "$last"
 	else
-		printf '%-24s %-10s %3s commit(s)  %s\n' "$branch" "$status" "$ahead" "$last"
+		printf '%-24s %-10s %-10s %-20s %-10s %3s commit(s)  %s\n' "$branch" "$engine" "$profile" "$model" "$status" "$ahead" "$last"
 	fi
 }
 
@@ -221,20 +248,20 @@ cmd_status() {
 	[ "$all" = 1 ] || require_repo
 
 	if [ -n "$branch" ]; then
-		printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
+		printf '%-24s %-10s %-10s %-20s %-10s %-12s %s\n' 'BRANCH' 'ENGINE' 'PROFILE' 'MODEL' 'STATUS' 'AHEAD' 'LAST OUTPUT'
 		report_one "$(state_dir_for "$branch")"
 		return
 	fi
 
 	local any=0 d
 	if [ "$all" = 1 ]; then
-		printf '%-20s %-22s %-10s %-4s %s\n' 'REPO' 'BRANCH' 'STATUS' 'AHD' 'LAST OUTPUT'
+		printf '%-20s %-22s %-10s %-10s %-20s %-10s %-4s %s\n' 'REPO' 'BRANCH' 'ENGINE' 'PROFILE' 'MODEL' 'STATUS' 'AHD' 'LAST OUTPUT'
 		while IFS= read -r d; do
 			[ -n "$d" ] || continue
 			any=1; report_one "$d" "$(basename "$(dirname "$d")")"
 		done < <(iter_state_dirs all)
 	else
-		printf '%-24s %-10s %-12s %s\n' 'BRANCH' 'STATUS' 'AHEAD' 'LAST OUTPUT'
+		printf '%-24s %-10s %-10s %-20s %-10s %-12s %s\n' 'BRANCH' 'ENGINE' 'PROFILE' 'MODEL' 'STATUS' 'AHEAD' 'LAST OUTPUT'
 		while IFS= read -r d; do
 			[ -n "$d" ] || continue
 			any=1; report_one "$d"

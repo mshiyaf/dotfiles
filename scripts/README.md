@@ -113,11 +113,12 @@ via the `workspace-write` sandbox (network off, so push is blocked).
 only when you want to reuse or force a specific branch.
 
 ```bash
-crew new "add dark mode"             # AI-name a branch, worktree + `opencode run "..." --agent crewmate`
-crew new --claude "fix flaky test" --attach   # use claude, jump straight in
+crew new "add dark mode"             # standard profile: Terra / Sonnet / Terra
+crew new --profile fast "update README examples"
+crew new --profile deep --claude "fix transaction race" --attach
 crew new -b feat/dark "add toggle"   # force the branch name
 crew new -b spike-y                  # no task -> interactive opencode in the worktree
-crew status                          # branch | running/done(rc) | commits-ahead | last log line
+crew status                          # branch | engine | profile | model | running/done(rc) | commits-ahead
 crew logs feat/dark -f               # follow a crewmate's captured output
 crew watch                           # bell + notify-send when a crewmate finishes or blocks
 crew ls                              # list active crew tmux sessions
@@ -125,9 +126,18 @@ crew attach feat/dark                # attach / switch-client to a crewmate
 crew stop feat/dark -D               # kill session (-D also removes worktree + branch)
 ```
 
+Profiles explicitly select the model for every engine rather than inheriting machine defaults:
+
+| Profile | Use for | OpenCode | Claude | Codex |
+| --- | --- | --- | --- | --- |
+| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast |
+| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol |
+
 crew is **scoped per repository**: sessions are named `crew_<repo-key>_<branch>` and state lives
-in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`, `log`,
-`status`). The repo key is derived from the shared `--git-common-dir`, so it is stable from the
+in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`, `engine`,
+`profile`, `model`, `log`, `status`).
+The repo key is derived from the shared `--git-common-dir`, so it is stable from the
 main repo or any of its worktrees. `crew ls`/`status`/`watch` show only the current repo's
 crewmates (two repos can each run a `feat-x` without colliding); pass `--all` for the cross-repo
 view. This is what `crew status`, `crew logs`, and `crew watch` read and `crew stop` clears. Run `crew watch`

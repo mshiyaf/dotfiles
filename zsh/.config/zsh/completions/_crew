@@ -44,7 +44,8 @@ _crew() {
                         '--start[branch start-point]:ref:__crew_all_branches' \
                         '--attach[jump into the session now]' \
                         '--claude[use the claude engine]' \
-                        '--codex[use the codex engine]'
+                        '--codex[use the codex engine]' \
+                        '--profile[model profile]:profile:(fast standard deep)'
                     ;;
                 attach)
                     __crew_sessions
