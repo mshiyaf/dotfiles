@@ -302,7 +302,7 @@ EOF
 }
 
 gate_review_opencode() {
-	opencode run "$(gate_review_prompt)" --agent build
+	opencode run "$(gate_review_prompt)" --agent build --auto
 }
 
 run_review() {
