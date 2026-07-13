@@ -1,9 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "openai/gpt-5.6-terra",
-  // TODO(opencode): Restore small_model, docs-writer, and pr-writer to
-  // openai/gpt-5.6-luna-fast once ChatGPT OAuth supports GPT-5.6 Luna.
-  "small_model": "openai/gpt-5.6-terra-fast",
+  "small_model": "openai/gpt-5.6-luna-fast",
   "default_agent": "build",
   "enabled_providers": [
     "openai"
@@ -63,10 +61,10 @@
       "model": "openai/gpt-5.6-sol-pro"
     },
     "docs-writer": {
-      "model": "openai/gpt-5.6-terra-fast"
+      "model": "openai/gpt-5.6-luna-fast"
     },
     "pr-writer": {
-      "model": "openai/gpt-5.6-terra-fast"
+      "model": "openai/gpt-5.6-luna-fast"
     },
     "refactor-planner": {
       "model": "openai/gpt-5.6-sol"
