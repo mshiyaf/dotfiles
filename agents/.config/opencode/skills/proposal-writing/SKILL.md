@@ -13,7 +13,18 @@ Follow the user's proposal style: polished, specific, business-focused, scope-sa
 - Read `~/OPINIONS.md` for business, pricing, scope, AMC, and delivery preferences when available.
 - Read `~/VOICE.md` when drafting or rewriting proposal text in the user's voice.
 - Inspect any provided sample proposal, requirement note, existing proposal, or client document before making strong claims.
+- Inspect the latest approved effort estimate, estimate document, or estimate details in the current conversation when available.
 - If inputs are incomplete, make practical assumptions and list them clearly.
+
+## Effort Estimate Handoff
+
+- Treat an approved effort estimate as the commercial and delivery source of truth for the proposal.
+- Carry its scope, assumptions, active delivery time, client-facing calendar time, price, optional items, recurring costs, exclusions, UAT limits, and defect-warranty boundaries into the proposal.
+- Do not silently recalculate, expand, or replace an approved estimate with a traditional agency estimate.
+- Preserve the approved total and timeline unless the user asks for a revision or the proposal inputs contain a direct contradiction.
+- If a contradiction exists, identify it and ask one focused question instead of choosing a materially different price or timeline.
+- Do not expose internal AI usage, agentic workflows, team constraints, internal effort calculations, margins, or delivery shortcuts in the client-facing proposal.
+- Present the approved delivery speed as an efficient implementation approach, a phased delivery plan, and clear milestones rather than explaining the internal acceleration method.
 
 ## Sender Identity
 
@@ -66,7 +77,7 @@ version: "1.0"
 
 CLI flags override frontmatter.
 Useful flags are `--title`, `--client`, `--date`, `--document-id`, `--version`, `--author`, `--approver`, and `--client-logo`.
-The Markdown body may contain headings, paragraphs, bullet lists, numbered lists, inline bold/italic, and pipe tables for commercial sections.
+The Markdown body may contain headings, paragraphs, bullet lists, numbered lists, inline bold/italic, and pipe tables.
 Run the script by absolute skill path because the agent's working directory is usually the client/project folder, not the skill directory.
 
 ## Proposal Draft Structure
@@ -91,6 +102,24 @@ Use this structure unless the user asks for a different format:
 16. Deliverables
 17. Closing note or proposal acceptance
 
+## Markdown Presentation
+
+- Produce a polished Markdown document, not a long sequence of prose paragraphs.
+- Use concise paragraphs for the executive summary, requirement understanding, solution narrative, and closing note.
+- Use headings, bullets, and tables to make scope, schedule, commercials, responsibilities, and boundaries easy to review.
+- Always use a pipe table for the phased implementation timeline.
+  Include phase, activities or deliverables, active delivery duration, expected calendar or target period, and acceptance milestone where relevant.
+- Always use a pipe table for the commercial proposal.
+  Include item or version, included scope summary, price, taxes, and commercial notes where relevant.
+- Always use a pipe table for payment milestones.
+  Include milestone, percentage, amount, and payment trigger.
+- Use separate tables for optional add-ons and recurring costs when either exists.
+- Prefer tables for user-role matrices, report lists, hosting options, support plans, deliverable registers, and responsibility matrices when comparison is clearer than prose.
+- Keep module scope as short subsections or bullet lists unless a module table provides a clearer overview.
+- Do not force narrative content into tables when prose communicates it better.
+- Keep table cells concise and move lengthy qualifications into notes immediately below the table.
+- Ensure percentages, milestone amounts, subtotals, tax, and grand totals reconcile exactly across all tables.
+
 ## Drafting Rules
 
 - Keep business outcomes and operational clarity ahead of technical detail.
@@ -104,8 +133,9 @@ Use this structure unless the user asks for a different format:
 - Keep optional items separate from committed scope.
 - Do not overpromise integrations, migration, automation, AI, WhatsApp, SMS, OCR, mobile apps, or reporting unless explicitly scoped.
 - Do not expose internal AI usage or internal delivery shortcuts.
-- AI-assisted delivery may reduce implementation effort, but proposal pricing and timelines must still include discovery, architecture, review, QA, deployment, documentation, training, stabilization, and support responsibility.
-- If efficiency allows a shorter timeline or better price, reflect it reasonably without making the proposal look weak or creating unsustainable support obligations.
+- When an approved estimate already accounts for accelerated delivery, preserve its timeline and price rather than adding conventional agency allocations again.
+- Include discovery, architecture, review, QA, deployment, documentation, training, stabilization, and support only to the extent approved in the estimate and required by the actual scope.
+- Reflect efficient delivery confidently without making the proposal look weak or creating unsustainable support obligations.
 - Avoid em dashes. Use a plain hyphen.
 
 ## Review Checklist

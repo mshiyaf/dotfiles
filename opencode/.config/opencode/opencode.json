@@ -1,7 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "openai/gpt-5.6-terra",
-  "small_model": "openai/gpt-5.6-luna-fast",
+  // TODO(opencode): Restore small_model, docs-writer, and pr-writer to
+  // openai/gpt-5.6-luna-fast once ChatGPT OAuth supports GPT-5.6 Luna.
+  "small_model": "openai/gpt-5.6-terra-fast",
   "default_agent": "build",
   "enabled_providers": [
     "openai"
@@ -61,10 +63,10 @@
       "model": "openai/gpt-5.6-sol-pro"
     },
     "docs-writer": {
-      "model": "openai/gpt-5.6-luna-fast"
+      "model": "openai/gpt-5.6-terra-fast"
     },
     "pr-writer": {
-      "model": "openai/gpt-5.6-luna-fast"
+      "model": "openai/gpt-5.6-terra-fast"
     },
     "refactor-planner": {
       "model": "openai/gpt-5.6-sol"
@@ -129,6 +131,7 @@
         },
         "gpt-5.6-fast": {
           "name": "GPT 5.6 Fast (OAuth)",
+          "id": "gpt-5.6",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -150,6 +153,7 @@
         },
         "gpt-5.6-pro": {
           "name": "GPT 5.6 Pro (OAuth)",
+          "id": "gpt-5.6",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -187,6 +191,7 @@
         },
         "gpt-5.6-luna-fast": {
           "name": "GPT 5.6 Luna Fast · Light",
+          "id": "gpt-5.6-luna",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -208,6 +213,7 @@
         },
         "gpt-5.6-luna-pro": {
           "name": "GPT 5.6 Luna Pro · Light+",
+          "id": "gpt-5.6-luna",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -245,6 +251,7 @@
         },
         "gpt-5.6-terra-fast": {
           "name": "GPT 5.6 Terra Fast · Standard",
+          "id": "gpt-5.6-terra",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -266,6 +273,7 @@
         },
         "gpt-5.6-terra-pro": {
           "name": "GPT 5.6 Terra Pro · Standard+",
+          "id": "gpt-5.6-terra",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -303,6 +311,7 @@
         },
         "gpt-5.6-sol-fast": {
           "name": "GPT 5.6 Sol Fast · Heavy",
+          "id": "gpt-5.6-sol",
           "limit": {
             "context": 1050000,
             "output": 128000
@@ -324,6 +333,7 @@
         },
         "gpt-5.6-sol-pro": {
           "name": "GPT 5.6 Sol Pro · Heavy+",
+          "id": "gpt-5.6-sol",
           "limit": {
             "context": 1050000,
             "output": 128000

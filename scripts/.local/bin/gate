@@ -302,7 +302,8 @@ EOF
 }
 
 gate_review_opencode() {
-	opencode run "$(gate_review_prompt)" --agent build --auto
+	# Pure mode prevents optional skills from producing permission prompts in headless runs.
+	opencode run "$(gate_review_prompt)" --agent build --auto --pure
 }
 
 run_review() {
@@ -312,10 +313,11 @@ run_review() {
 	info "review: $GATE_REVIEW_CMD"
 	local raw json
 	raw=$(eval "$GATE_REVIEW_CMD" 2>&1 || true)
-	# Strip markdown fences, then fall back to the outermost {...} if needed.
+	# Strip markdown fences, then fall back to the final JSON findings object.
+	# Agent tool logs and source diffs can contain unrelated braces before the result.
 	json=$(printf '%s\n' "$raw" | sed -e 's/^```json[[:space:]]*//' -e 's/^```[[:space:]]*//' -e 's/```[[:space:]]*$//')
 	if ! printf '%s' "$json" | jq -e '.findings' >/dev/null 2>&1; then
-		json=$(printf '%s' "$raw" | perl -0777 -ne 'print $1 if /(\{.*\})/s' 2>/dev/null || true)
+		json=$(printf '%s\n' "$raw" | grep -E '^\{"findings":' | tail -1 || true)
 	fi
 	if ! printf '%s' "$json" | jq -e '.findings' >/dev/null 2>&1; then
 		warn "review did not return parseable JSON - blocking the ship"
