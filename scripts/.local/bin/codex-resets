@@ -1,0 +1,319 @@
+#!/usr/bin/env bun
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+const TOKEN_URL = "https://auth.openai.com/oauth/token";
+const RESETS_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
+const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "auth.json");
+const OPENCODE_ACCOUNTS = path.join(
+  os.homedir(),
+  ".local",
+  "share",
+  "opencode",
+  "openai-accounts",
+);
+const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
+
+type OAuthProfile = {
+  type: "oauth";
+  access: string;
+  refresh: string;
+  expires?: number;
+  accountId?: string;
+  [key: string]: unknown;
+};
+
+type Account = {
+  name: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresMs: number;
+  accountId?: string;
+  save: (tokens: RefreshedTokens) => void;
+};
+
+type RefreshedTokens = {
+  accessToken: string;
+  refreshToken: string;
+  expiresMs: number;
+  idToken?: string;
+};
+
+type ResetCredit = {
+  status?: string;
+  granted_at?: string;
+  expires_at?: string;
+};
+
+type ResetPayload = {
+  available_count?: number;
+  credits?: ResetCredit[];
+};
+
+type Row = [string, string, string, string, string];
+
+function readJson(file: string): any | null {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(file: string, value: unknown) {
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
+function isOAuthProfile(value: any): value is OAuthProfile {
+  return (
+    value?.type === "oauth" &&
+    typeof value.access === "string" &&
+    typeof value.refresh === "string"
+  );
+}
+
+function accountFromProfile(file: string): Account | null {
+  const profile = readJson(file);
+  if (!isOAuthProfile(profile)) return null;
+  return {
+    name: path.basename(file, ".json"),
+    accessToken: profile.access,
+    refreshToken: profile.refresh,
+    expiresMs: typeof profile.expires === "number" ? profile.expires : 0,
+    accountId: typeof profile.accountId === "string" ? profile.accountId : undefined,
+    save(tokens) {
+      const current = readJson(file);
+      if (!isOAuthProfile(current)) throw new Error("profile changed while refreshing");
+      writeJson(file, {
+        ...current,
+        access: tokens.accessToken,
+        refresh: tokens.refreshToken,
+        expires: tokens.expiresMs,
+      });
+    },
+  };
+}
+
+function loadAccounts(): Account[] {
+  if (fs.existsSync(OPENCODE_ACCOUNTS)) {
+    const accounts = fs
+      .readdirSync(OPENCODE_ACCOUNTS)
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .map((name) => accountFromProfile(path.join(OPENCODE_ACCOUNTS, name)))
+      .filter((account): account is Account => account !== null);
+    if (accounts.length) return accounts;
+  }
+
+  const opencode = readJson(OPENCODE_AUTH);
+  for (const key of ["openai", "codex"]) {
+    const profile = opencode?.[key];
+    if (!isOAuthProfile(profile)) continue;
+    return [
+      {
+        name: `opencode:${key}`,
+        accessToken: profile.access,
+        refreshToken: profile.refresh,
+        expiresMs: typeof profile.expires === "number" ? profile.expires : 0,
+        accountId: typeof profile.accountId === "string" ? profile.accountId : undefined,
+        save(tokens) {
+          const current = readJson(OPENCODE_AUTH);
+          if (!isOAuthProfile(current?.[key])) throw new Error("auth changed while refreshing");
+          current[key] = {
+            ...current[key],
+            access: tokens.accessToken,
+            refresh: tokens.refreshToken,
+            expires: tokens.expiresMs,
+          };
+          writeJson(OPENCODE_AUTH, current);
+        },
+      },
+    ];
+  }
+
+  const codex = readJson(CODEX_AUTH);
+  if (codex?.tokens?.access_token && codex?.tokens?.refresh_token) {
+    return [
+      {
+        name: "codex",
+        accessToken: codex.tokens.access_token,
+        refreshToken: codex.tokens.refresh_token,
+        expiresMs: 0,
+        accountId: codex.tokens.account_id,
+        save(tokens) {
+          const current = readJson(CODEX_AUTH);
+          if (!current?.tokens) throw new Error("auth changed while refreshing");
+          current.tokens = {
+            ...current.tokens,
+            access_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken,
+            id_token: tokens.idToken ?? current.tokens.id_token,
+          };
+          current.last_refresh = new Date().toISOString();
+          writeJson(CODEX_AUTH, current);
+        },
+      },
+    ];
+  }
+
+  throw new Error(
+    `No OpenCode account profiles or Codex auth found. Checked ${OPENCODE_ACCOUNTS}, ${OPENCODE_AUTH}, and ${CODEX_AUTH}.`,
+  );
+}
+
+function decodeJwt(token: string): Record<string, any> | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function accountId(account: Account): string | undefined {
+  const claims = decodeJwt(account.accessToken);
+  const id = claims?.["https://api.openai.com/auth"]?.chatgpt_account_id;
+  return typeof id === "string" && id ? id : account.accountId;
+}
+
+function tokenExpiresSoon(account: Account): boolean {
+  const claims = decodeJwt(account.accessToken);
+  const jwtExpiry = typeof claims?.exp === "number" ? claims.exp * 1000 : 0;
+  const expiry = account.expiresMs || jwtExpiry;
+  return !expiry || expiry <= Date.now() + 60_000;
+}
+
+async function ensureFresh(account: Account): Promise<Account> {
+  if (!tokenExpiresSoon(account)) return account;
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: account.refreshToken,
+      client_id: CLIENT_ID,
+    }),
+  });
+  if (!response.ok) throw new Error(`OAuth refresh failed (${response.status})`);
+  const payload = (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    id_token?: string;
+    expires_in?: number;
+  };
+  const tokens = {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token ?? account.refreshToken,
+    expiresMs:
+      typeof payload.expires_in === "number" ? Date.now() + payload.expires_in * 1000 : 0,
+    idToken: payload.id_token,
+  };
+  account.save(tokens);
+  return { ...account, ...tokens };
+}
+
+async function fetchResets(account: Account): Promise<ResetPayload> {
+  const id = accountId(account);
+  if (!id) throw new Error("account ID is missing");
+  const response = await fetch(RESETS_URL, {
+    headers: {
+      Authorization: `Bearer ${account.accessToken}`,
+      "ChatGPT-Account-ID": id,
+      originator: "Codex Desktop",
+      "User-Agent": "codex-resets/1.0",
+      accept: "application/json",
+    },
+  });
+  if (!response.ok) throw new Error(`reset request failed (${response.status})`);
+  return (await response.json()) as ResetPayload;
+}
+
+function formatDate(value?: string): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  });
+}
+
+function remaining(value?: string): string {
+  if (!value) return "-";
+  const milliseconds = new Date(value).getTime() - Date.now();
+  if (!Number.isFinite(milliseconds)) return "-";
+  if (milliseconds <= 0) return "expired";
+  const minutes = Math.ceil(milliseconds / 60_000);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  if (days) return `${days}d ${hours}h`;
+  if (hours) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
+function printTable(rows: Row[]) {
+  const headers: Row = ["Account", "Available", "Granted", "Expires", "Remaining"];
+  const widths = headers.map((header, index) =>
+    Math.max(header.length, ...rows.map((row) => row[index].length)),
+  );
+  const border = (left: string, middle: string, right: string) =>
+    left + widths.map((width) => "─".repeat(width + 2)).join(middle) + right;
+  const line = (row: Row) =>
+    "│ " + row.map((cell, index) => cell.padEnd(widths[index])).join(" │ ") + " │";
+
+  console.log("Codex reset credits");
+  console.log(border("┌", "┬", "┐"));
+  console.log(line(headers));
+  console.log(border("├", "┼", "┤"));
+  for (const row of rows) console.log(line(row));
+  console.log(border("└", "┴", "┘"));
+}
+
+async function main() {
+  if (process.argv.includes("--help") || process.argv.includes("-h")) {
+    console.log("Usage: codex-resets\n\nShow available reset credits for all saved OpenCode accounts.");
+    return;
+  }
+  const rows: Row[] = [];
+  for (const savedAccount of loadAccounts()) {
+    try {
+      const account = await ensureFresh(savedAccount);
+      const payload = await fetchResets(account);
+      const credits = (payload.credits ?? []).filter((credit) => credit.status === "available");
+      const available = String(payload.available_count ?? credits.length);
+      if (!credits.length) {
+        rows.push([account.name, available, "-", "-", "-"]);
+        continue;
+      }
+      credits.forEach((credit, index) => {
+        rows.push([
+          index === 0 ? account.name : "",
+          index === 0 ? available : "",
+          formatDate(credit.granted_at),
+          formatDate(credit.expires_at),
+          remaining(credit.expires_at),
+        ]);
+      });
+    } catch (error) {
+      rows.push([savedAccount.name, "error", (error as Error).message, "-", "-"]);
+    }
+  }
+  printTable(rows);
+}
+
+main().catch((error) => {
+  console.error(`codex-resets: ${(error as Error).message}`);
+  process.exit(1);
+});

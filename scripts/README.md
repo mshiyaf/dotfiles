@@ -15,6 +15,7 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 ## Contents
 
 - `codex-status` - print ChatGPT/Codex usage and rate-limit status.
+- `codex-resets` - show available reset credits for every saved OpenCode account.
 - `ai-branch-name` - turn a free-text task into one git branch name (AI, with a slug fallback); used by `crew` and `wt`.
 - `git-wt` - sibling git worktree manager (see below).
 - `crew` - tmux multi-agent orchestrator built on `git-wt` (see below).
