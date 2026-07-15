@@ -1,2 +1,6 @@
 README.md
 models.json
+
+# Codex installs built-in skills here as real files.  Leave its native copy
+# alone when ~/.codex/skills already exists instead of conflicting with it.
+^/\.codex/skills/\.system

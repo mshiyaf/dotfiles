@@ -99,8 +99,10 @@ Stow refuses to overwrite real files/dirs, so clear conflicting paths first:
 [ -e "$HOME/.claude/CLAUDE.md" ] && [ ! -L "$HOME/.claude/CLAUDE.md" ] && \
   mv "$HOME/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md.bak"
 
-# 2. Remove empty host skills dirs so they can become symlinks (back up if non-empty)
-rmdir "$HOME/.claude/skills" "$HOME/.codex/skills" 2>/dev/null || true
+# 2. Claude can use the shared skills symlink. Keep Codex skills as a real
+# directory so Codex owns .system and Stow links only the shared user skills.
+rmdir "$HOME/.claude/skills" 2>/dev/null || true
+mkdir -p "$HOME/.codex/skills"
 
 # 3. Back up a real Claude settings file before stowing this package
 [ -e "$HOME/.claude/settings.json" ] && [ ! -L "$HOME/.claude/settings.json" ] && \
@@ -109,6 +111,10 @@ rmdir "$HOME/.claude/skills" "$HOME/.codex/skills" 2>/dev/null || true
 make agents-sync
 make stow-agents        # or: make restow-agents
 ```
+
+Codex installs its bundled skills as real files under `~/.codex/skills/.system`.
+The Stow package ignores that host-owned path when `~/.codex/skills` already exists, while continuing to manage the other shared skills.
+If `~/.codex/skills` is already a symlink from an older setup, preserve `.system`, replace that symlink with a real directory, restore `.system`, and then restow.
 
 `~/AGENTS.md` and `~/.codex/AGENTS.md` do not usually exist yet, so they stow cleanly.
 
