@@ -37,15 +37,11 @@ opencode/.config/opencode/providers*
 opencode/.config/opencode/secrets*
 
 # never store home-level opencode plugin/runtime/auth state
-opencode/.opencode/oc-codex-multi-auth-accounts.json
-opencode/.opencode/oc-codex-multi-auth-accounts.json.lock
 opencode/.opencode/backups/
 opencode/.opencode/cache/
 opencode/.opencode/node_modules/
 opencode/.opencode/package-lock.json
 opencode/.opencode/bun.lock*
-.opencode/oc-codex-multi-auth-accounts.json
-.opencode/oc-codex-multi-auth-accounts.json.lock
 .opencode/backups/
 .opencode/cache/
 .opencode/node_modules/

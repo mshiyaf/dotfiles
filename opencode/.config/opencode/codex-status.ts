@@ -24,7 +24,6 @@ const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "au
 const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
 const OPENCODE_DB = path.join(os.homedir(), ".local", "share", "opencode", "opencode.db");
 const OPENCODE_ACCOUNT_DIR = path.join(os.homedir(), ".local", "share", "opencode", "openai-accounts");
-const OPENCODE_ACCOUNT_NAMES = ["personal", "sprdh"] as const;
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const POST_TURN_DELAY_MS = 750;
@@ -94,6 +93,18 @@ function accountProfilePath(name: string): string {
   return path.join(OPENCODE_ACCOUNT_DIR, `${name}.json`);
 }
 
+function accountProfileNames(): string[] {
+  try {
+    return fs
+      .readdirSync(OPENCODE_ACCOUNT_DIR)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => path.basename(name, ".json"))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
 function isOpencodeOAuth(value: any): value is OpencodeOAuth {
   return value?.type === "oauth" && typeof value.access === "string" && typeof value.refresh === "string";
 }
@@ -117,7 +128,7 @@ function activeProfileName(): string | null {
   const current = currentOpencodeOAuth();
   if (!current) return null;
   const currentAccountId = profileAccountId(current);
-  for (const name of OPENCODE_ACCOUNT_NAMES) {
+  for (const name of accountProfileNames()) {
     const profile = loadProfile(name);
     if (!profile) continue;
     const profileId = profileAccountId(profile);
@@ -526,7 +537,7 @@ const tui: TuiPlugin = async (api) => {
   api.lifecycle.onDispose(offIdle);
 
   const offCommand = api.command.register(() =>
-    OPENCODE_ACCOUNT_NAMES.map((name) => ({
+    accountProfileNames().map((name) => ({
       title: `OpenAI: switch to ${name}`,
       value: `openai-account-${name}`,
       category: "OpenAI",
