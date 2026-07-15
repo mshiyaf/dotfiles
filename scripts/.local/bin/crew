@@ -151,12 +151,17 @@ cmd_new() {
 		printf '→ branch: %s\n' "$branch"
 	fi
 
-	# Create/attach the worktree via git-wt, then resolve its path.
-	local path
+	# Create/attach the worktree via git-wt, then resolve its path. New worktrees start
+	# from the caller's current commit unless --start was supplied. Record that commit so
+	# status reports work produced by this crewmate, not unrelated divergence from main.
+	local path base
 	if path=$(git wt path "$branch" 2>/dev/null); then
 		printf 'crew: reusing existing worktree %s\n' "$path"
+		base=$(git -C "$path" rev-parse HEAD) || die "could not resolve HEAD for $path"
 	else
-		git wt new "$branch" ${start:+"$start"} >/dev/null
+		base=$(git rev-parse "${start:-HEAD}^{commit}") \
+			|| die "could not resolve start point '${start:-HEAD}'"
+		git wt new "$branch" "$base" >/dev/null
 		path=$(git wt path "$branch")
 	fi
 
@@ -175,6 +180,7 @@ cmd_new() {
 		printf '%s\n' "$engine" > "$sdir/engine"
 		printf '%s\n' "$profile" > "$sdir/profile"
 		printf '%s\n' "$model" > "$sdir/model"
+		printf '%s\n' "$base" > "$sdir/base"
 
 		tmux new-session -ds "$name" -c "$path"
 
@@ -203,10 +209,12 @@ cmd_new() {
 	[ "$attach" -eq 1 ] && enter_session "$name"
 }
 
-# commits on the worktree HEAD not yet in the remote default branch
+# Commits produced since this crewmate's recorded starting point. State created by older
+# crew versions has no base file, so retain the old remote-default comparison as a fallback.
 commits_ahead() {
-	local wt="$1" base
-	base=$(git -C "$wt" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+	local wt="$1" sdir="${2:-}" base=""
+	[ -n "$sdir" ] && base=$(cat "$sdir/base" 2>/dev/null || true)
+	[ -n "$base" ] || base=$(git -C "$wt" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
 	[ -n "$base" ] || { printf '?'; return; }
 	git -C "$wt" rev-list --count "$base..HEAD" 2>/dev/null || printf '?'
 }
@@ -226,7 +234,7 @@ report_one() {
 	if [ -n "$name" ] && [ "$status" = "running" ] && ! tmux has-session -t "$name" 2>/dev/null; then
 		status="exited?"
 	fi
-	ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
+	ahead=$([ -d "$wt" ] && commits_ahead "$wt" "$sdir" || printf '?')
 	last=$(tail -n1 "$sdir/log" 2>/dev/null | tr -d '\r' | cut -c1-60)
 	if [ -n "$label" ]; then
 		printf '%-20s %-22s %-10s %-10s %-20s %-10s %3s  %s\n' "$label" "$branch" "$engine" "$profile" "$model" "$status" "$ahead" "$last"
@@ -334,7 +342,7 @@ cmd_watch() {
 						notify "crew: $branch BLOCKED" "${blocked##*BLOCKED:} - needs a decision" ;;
 					done:0)
 						wt=$(cat "$d/worktree" 2>/dev/null || true)
-						ahead=$([ -d "$wt" ] && commits_ahead "$wt" || printf '?')
+						ahead=$([ -d "$wt" ] && commits_ahead "$wt" "$d" || printf '?')
 						notify "crew: $branch ready for review" "done, $ahead commit(s) - /review-diff then /ship-gate" ;;
 					done:*)
 						notify "crew: $branch finished with errors ($key)" "check: crew logs $branch" ;;
