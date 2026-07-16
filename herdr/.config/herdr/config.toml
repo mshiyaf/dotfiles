@@ -4,12 +4,12 @@
 
 onboarding = false
 
-# Sessionizer: fuzzy-pick a project (local or GitHub) and open/focus it
-# as a herdr workspace. Same muscle memory as tmux prefix+f.
+# Sessionizer: fuzzy-jump to projects, workspaces, and agents;
+# clones from GitHub on ctrl-g. Same muscle memory as tmux prefix+f.
 [[keys.command]]
 key = "prefix+f"
 type = "popup"
 command = "~/.config/zsh/herdr-sessionizer.sh"
-description = "fuzzy open project workspace"
+description = "fuzzy jump: projects, workspaces, agents"
 width = "85%"
 height = "75%"

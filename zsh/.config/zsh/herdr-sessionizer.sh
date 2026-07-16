@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-# Herdr sessionizer: fuzzy-pick a project and open it as a herdr workspace.
+# Herdr sessionizer: fuzzy-jump to projects, workspaces, and agents.
 # Mixes our tmux-sessionizer (local repos + GitHub search/clone via gh) with
-# the workspace-first flow from andrewchng/herdr-sessionizer: already-open
-# workspaces are listed first and focused instead of duplicated.
+# ideas from andrewchng/herdr-sessionizer and thanhdat77/herdr-navigator:
+# open workspaces and running agents are jump targets, projects open as
+# new workspaces, GitHub search is behind an explicit ctrl-g.
 
 set -euo pipefail
 shopt -s nullglob
@@ -17,6 +18,13 @@ search_dirs=(
     "$base_dir"/*/*
     "$base_dir/mshiyaf/dotfiles"
 )
+
+c_reset=$'\033[0m'
+c_green=$'\033[32m'
+c_yellow=$'\033[33m'
+c_red=$'\033[31m'
+c_cyan=$'\033[36m'
+c_dim=$'\033[2m'
 
 cleanup() {
     rm -f "$force_github_flag"
@@ -55,8 +63,10 @@ is_repo_ref() {
 }
 
 workspace_label() {
-    local name
-    name="$(basename "$(dirname "$1")")/$(basename "$1")"
+    local dir="${1%/}"
+    local repo="${dir##*/}"
+    local parent="${dir%/*}"
+    local name="${parent##*/}/$repo"
     name="${name//\//_}"
     name="${name//./_}"
     name="${name//:/_}"
@@ -65,7 +75,7 @@ workspace_label() {
 
 herdr_workspaces_tsv() {
     herdr workspace list 2>/dev/null \
-        | jq -r '.result.workspaces[] | [.workspace_id, (.label // "")] | @tsv'
+        | jq -r '.result.workspaces[] | [.workspace_id, (.label // ""), (.tab_count // 0), (.pane_count // 0)] | @tsv'
 }
 
 herdr_pane_cwds_tsv() {
@@ -73,11 +83,16 @@ herdr_pane_cwds_tsv() {
         | jq -r '.result.panes[] | [.workspace_id, (.foreground_cwd // .cwd // "")] | @tsv'
 }
 
+herdr_agents_tsv() {
+    herdr agent list 2>/dev/null \
+        | jq -r '.result.agents[] | [.terminal_id, (.agent // "agent"), (.agent_status // "unknown"), .workspace_id, (.terminal_title_stripped // "")] | @tsv'
+}
+
 find_workspace_id() {
     local label="$1" dir="$2"
     local id ws_label ws_cwd
 
-    while IFS=$'\t' read -r id ws_label; do
+    while IFS=$'\t' read -r id ws_label _; do
         if [[ "$ws_label" == "$label" ]]; then
             printf '%s\n' "$id"
             return 0
@@ -107,32 +122,70 @@ collect_local_dirs() {
     fi
 }
 
-build_local_entries() {
-    local dir owner repo label id ws_label ws_cwd
-    local open_lines="" local_lines=""
-    declare -A open_labels=() open_cwds=()
+agent_status_color() {
+    case "$1" in
+        working) printf '%s' "$c_yellow" ;;
+        blocked) printf '%s' "$c_red" ;;
+        done) printf '%s' "$c_green" ;;
+        idle) printf '%s' "$c_cyan" ;;
+        *) printf '%s' "$c_dim" ;;
+    esac
+}
 
-    while IFS=$'\t' read -r id ws_label; do
+# Rows are `kind \t name \t detail \t target` where target is a project
+# path, `ws:<workspace_id>`, or `agent:<terminal_id>`.
+# Rows stream to fzf as they are ready: herdr-backed rows (workspaces,
+# agents) print first, the local project scan fills in below them.
+build_entries() {
+    local dir owner repo rest label id ws_label tabs panes cwd wsid
+    local tid agent status title color
+    local local_lines=""
+    declare -A open_labels=() open_cwds=() ws_labels=() ws_meta=() ws_used=()
+
+    while IFS=$'\t' read -r id ws_label tabs panes; do
+        [[ -z "$id" ]] && continue
+        ws_labels["$id"]="$ws_label"
+        ws_meta["$id"]="${tabs} tabs · ${panes} panes"
         [[ -n "$ws_label" ]] && open_labels["$ws_label"]="$id"
     done < <(herdr_workspaces_tsv)
 
-    while IFS=$'\t' read -r id ws_cwd; do
-        [[ -n "$ws_cwd" ]] && open_cwds["$ws_cwd"]="$id"
+    while IFS=$'\t' read -r id cwd; do
+        [[ -n "$cwd" ]] && open_cwds["$cwd"]="$id"
     done < <(herdr_pane_cwds_tsv)
 
     while IFS= read -r dir; do
         [[ -z "$dir" ]] && continue
-        owner=$(basename "$(dirname "$dir")")
-        repo=$(basename "$dir")
-        label=$(workspace_label "$dir")
-        if [[ -n "${open_labels[$label]:-}" || -n "${open_cwds[$dir]:-}" ]]; then
-            open_lines+="open"$'\t'"$owner/$repo"$'\t'"$dir"$'\n'
+        dir="${dir%/}"
+        repo="${dir##*/}"
+        rest="${dir%/*}"
+        owner="${rest##*/}"
+        label="${owner}_${repo}"
+        label="${label//./_}"
+        label="${label//:/_}"
+        wsid="${open_labels[$label]:-${open_cwds[$dir]:-}}"
+        if [[ -n "$wsid" ]]; then
+            ws_used["$wsid"]=1
+            printf '%s\t%s\t\t%s\n' "${c_green}open${c_reset}" "$owner/$repo" "$dir"
         else
-            local_lines+="local"$'\t'"$owner/$repo"$'\t'"$dir"$'\n'
+            local_lines+="${c_dim}local${c_reset}"$'\t'"$owner/$repo"$'\t'$'\t'"$dir"$'\n'
         fi
     done < <(collect_local_dirs)
 
-    printf '%s%s' "$open_lines" "$local_lines"
+    # Workspaces with no matching local project (worktrees, manual ones).
+    for id in $(printf '%s\n' "${!ws_labels[@]}" | sort); do
+        [[ -n "${ws_used[$id]:-}" ]] && continue
+        printf '%s\t%s\t%s\t%s\n' "${c_green}open${c_reset}" "${ws_labels[$id]:-$id}" \
+            "${c_dim}${ws_meta[$id]}${c_reset}" "ws:$id"
+    done
+
+    while IFS=$'\t' read -r tid agent status wsid title; do
+        [[ -z "$tid" ]] && continue
+        color=$(agent_status_color "$status")
+        printf '%s\t%s\t%s\t%s\n' "${color}${status}${c_reset}" "${agent} · ${ws_labels[$wsid]:-$wsid}" \
+            "${c_dim}${title}${c_reset}" "agent:$tid"
+    done < <(herdr_agents_tsv)
+
+    printf '%s' "$local_lines"
 }
 
 search_github_repo() {
@@ -151,7 +204,7 @@ search_github_repo() {
         --with-nth=1,2,3 \
         --accept-nth=1 \
         --prompt="gh > " \
-        --header="GitHub search | type to refetch | enter clone | esc back" \
+        --header="type to search · enter clone · esc back" \
         --input-label=" Query " \
         --list-label=" Loading GitHub repos... " \
         --info=inline-right \
@@ -177,24 +230,29 @@ ensure_repo_local() {
     printf '%s\n' "$target"
 }
 
-pick_repo() {
+pick_target() {
     local result status
 
     rm -f "$force_github_flag"
 
     set +e
-    result=$(build_local_entries | fzf \
+    result=$(build_entries | fzf \
         --height=100% \
         --reverse \
         --border \
+        --ansi \
         --delimiter=$'\t' \
-        --with-nth=1,2 \
-        --accept-nth=3 \
+        --with-nth=1,2,3 \
+        --accept-nth=4 \
         --bind="ctrl-g:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept,alt-g:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept,f3:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept" \
         --print-query \
-        --prompt="repo > " \
-        --header="herdr workspaces | enter open/focus | type owner/repo to clone | enter query to search GitHub | ctrl-g/alt-g/f3 force GitHub search" \
-        --preview='dir=$(printf "%s" {} | cut -f3); [[ -d "$dir" ]] && eza --icons --git -l "$dir"' \
+        --prompt="jump > " \
+        --header="enter jump · owner/repo clones · ctrl-g github" \
+        --preview='t={4}; case "$t" in
+            agent:*) herdr agent read "${t#agent:}" --lines 60 2>/dev/null | jq -r ".result.read.text // \"(no agent output)\"";;
+            ws:*) herdr workspace get "${t#ws:}" 2>/dev/null | jq -C .result.workspace;;
+            *) [ -d "$t" ] && eza --icons --git -l "$t";;
+        esac' \
         --preview-window=right:40% \
     )
     status=$?
@@ -235,7 +293,7 @@ if [[ $# -eq 1 ]]; then
         exit 1
     fi
 else
-    pick_repo || exit 0
+    pick_target || exit 0
 
     if [[ "$PICK_KEY" == "force-github" ]]; then
         repo_ref=$(search_github_repo "$PICK_QUERY") || exit 0
@@ -244,15 +302,23 @@ else
         selected="$PICK_SELECTION"
     elif is_repo_ref "$PICK_QUERY"; then
         selected=$(ensure_repo_local "$PICK_QUERY")
-    elif [[ -n "$PICK_QUERY" ]]; then
-        repo_ref=$(search_github_repo "$PICK_QUERY") || exit 0
-        selected=$(ensure_repo_local "$repo_ref")
     else
         exit 0
     fi
 fi
 
 [[ -z "$selected" ]] && exit 0
+
+case "$selected" in
+    agent:*)
+        herdr agent focus "${selected#agent:}" >/dev/null
+        exit 0
+        ;;
+    ws:*)
+        herdr workspace focus "${selected#ws:}" >/dev/null
+        exit 0
+        ;;
+esac
 
 selected="${selected%/}"
 label=$(workspace_label "$selected")
