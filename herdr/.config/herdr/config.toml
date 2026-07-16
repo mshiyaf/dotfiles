@@ -4,6 +4,11 @@
 
 onboarding = false
 
+# Agent state changes in background workspaces -> desktop notifications
+# (D-Bus, lands in swaync). Sounds stay at their defaults.
+[ui.toast]
+delivery = "system"
+
 # Sessionizer: fuzzy-jump to projects, workspaces, and agents;
 # clones from GitHub on ctrl-g. Same muscle memory as tmux prefix+f.
 [[keys.command]]
