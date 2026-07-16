@@ -1,0 +1,376 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+shopt -s nullglob
+
+state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/tmux-agents/state"
+lock_file="${XDG_CACHE_HOME:-$HOME/.cache}/tmux-agents/lock"
+
+mkdir -p "$state_dir"
+
+clean_field() {
+    local value="${1:-}"
+    value="${value//$'\t'/ }"
+    value="${value//$'\n'/ }"
+    printf '%s' "$value"
+}
+
+state_file() {
+    printf '%s/%s.tsv' "$state_dir" "$1"
+}
+
+agent_from_command() {
+    local command="${1##*/}"
+    command="${command#-}"
+    command="${command,,}"
+
+    case "$command" in
+        claude|claude-code) printf 'claude' ;;
+        opencode) printf 'opencode' ;;
+        codex|codex-cli) printf 'codex' ;;
+        amp) printf 'amp' ;;
+        kimi|kimi-cli) printf 'kimi' ;;
+        *) return 1 ;;
+    esac
+}
+
+find_agent_process() {
+    local root_pid="$1" current_command="$2"
+    local agent child_pid child_command
+    local -a queue=("$root_pid")
+    local index=0
+
+    if agent=$(agent_from_command "$current_command"); then
+        printf '%s' "$agent"
+        return 0
+    fi
+
+    while (( index < ${#queue[@]} )); do
+        while read -r child_pid child_command; do
+            [[ -z "${child_pid:-}" ]] && continue
+            queue+=("$child_pid")
+            if agent=$(agent_from_command "$child_command"); then
+                printf '%s' "$agent"
+                return 0
+            fi
+        done < <(ps -o pid=,comm= --ppid "${queue[$index]}" 2>/dev/null)
+        ((index += 1))
+    done
+
+    return 1
+}
+
+pane_title() {
+    local title
+    title=$(tmux display-message -p -t "$1" '#{pane_title}' 2>/dev/null || true)
+    clean_field "${title:-$2}"
+}
+
+pane_visible() {
+    [[ "$(tmux display-message -p -t "$1" '#{pane_active}#{window_active}#{session_attached}' 2>/dev/null || true)" == "111" ]]
+}
+
+notify_transition() {
+    local pane="$1" agent="$2" status="$3"
+    local location title heading
+
+    command -v notify-send >/dev/null 2>&1 || return 0
+    pane_visible "$pane" && return 0
+
+    location=$(tmux display-message -p -t "$pane" '#{session_name}:#{window_index}' 2>/dev/null || true)
+    title=$(pane_title "$pane" "$agent")
+
+    case "$status" in
+        idle) heading="${agent^} finished" ;;
+        blocked) heading="${agent^} needs attention" ;;
+        *) return 0 ;;
+    esac
+
+    notify-send --app-name=tmux-agents "$heading" "${location}${title:+ · $title}" 9>&- >/dev/null 2>&1 &
+}
+
+write_state() {
+    local pane="$1" agent="$2" status="$3" source="$4" title="$5"
+    local file old_agent="" old_status="" old_source="" old_since="" old_title=""
+    local since temporary
+
+    file=$(state_file "$pane")
+    if [[ -f "$file" ]]; then
+        IFS=$'\t' read -r old_agent old_status old_source old_since old_title < "$file" || true
+    fi
+
+    if [[ "$old_agent" == "$agent" && "$old_status" == "$status" ]]; then
+        since="${old_since:-$(date +%s)}"
+    else
+        since=$(date +%s)
+    fi
+
+    temporary=$(mktemp "$state_dir/.${pane#%}.XXXXXX") || return 1
+    printf '%s\t%s\t%s\t%s\t%s\n' \
+        "$agent" "$status" "$source" "$since" "$(clean_field "$title")" > "$temporary"
+    mv -f "$temporary" "$file"
+
+    if [[ -n "$old_status" && ( "$old_agent" != "$agent" || "$old_status" != "$status" ) ]]; then
+        notify_transition "$pane" "$agent" "$status"
+    fi
+}
+
+refresh_glyphs() {
+    local window pane agent status source since title file priority
+    declare -A window_priority=()
+
+    while IFS= read -r window; do
+        [[ -n "$window" ]] && tmux set-option -wqu -t "$window" @agents_glyph 2>/dev/null || true
+    done < <(tmux list-windows -a -F '#{window_id}' 2>/dev/null)
+
+    for file in "$state_dir"/*.tsv; do
+        pane="${file##*/}"
+        pane="${pane%.tsv}"
+        window=$(tmux display-message -p -t "$pane" '#{window_id}' 2>/dev/null || true)
+        [[ -z "$window" ]] && continue
+        IFS=$'\t' read -r agent status source since title < "$file" || continue
+        case "$status" in
+            blocked) priority=3 ;;
+            working) priority=2 ;;
+            idle) priority=1 ;;
+            *) priority=0 ;;
+        esac
+        if [[ -z "${window_priority[$window]+set}" ]] || (( priority > window_priority[$window] )); then
+            window_priority["$window"]=$priority
+        fi
+    done
+
+    for window in "${!window_priority[@]}"; do
+        case "${window_priority[$window]}" in
+            3) tmux set-option -wq -t "$window" @agents_glyph '#[fg=#d95757]✋' ;;
+            2) tmux set-option -wq -t "$window" @agents_glyph '#[fg=#e6b450]●' ;;
+            1) tmux set-option -wq -t "$window" @agents_glyph '#[fg=#aad94c]○' ;;
+            0) tmux set-option -wq -t "$window" @agents_glyph '#[fg=#8e959e]?' ;;
+        esac
+    done
+}
+
+derive_status() {
+    local agent="$1" text="$2" tail
+    text="${text,,}"
+    tail=$(printf '%s\n' "$text" | tail -n 4)
+
+    case "$agent" in
+        claude)
+            if [[ "$text" =~ permission|approval|allow\ this|do\ you\ want\ to|needs\ your\ attention|\[y/n\] ]]; then
+                printf 'blocked'
+            elif [[ "$text" =~ esc\ to\ interrupt|ctrl.c\ to\ interrupt|thinking|working ]]; then
+                printf 'working'
+            elif [[ "$tail" =~ ❯|\> ]]; then
+                printf 'idle'
+            else
+                printf 'unknown'
+            fi
+            ;;
+        opencode)
+            if [[ "$text" =~ permission|approval|allow\ once|allow\ always|do\ you\ want\ to|needs\ your\ attention ]]; then
+                printf 'blocked'
+            elif [[ "$text" =~ esc\ to\ interrupt|esc\ to\ cancel|working|thinking|generating ]]; then
+                printf 'working'
+            elif [[ "$tail" =~ ask\ anything|ctrl.p\ commands|open(code)?\ [0-9]|\> ]]; then
+                printf 'idle'
+            else
+                printf 'unknown'
+            fi
+            ;;
+        codex)
+            if [[ "$text" =~ approval|permission|allow\ command|would\ you\ like|do\ you\ want\ to|press\ enter\ to\ confirm ]]; then
+                printf 'blocked'
+            elif [[ "$text" =~ esc\ to\ interrupt|working|thinking|running ]]; then
+                printf 'working'
+            elif [[ "$tail" =~ ›|\> ]]; then
+                printf 'idle'
+            else
+                printf 'unknown'
+            fi
+            ;;
+        amp)
+            if [[ "$text" =~ approval|permission|allow|needs\ your\ attention|do\ you\ want\ to|\[y/n\] ]]; then
+                printf 'blocked'
+            elif [[ "$text" =~ esc\ to\ interrupt|esc\ to\ cancel|working|thinking|running ]]; then
+                printf 'working'
+            elif [[ "$text" =~ ctrl.o\ for\ commands ]] || [[ "$tail" =~ medium.*╮|\> ]]; then
+                printf 'idle'
+            else
+                printf 'unknown'
+            fi
+            ;;
+        kimi)
+            if [[ "$text" =~ approval|permission|allow|confirm|do\ you\ want\ to|\[y/n\] ]]; then
+                printf 'blocked'
+            elif [[ "$text" =~ esc\ to\ interrupt|esc\ to\ cancel|working|thinking|running ]]; then
+                printf 'working'
+            elif [[ "$tail" =~ \> ]]; then
+                printf 'idle'
+            else
+                printf 'unknown'
+            fi
+            ;;
+        *) printf 'unknown' ;;
+    esac
+}
+
+scan_locked() {
+    local pane pid current detected file agent status source since title output new_status
+    declare -A pane_pids=() pane_commands=()
+
+    while IFS=$'\t' read -r pane pid current; do
+        [[ -z "$pane" ]] && continue
+        pane_pids["$pane"]="$pid"
+        pane_commands["$pane"]="$current"
+    done < <(tmux list-panes -a -F $'#{pane_id}\t#{pane_pid}\t#{pane_current_command}' 2>/dev/null)
+
+    for file in "$state_dir"/*.tsv; do
+        pane="${file##*/}"
+        pane="${pane%.tsv}"
+        if [[ -z "${pane_pids[$pane]:-}" ]]; then
+            rm -f "$file"
+            continue
+        fi
+
+        detected=$(find_agent_process "${pane_pids[$pane]}" "${pane_commands[$pane]}" || true)
+        IFS=$'\t' read -r agent status source since title < "$file" || agent=""
+        if [[ -z "$detected" || "$detected" != "$agent" ]]; then
+            rm -f "$file"
+        fi
+    done
+
+    for pane in "${!pane_pids[@]}"; do
+        detected=$(find_agent_process "${pane_pids[$pane]}" "${pane_commands[$pane]}" || true)
+        [[ -z "$detected" ]] && continue
+        file=$(state_file "$pane")
+        title=$(pane_title "$pane" "$detected")
+
+        if [[ ! -f "$file" ]]; then
+            output=$(tmux capture-pane -p -t "$pane" -S -15 2>/dev/null || true)
+            new_status=$(derive_status "$detected" "$output")
+            write_state "$pane" "$detected" "$new_status" poll "$title"
+            continue
+        fi
+
+        IFS=$'\t' read -r agent status source since title < "$file" || continue
+        [[ "$source" == "hook" ]] && continue
+        output=$(tmux capture-pane -p -t "$pane" -S -15 2>/dev/null || true)
+        new_status=$(derive_status "$agent" "$output")
+        write_state "$pane" "$agent" "$new_status" poll "$(pane_title "$pane" "$agent")"
+    done
+
+    refresh_glyphs
+}
+
+scan() {
+    exec 9>"$lock_file"
+    flock -w 2 9 || return 0
+    scan_locked
+}
+
+report() {
+    local agent="${1:-}" event="${2:-}" payload status source title file notification_type
+    local pane="${TMUX_PANE:-}"
+
+    payload=$(cat 2>/dev/null || true)
+    [[ -z "${TMUX:-}" || -z "$pane" || -z "$agent" || -z "$event" ]] && return 0
+    [[ "$event" == "SubagentStop" ]] && return 0
+    if command -v jq >/dev/null 2>&1 && printf '%s' "$payload" | jq -e '.agent_id != null and .agent_id != ""' >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [[ "$event" == "Notification" ]]; then
+        notification_type=$(printf '%s' "$payload" | jq -r '.notification_type // empty' 2>/dev/null || true)
+        case "$notification_type" in
+            permission_prompt|elicitation_dialog) status=blocked ;;
+            *) return 0 ;;
+        esac
+    else
+        case "$event" in
+        SessionStart|Stop|session-idle|idle|turn-complete) status=idle ;;
+        UserPromptSubmit|working|busy|session-busy|permission-replied|question-replied) status=working ;;
+        blocked|permission-asked|question-asked|session-error) status=blocked ;;
+        SessionEnd)
+            exec 9>"$lock_file"
+            flock 9
+            rm -f "$(state_file "$pane")"
+            refresh_glyphs
+            return 0
+            ;;
+        *) return 0 ;;
+        esac
+    fi
+
+    source=hook
+    [[ "$agent" == "codex" ]] && source=poll
+    title=$(pane_title "$pane" "$agent")
+
+    exec 9>"$lock_file"
+    flock 9
+    write_state "$pane" "$agent" "$status" "$source" "$title"
+    refresh_glyphs
+}
+
+summary() {
+    local file agent status source since title
+    local working=0 blocked=0 idle=0 unknown=0
+    local -a parts=()
+
+    scan
+    for file in "$state_dir"/*.tsv; do
+        IFS=$'\t' read -r agent status source since title < "$file" || continue
+        case "$status" in
+            working) ((working += 1)) ;;
+            blocked) ((blocked += 1)) ;;
+            idle) ((idle += 1)) ;;
+            *) ((unknown += 1)) ;;
+        esac
+    done
+
+    (( working > 0 )) && parts+=("#[fg=#e6b450]$working working")
+    (( blocked > 0 )) && parts+=("#[fg=#d95757]$blocked blocked")
+    (( idle > 0 )) && parts+=("#[fg=#aad94c]$idle idle")
+    (( unknown > 0 )) && parts+=("#[fg=#8e959e]$unknown unknown")
+    (( ${#parts[@]} == 0 )) && return 0
+
+    local joined="" part
+    for part in "${parts[@]}"; do
+        [[ -n "$joined" ]] && joined+="#[fg=#8e959e] / "
+        joined+="$part"
+    done
+    printf '#[bg=default,nobold] %s#[default] ' "$joined"
+}
+
+list_agents() {
+    local file pane agent status source since title location
+
+    for file in "$state_dir"/*.tsv; do
+        pane="${file##*/}"
+        pane="${pane%.tsv}"
+        IFS=$'\t' read -r agent status source since title < "$file" || continue
+        location=$(tmux display-message -p -t "$pane" '#{session_name}:#{window_index}' 2>/dev/null || true)
+        [[ -z "$location" ]] && continue
+        printf '%s\t%s · %s\t%s\t%s\n' "$status" "$agent" "$location" "$title" "$pane"
+    done
+}
+
+focus() {
+    local pane="${1:-}" session window
+    [[ "$pane" =~ ^%[0-9]+$ ]] || return 1
+    session=$(tmux display-message -p -t "$pane" '#{session_id}' 2>/dev/null) || return 1
+    window=$(tmux display-message -p -t "$pane" '#{window_id}' 2>/dev/null) || return 1
+    tmux switch-client -t "$session" \; select-window -t "$window" \; select-pane -t "$pane"
+}
+
+case "${1:-}" in
+    report) shift; report "$@" ;;
+    scan) scan ;;
+    summary) summary ;;
+    list) list_agents ;;
+    focus) shift; focus "$@" ;;
+    *)
+        printf 'usage: tmux-agents {report <agent> <event>|scan|summary|list|focus <pane_id>}\n' >&2
+        exit 2
+        ;;
+esac

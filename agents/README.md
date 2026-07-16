@@ -83,6 +83,18 @@ Hand-merge this stable posture into `~/.codex/config.toml`:
 ```toml
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
+
+[tui]
+status_line_use_colors = false
+status_line = [
+  "project-name",
+  "git-branch",
+  "model-with-reasoning",
+  "context-used",
+  "used-tokens",
+  "five-hour-limit",
+  "weekly-limit",
+]
 ```
 
 The package includes `agents/.codex/rules/default.rules` using Codex `prefix_rule()` syntax.

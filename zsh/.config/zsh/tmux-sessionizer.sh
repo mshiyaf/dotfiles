@@ -13,6 +13,12 @@ search_dirs=(
     "$base_dir/mshiyaf/dotfiles"
 )
 
+c_reset=$'\033[0m'
+c_green=$'\033[32m'
+c_yellow=$'\033[33m'
+c_red=$'\033[31m'
+c_dim=$'\033[2m'
+
 cleanup() {
     rm -f "$force_github_flag"
 }
@@ -58,14 +64,38 @@ collect_local_dirs() {
 }
 
 build_local_entries() {
-    local dir owner repo
+    local dir owner repo rest
 
     while IFS= read -r dir; do
         [[ -z "$dir" ]] && continue
-        owner=$(basename "$(dirname "$dir")")
-        repo=$(basename "$dir")
-        printf 'local\t%s/%s\t%s\n' "$owner" "$repo" "$dir"
+        dir="${dir%/}"
+        repo="${dir##*/}"
+        rest="${dir%/*}"
+        owner="${rest##*/}"
+        printf '%slocal%s\t%s/%s\t\t%s\n' "$c_dim" "$c_reset" "$owner" "$repo" "$dir"
     done < <(collect_local_dirs)
+}
+
+agent_status_color() {
+    case "$1" in
+        working) printf '%s' "$c_yellow" ;;
+        blocked) printf '%s' "$c_red" ;;
+        idle) printf '%s' "$c_green" ;;
+        *) printf '%s' "$c_dim" ;;
+    esac
+}
+
+build_entries() {
+    local status name title pane color
+
+    while IFS=$'\t' read -r status name title pane; do
+        [[ -z "$pane" ]] && continue
+        color=$(agent_status_color "$status")
+        printf '%s%s%s\t%s\t%s%s%s\tagent:%s\n' \
+            "$color" "$status" "$c_reset" "$name" "$c_dim" "$title" "$c_reset" "$pane"
+    done < <(~/.local/bin/tmux-agents list 2>/dev/null || true)
+
+    build_local_entries
 }
 
 search_github_repo() {
@@ -84,7 +114,7 @@ search_github_repo() {
         --with-nth=1,2,3 \
         --accept-nth=1 \
         --prompt="gh > " \
-        --header="GitHub search | type to refetch | enter clone | esc back" \
+        --header="type to search · enter clone · esc back" \
         --input-label=" Query " \
         --list-label=" Loading GitHub repos... " \
         --info=inline-right \
@@ -116,18 +146,22 @@ pick_repo() {
     rm -f "$force_github_flag"
 
     set +e
-    result=$(build_local_entries | fzf \
+    result=$(build_entries | fzf \
         --height=40% \
         --reverse \
         --border \
+        --ansi \
         --delimiter=$'\t' \
-        --with-nth=2,3 \
-        --accept-nth=3 \
+        --with-nth=1,2,3 \
+        --accept-nth=4 \
         --bind="ctrl-g:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept,alt-g:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept,f3:execute-silent(sh -c 'printf github > \"$force_github_flag\"')+accept" \
         --print-query \
-        --prompt="repo > " \
-        --header="tmux sessions | enter local | type owner/repo to clone | enter query to search GitHub | ctrl-g/alt-g/f3 force GitHub search" \
-        --preview='dir=$(printf "%s" {} | cut -f3); [[ -d "$dir" ]] && eza --icons --git -l "$dir"' \
+        --prompt="jump > " \
+        --header="enter jump · owner/repo clones · ctrl-g github" \
+        --preview='target={4}; case "$target" in
+            agent:*) tmux capture-pane -pet "${target#agent:}" -S -60 2>/dev/null;;
+            *) [[ -d "$target" ]] && eza --icons --git -l "$target";;
+        esac' \
         --preview-window=right:40% \
     )
     status=$?
@@ -177,15 +211,17 @@ else
         selected="$PICK_SELECTION"
     elif is_repo_ref "$PICK_QUERY"; then
         selected=$(ensure_repo_local "$PICK_QUERY")
-    elif [[ -n "$PICK_QUERY" ]]; then
-        repo_ref=$(search_github_repo "$PICK_QUERY") || exit 0
-        selected=$(ensure_repo_local "$repo_ref")
     else
         exit 0
     fi
 fi
 
 [[ -z "$selected" ]] && exit 0
+
+if [[ "$selected" == agent:* ]]; then
+    ~/.local/bin/tmux-agents focus "${selected#agent:}"
+    exit 0
+fi
 
 parent=$(basename "$(dirname "$selected")")
 repo=$(basename "$selected")
