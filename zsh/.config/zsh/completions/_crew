@@ -1,14 +1,15 @@
 #compdef crew
 
-# Completion for the `crew` tmux multi-agent orchestrator.
+# Completion for the `crew` tmux/herdr multi-agent orchestrator.
 
-# Active crew sessions, with the `crew_` prefix stripped (attach/stop re-sanitize,
-# so the underscored form round-trips fine).
+# Known crewmates from crew's own state dirs (works for both the tmux and herdr
+# backends, even when neither server is reachable). The branch files hold the
+# un-sanitized branch names attach/stop expect.
 __crew_sessions() {
-    local -a sessions
-    sessions=(${(f)"$(tmux list-sessions -F '#{session_name}' 2>/dev/null \
-        | sed -n 's/^crew_//p')"})
-    _describe -t sessions 'crew session' sessions
+    local -a mates
+    local sd="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
+    mates=(${(f)"$(cat "$sd"/*/*/branch(N.) 2>/dev/null | sort -u)"})
+    _describe -t sessions 'crewmate branch' mates
 }
 
 __crew_all_branches() {
@@ -21,7 +22,7 @@ _crew() {
     local curcontext="$curcontext" state line
     local -a subcommands
     subcommands=(
-        'new:create a worktree + tmux session running an agent (branch AI-named from the task)'
+        'new:create a worktree + session/workspace running an agent (branch AI-named from the task)'
         'ls:list active crew sessions'
         'list:list active crew sessions'
         'attach:attach/switch to a crewmate session'
@@ -45,6 +46,7 @@ _crew() {
                         '--attach[jump into the session now]' \
                         '--claude[use the claude engine]' \
                         '--codex[use the codex engine]' \
+                        '--headless[bounded non-interactive run (herdr; default on tmux)]' \
                         '--profile[model profile]:profile:(fast standard deep)'
                     ;;
                 attach)

@@ -190,7 +190,11 @@ root, `wt`/`git wt new` runs it inside the new worktree (copy `.env`, install de
 
 **`crew` - many agents at once.** Our lightweight orchestrator (our own take on firstmate - no
 external scripts). Each crewmate = a branch in its own `wt` worktree running an agent in its own
-detached **tmux** session. A crewmate with a task runs **bounded**: it may edit, run tests, and
+detached **tmux session or background herdr workspace** (backend auto-detected at spawn: herdr
+inside herdr, tmux otherwise; `CREW_BACKEND=tmux|herdr` forces one). On herdr a task launches the
+engine's interactive TUI seeded with the task, so herdr tracks live agent status
+(working/blocked/idle); `--headless` keeps the tmux-style bounded run.
+A crewmate with a task runs **bounded**: it may edit, run tests, and
 commit on its branch, then stops - it never pushes. Each engine is constrained differently but to
 the same effect - auto-approve everything except an explicit deny-list, never a full yolo mode:
 `opencode` via `--agent crewmate --auto` (auto-approves, but the `crewmate` agent still denies
@@ -200,7 +204,7 @@ push is blocked). Headless `opencode run` has no TTY to approve prompts, so **`-
 or every crewmate action is auto-rejected.
 
 ```bash
-crew new "<task>"            # standard profile (the default): AI-name a branch, then worktree + tmux session running:
+crew new "<task>"            # standard profile (the default): AI-name a branch, then worktree + session/workspace running:
                              #   opencode run "<task>" --agent crewmate
                               #   --profile fast|standard|deep -> explicit per-engine model tier
                               #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
@@ -210,7 +214,7 @@ crew new "<task>"            # standard profile (the default): AI-name a branch,
 crew status [<branch>]       # table: branch | running/done(rc) | commits-ahead | last log line
 crew logs <branch> [-f]      # print (or -f follow) a crewmate's captured output
 crew watch [-n SECS]         # notify (bell + notify-send) when a crewmate finishes or blocks
-crew ls                      # list active crew tmux sessions
+crew ls                      # list active crew sessions / workspaces
                              #   status/watch/ls take --all to span every repo (default: this repo)
 crew attach <branch>         # attach / switch-client to a crewmate
 crew stop <branch> -D        # kill the session (-D also removes worktree + branch)
@@ -267,7 +271,7 @@ zero tokens, and fires a terminal bell + `notify-send` toast only on a real tran
 (ready / blocked / crashed), e.g. `crew: feat-dark ready for review - done, 2 commit(s)`. That is the
 event-driven layer an in-chat agent cannot provide on its own.
 
-**How agnostic is this?** The engine (`crew` CLI, worktrees, tmux, state tracking) is fully
+**How agnostic is this?** The engine (`crew` CLI, worktrees, tmux/herdr, state tracking) is fully
 tool-agnostic - dispatch `opencode`, `claude`, or `codex` crewmates from any terminal, all bounded
 the same way. The `crew` **skill** is shared across all three tools, so any of them can play captain.
 Only the packaged `/crew` **command** and the `captain`/`crewmate` **agent** definitions are
@@ -485,7 +489,7 @@ headless runner) and are not generated for Claude/Codex.
 | Tool | Subcommands | Purpose |
 |---|---|---|
 | `git wt` / `wt` | `new`, `ls`, `path`, `rm`, `prune` | Sibling worktrees; `wt` adds `cd`; `.worktrees-setup` post-create hook |
-| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex` |
+| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux/herdr multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex`/`--headless` |
 | `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex` |
 | `codex-status` | `--json`, `--watch` | ChatGPT/Codex usage + rate-limit meter |
 

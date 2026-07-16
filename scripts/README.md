@@ -18,7 +18,7 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 - `codex-resets` - show available reset credits for every saved OpenCode account.
 - `ai-branch-name` - turn a free-text task into one git branch name (AI, with a slug fallback); used by `crew` and `wt`.
 - `git-wt` - sibling git worktree manager (see below).
-- `crew` - tmux multi-agent orchestrator built on `git-wt` (see below).
+- `crew` - tmux/herdr multi-agent orchestrator built on `git-wt` (see below).
 - `gate` - local AI ship gate: validate in a disposable worktree, then push + PR (see below).
 
 ## git-wt - parallel worktrees for agentic development
@@ -97,11 +97,18 @@ cd ~/dev/github.com/you/myrepo
 git wt rm feature-x -D       # remove worktree + branch
 ```
 
-## crew - tmux multi-agent orchestrator
+## crew - tmux/herdr multi-agent orchestrator
 
 `crew` runs several agents in parallel, each in its own `git wt` worktree and its own
-detached tmux session. Our own lightweight take on firstmate - no daemon, no external
-scripts. Run it from inside the target repo. A crewmate with a task runs **bounded**: it may
+detached tmux session or background herdr workspace. Our own lightweight take on firstmate -
+no daemon, no external scripts. Run it from inside the target repo. The backend is
+auto-detected per crewmate at spawn (herdr inside herdr, tmux inside tmux, else tmux if
+installed; `CREW_BACKEND=tmux|herdr` forces one) and recorded in the state dir, so
+`status`/`attach`/`stop` keep working from anywhere. On tmux, a crewmate with a task runs
+**headless**; on herdr it launches the engine's **interactive TUI seeded with the task**
+instead, so herdr's native agent detection tracks live status (working/blocked/idle) for
+toasts and the sessionizer - pass `--headless` to keep the bounded non-interactive run.
+A crewmate with a task runs **bounded**: it may
 edit, run tests, and commit on its branch, then stops - it never pushes. Each engine is
 constrained to that effect - auto-approve everything except an explicit deny-list, never a full
 yolo mode: `opencode` via `--agent crewmate --auto` (auto-approves, but the agent still denies
@@ -122,7 +129,7 @@ crew new -b spike-y                  # no task -> interactive opencode in the wo
 crew status                          # branch | engine | profile | model | running/done(rc) | commits-ahead
 crew logs feat/dark -f               # follow a crewmate's captured output
 crew watch                           # bell + notify-send when a crewmate finishes or blocks
-crew ls                              # list active crew tmux sessions
+crew ls                              # list active crew sessions / workspaces
 crew attach feat/dark                # attach / switch-client to a crewmate
 crew stop feat/dark -D               # kill session (-D also removes worktree + branch)
 ```
@@ -135,9 +142,9 @@ Profiles explicitly select the model for every engine rather than inheriting mac
 | `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra |
 | `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol |
 
-crew is **scoped per repository**: sessions are named `crew_<repo-key>_<branch>` and state lives
-in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`, `engine`,
-`profile`, `model`, `log`, `status`).
+crew is **scoped per repository**: sessions/workspaces are named `crew_<repo-key>_<branch>` and
+state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
+`engine`, `profile`, `model`, `log`, `status`, `backend`, and on herdr `workspace_id`/`pane_id`).
 The repo key is derived from the shared `--git-common-dir`, so it is stable from the
 main repo or any of its worktrees. `crew ls`/`status`/`watch` show only the current repo's
 crewmates (two repos can each run a `feat-x` without colliding); pass `--all` for the cross-repo

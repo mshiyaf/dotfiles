@@ -4,7 +4,9 @@ description: Use when orchestrating several agents in parallel - split a request
 ---
 ## What it is
 `crew` runs multiple agents in parallel, each in its own `git wt` worktree and detached tmux
-session. You are the **captain**: you plan, dispatch, and monitor - you do not write code
+session or background herdr workspace (backend auto-detected; on herdr a task runs the engine's
+interactive TUI with live status, `--headless` for the bounded non-interactive run).
+You are the **captain**: you plan, dispatch, and monitor - you do not write code
 yourself. Each crewmate implements one feature and commits on its own branch. Crewmates never
 push; the user reviews and ships each ready branch.
 

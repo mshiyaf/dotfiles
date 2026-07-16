@@ -20,6 +20,13 @@ permission:
     "tmux capture-pane*": allow
     "tmux list-sessions*": allow
     "tmux list-panes*": allow
+    "herdr workspace list*": allow
+    "herdr workspace get*": allow
+    "herdr pane list*": allow
+    "herdr pane read*": allow
+    "herdr agent list*": allow
+    "herdr agent get*": allow
+    "herdr agent read*": allow
     "git push*": deny
   skill:
     "*": deny
