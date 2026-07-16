@@ -9,6 +9,11 @@ onboarding = false
 [ui.toast]
 delivery = "system"
 
+# Repaint pane screen contents after a full server restart (tmux-resurrect
+# style). Note: persists recent pane output as plaintext under ~/.config/herdr.
+[experimental]
+pane_history = true
+
 # Sessionizer: fuzzy-jump to projects, workspaces, and agents;
 # clones from GitHub on ctrl-g. Same muscle memory as tmux prefix+f.
 [[keys.command]]
