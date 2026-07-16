@@ -2,57 +2,64 @@
 #
 # Quick start:
 #   make list                      # show all available packages
-#   make stow                      # stow every (home) package into $HOME
+#   make agents-sync && make stow  # install default packages into $HOME
 #   make stow PKG="opencode nvim"  # stow only the named packages
 #   make stow-opencode             # stow a single package (per-package target)
-#   make restow PKG="opencode"     # re-sync (picks up newly added files)
+#   make agents-sync && make restow # refresh default packages after pulling
+#   make restow PKG="opencode"     # re-sync only named packages
 #   make unstow PKG="opencode"     # remove a package's symlinks
 #   make TARGET=/tmp/test stow     # override the install target (default: $HOME)
 #
 # Notes:
 #   * --no-folding makes stow create real directories and symlink individual
 #     files, so adding a new file to a package and re-stowing always links it.
-#   * keyd / udev / sddm are SYSTEM configs (they target /etc, need root) and
-#     are excluded from the default package list. Install them manually.
+#   * The default package list is explicit. Other packages remain available via
+#     per-package targets, such as `make stow-rofi`.
 
 STOW       ?= stow
 TARGET     ?= $(HOME)
 DIR        := $(CURDIR)
 STOW_FLAGS ?= --no-folding -v
 
-# Packages that do NOT belong under $HOME (system configs under /etc, etc.)
-EXCLUDE := keyd udev sddm
+# Every available package directory. Hidden dirs like .git are not matched by */.
+# `codex/` is intentionally ignored because its live config is machine-local.
+ALL_PACKAGES := $(filter-out codex,$(patsubst %/,%,$(wildcard */)))
 
-# Auto-detected list of stow packages: every visible top-level directory
-# minus the excluded ones. (Hidden dirs like .git are not matched by */.)
-ALL_PACKAGES := $(filter-out $(EXCLUDE),$(patsubst %/,%,$(wildcard */)))
+# Packages installed by `make stow` and `make restow`.
+DEFAULT_PACKAGES := agents alacritty fastfetch git herdr kitty niri noctalia nvim opencode scripts tmux zprofile zsh zshenv
 
-# Packages to act on. Override on the command line, e.g.
+# Packages to act on. Defaults to the active, tested package set. Override on
+# the command line for a targeted operation, e.g.
 #   make stow PKG="opencode nvim tmux"
-PKG ?= $(ALL_PACKAGES)
+PKG ?= $(DEFAULT_PACKAGES)
 
 .PHONY: help list stow restow unstow agents-sync
 
 help:
 	@echo "Targets:"
 	@echo "  make list                      List available packages"
-	@echo "  make stow   [PKG=\"a b c\"]       Stow all packages, or only PKG"
-	@echo "  make restow [PKG=\"a b c\"]       Re-stow (sync) packages"
+	@echo "  make stow   [PKG=\"a b c\"]       Install default packages, or only PKG"
+	@echo "  make restow [PKG=\"a b c\"]       Refresh default packages, or only PKG"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
 	@echo "  make agents-sync                Regenerate Claude/Codex subagents"
 	@echo "  make stow-<pkg>                Stow a single package (e.g. stow-opencode)"
 	@echo "  make unstow-<pkg>              Unstow a single package"
 	@echo "  make restow-<pkg>             Restow a single package"
 	@echo ""
+	@echo "Standard flows:"
+	@echo "  New machine:      make agents-sync && make stow"
+	@echo "  Existing machine: make agents-sync && make restow"
+	@echo ""
 	@echo "Variables:"
 	@echo "  TARGET=$(TARGET)  (install destination)"
 	@echo "  PKG=\"$(PKG)\""
 
 list:
-	@echo "Available packages (default TARGET=$(TARGET)):"
-	@for p in $(ALL_PACKAGES); do echo "  $$p"; done
+	@echo "Default packages (TARGET=$(TARGET)):"
+	@for p in $(DEFAULT_PACKAGES); do echo "  $$p"; done
 	@echo ""
-	@echo "Excluded (system configs, install manually): $(EXCLUDE)"
+	@echo "Other packages (install explicitly):"
+	@for p in $(filter-out $(DEFAULT_PACKAGES),$(ALL_PACKAGES)); do echo "  $$p"; done
 
 stow:
 	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -S $(PKG)

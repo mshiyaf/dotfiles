@@ -10,6 +10,9 @@ btop/.config/btop/btop.log
 .env
 .aider*
 
+# Codex's live configuration contains machine-local trust and NUX state.
+codex/
+
 # zbar
 .glzr/zebar/tmp*
 

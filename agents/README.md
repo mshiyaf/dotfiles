@@ -77,25 +77,20 @@ If it is no longer a symlink, diff the real file, merge wanted changes into `age
 
 Do not symlink `~/.codex/config.toml`.
 It contains machine-local churn such as project trust levels and NUX state.
+The `codex/` directory is ignored, so it is never a Stow package.
 
-Hand-merge this stable posture into `~/.codex/config.toml`:
+`agents/codex-config.toml.example` is the portable baseline and is ignored by this package's `.stow-local-ignore`.
+On each machine, create the real `~/.codex/config.toml` from it if no configuration exists:
 
-```toml
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
-
-[tui]
-status_line_use_colors = false
-status_line = [
-  "project-name",
-  "git-branch",
-  "model-with-reasoning",
-  "context-used",
-  "used-tokens",
-  "five-hour-limit",
-  "weekly-limit",
-]
+```bash
+mkdir -p "$HOME/.codex"
+[ -e "$HOME/.codex/config.toml" ] || \
+  cp agents/codex-config.toml.example "$HOME/.codex/config.toml"
 ```
+
+If the file already exists, merge the template's settings manually instead of overwriting it.
+Do not copy `[projects."..."]` `trust_level` entries, TUI NUX state, credentials, or absolute machine-specific command paths.
+Codex recreates trust entries when you explicitly trust each project.
 
 The package includes `agents/.codex/rules/default.rules` using Codex `prefix_rule()` syntax.
 It allows git status/diff/log and common test runners, forbids `git push`, and leaves everything else to the approval policy.
@@ -120,9 +115,17 @@ mkdir -p "$HOME/.codex/skills"
 [ -e "$HOME/.claude/settings.json" ] && [ ! -L "$HOME/.claude/settings.json" ] && \
   mv "$HOME/.claude/settings.json" "$HOME/.claude/settings.json.pre-stow.bak"
 
-make agents-sync
-make stow-agents        # or: make restow-agents
+# New machine: install the active package set.
+make agents-sync && make stow
+
+# Existing machine after pulling changes: refresh the active package set.
+make agents-sync && make restow
 ```
+
+`make stow` creates missing links.
+`make restow` refreshes links that are already managed by the selected packages and creates newly added links.
+Both use the same default package set: `agents`, `alacritty`, `fastfetch`, `git`, `herdr`, `kitty`, `niri`, `noctalia`, `nvim`, `opencode`, `scripts`, `tmux`, `zprofile`, `zsh`, and `zshenv`.
+Use `make restow-agents`, `make restow-opencode`, or `make restow-scripts` only when updating that package alone.
 
 Codex installs its bundled skills as real files under `~/.codex/skills/.system`.
 The Stow package ignores that host-owned path when `~/.codex/skills` already exists, while continuing to manage the other shared skills.
