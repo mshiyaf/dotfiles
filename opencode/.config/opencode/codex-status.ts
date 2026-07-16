@@ -6,6 +6,7 @@
  * falling back to the Codex CLI OAuth store (~/.codex/auth.json). Refreshes
  * the access token if expired, then calls /wham/usage and renders a
  * compact string such as "5h █████░░░░░ 55% · 7d ██░░░░░░░░ 20%" in the bottom-right.
+ * Adapts to terminal width: bars shrink and filler text drops on narrow screens.
  *
  * Supports local OpenCode-only OpenAI account profiles stored outside the repo
  * under ~/.local/share/opencode/openai-accounts/.
@@ -319,11 +320,53 @@ function toLimit(w: UsageWindow): Limit | null {
   return { label: windowLabel(w.limit_window_seconds), leftPercent: left };
 }
 
-function bar(percent: number): string {
-  const width = 10;
+function bar(percent: number, width: number): string {
+  if (width <= 0) return "";
   let filled = Math.round((percent / 100) * width);
   if (percent > 0 && filled === 0) filled = 1;
   return `${"█".repeat(filled)}${"░".repeat(width - filled)}`;
+}
+
+// Progressive fallbacks for narrow terminals: shrink bars first, then drop
+// filler words, then bars, then the token count, and lastly the account name.
+type Layout = { bar: number; tokens: boolean; left: boolean; account: boolean };
+
+const LAYOUTS: Layout[] = [
+  { bar: 10, tokens: true, left: true, account: true },
+  { bar: 6, tokens: true, left: false, account: true },
+  { bar: 3, tokens: true, left: false, account: true },
+  { bar: 0, tokens: true, left: false, account: true },
+  { bar: 0, tokens: false, left: false, account: true },
+  { bar: 0, tokens: false, left: false, account: false },
+];
+
+// Columns assumed taken by the rest of the prompt row (left-side hints,
+// borders, padding, sidebar slack). Tune if the slot still clips.
+const RESERVED_COLUMNS = 45;
+
+function renderedWidth(l: Layout, account: string, ctx: ContextUsage | null, s: Status): number {
+  const parts: string[] = [];
+  if (l.account && account) parts.push(account);
+  const c = formatContext(ctx, l);
+  if (c) parts.push(c);
+  if (s.type === "ready") for (const limit of s.limits) parts.push(formatLimit(limit, l));
+  else if (s.type === "missing") parts.push("codex: no auth");
+  else if (s.type === "error") parts.push(`codex: ${s.message}`);
+  return parts.join(" · ").length;
+}
+
+function pickLayout(termWidth: number, account: string, ctx: ContextUsage | null, s: Status): Layout {
+  const budget = termWidth - RESERVED_COLUMNS;
+  for (const l of LAYOUTS) {
+    if (renderedWidth(l, account, ctx, s) <= budget) return l;
+  }
+  return LAYOUTS[LAYOUTS.length - 1];
+}
+
+function formatLimit(limit: Limit, l: Layout): string {
+  const b = l.bar > 0 ? `${bar(limit.leftPercent, l.bar)} ` : "";
+  const suffix = l.left ? " left" : "";
+  return `${limit.label} ${b}${limit.leftPercent}%${suffix}`;
 }
 
 function isOpenAIProvider(providerID?: string): boolean {
@@ -453,9 +496,11 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
-function formatContext(u: ContextUsage | null): string {
+function formatContext(u: ContextUsage | null, l: Layout): string {
   if (!u) return "";
-  return `ctx ${bar(u.percent)} ${u.percent}% (${formatTokens(u.tokens)})`;
+  const b = l.bar > 0 ? `${bar(u.percent, l.bar)} ` : "";
+  const tokens = l.tokens ? ` (${formatTokens(u.tokens)})` : "";
+  return `ctx ${b}${u.percent}%${tokens}`;
 }
 
 function parseStatus(payload: UsagePayload): Status {
@@ -500,7 +545,12 @@ const tui: TuiPlugin = async (api) => {
 
   const [status, setStatus] = solidJs.createSignal<Status>({ type: "loading" });
   const [accountVersion, setAccountVersion] = solidJs.createSignal(0);
+  const [termWidth, setTermWidth] = solidJs.createSignal(api.renderer.terminalWidth);
   let inFlight = false;
+
+  const onResize = () => setTermWidth(api.renderer.terminalWidth);
+  api.renderer.on("resize", onResize);
+  api.lifecycle.onDispose(() => api.renderer.off("resize", onResize));
 
   async function tick() {
     if (inFlight) return;
@@ -591,6 +641,15 @@ const tui: TuiPlugin = async (api) => {
           return showCodex() ? activeProfileName() ?? "openai" : "";
         }
 
+        function layout(): Layout {
+          const s = showCodex() ? status() : ({ type: "loading" } as Status);
+          return pickLayout(termWidth(), accountName(), currentContext(), s);
+        }
+
+        function shownAccount() {
+          return layout().account ? accountName() : "";
+        }
+
         function statusText(index: number) {
           const s = status();
           if (s.type === "loading") return "";
@@ -599,15 +658,19 @@ const tui: TuiPlugin = async (api) => {
           if (s.type !== "ready") return "";
           const limit = s.limits[index];
           if (!limit) return "";
-          return `${limit.label} ${bar(limit.leftPercent)} ${limit.leftPercent}% left`;
+          return formatLimit(limit, layout());
+        }
+
+        function contextText() {
+          return formatContext(currentContext(), layout());
         }
 
         function hasContext() {
-          return Boolean(formatContext(currentContext()));
+          return Boolean(contextText());
         }
 
         function hasAccount() {
-          return Boolean(accountName());
+          return Boolean(shownAccount());
         }
 
         function showCodex() {
@@ -615,15 +678,15 @@ const tui: TuiPlugin = async (api) => {
         }
 
         textNode(
-          () => accountName(),
+          () => shownAccount(),
           () => api.theme.current.info,
         );
         textNode(
-          () => (hasAccount() && (formatContext(currentContext()) || (showCodex() && statusText(0))) ? " · " : ""),
+          () => (hasAccount() && (contextText() || (showCodex() && statusText(0))) ? " · " : ""),
           () => api.theme.current.textMuted,
         );
         textNode(
-          () => formatContext(currentContext()),
+          () => contextText(),
           () => contextColor(currentContext(), api.theme.current),
         );
         textNode(
