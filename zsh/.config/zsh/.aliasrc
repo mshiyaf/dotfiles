@@ -21,6 +21,7 @@ alias tf="terraform"
 alias j="just"
 alias gpr="gh pr create"
 alias gpc="gh pr checkout"
+alias commit='opencode run "/commit" --auto'
 
 # Help people new to Arch
 alias apt="man pacman"
