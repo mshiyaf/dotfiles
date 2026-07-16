@@ -18,3 +18,10 @@ refresher:
   refreshInterval: 3
 os:
   edit: "vim"
+customCommands:
+  - key: <c-a>
+    context: files
+    description: AI commit staged changes (opencode)
+    command: opencode run "/commit" --auto
+    output: terminal
+    loadingText: Generating AI commit...
