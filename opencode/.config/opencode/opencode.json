@@ -4,7 +4,8 @@
   "small_model": "openai/gpt-5.6-luna-fast",
   "default_agent": "build",
   "enabled_providers": [
-    "openai"
+    "openai",
+    "kimi-for-coding"
   ],
   "permission": {
     "edit": "ask",
@@ -19,7 +20,7 @@
   },
   "agent": {
     "build": {
-      "model": "openai/gpt-5.6-terra",
+      "model": "openai/gpt-5.6-terra-fast",
       "permission": {
         "bash": {
           "*": "ask",
@@ -55,7 +56,7 @@
       "model": "openai/gpt-5.6-terra"
     },
     "reviewer": {
-      "model": "openai/gpt-5.6-sol"
+      "model": "openai/gpt-5.6-terra"
     },
     "security-reviewer": {
       "model": "openai/gpt-5.6-sol-pro"
@@ -346,7 +347,7 @@
             ]
           },
           "options": {
-            "reasoningEffort": "xhigh",
+            "reasoningEffort": "high",
             "reasoningSummary": "detailed",
             "textVerbosity": "medium"
           }

@@ -1,6 +1,6 @@
 {
   "reviewer": {
-    "opencode": "gpt-5.6-sol",
+    "opencode": "gpt-5.6-terra",
     "claude": "opus",
     "codex": "gpt-5.6-sol"
   },

@@ -128,16 +128,26 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.6-terra`.
+Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.6-terra-fast`.
 `small_model` uses `openai/gpt-5.6-luna-fast` for quick, cheap helper work.
+
+`build` and `reviewer` sit a notch below their tier because they run on every ship. `build` drives
+the whole ship gate (review, auto-fix, test/lint and CI fixes) and that fix work is high-volume and
+mechanical; `reviewer` backs the interactive review commands.
+
+One deliberate exception to the centralization above: `gate_review_opencode` in
+`scripts/.local/bin/gate` passes `--model openai/gpt-5.6-terra` so the gate's *review* pass runs a
+reasoning notch above its *fix* pass. The gate is a standalone script rather than a command or
+skill, and it cannot route to the `reviewer` agent - subagents are not targetable by `--agent` in
+headless runs - so the model is pinned at the call site.
 
 `opencode.json` model names use a short `Light`/`Standard`/`Heavy` tag (matching the table below) instead of spelling out pricing:
 
 | Tier | Cost per 1M tokens | Routing fit |
 | ---- | ------------------ | ----------- |
 | Luna | $1 input / $6 output | Fast and cheap tasks: docs, PR text, commits, boilerplate. |
-| Terra | $2.50 input / $15 output | Everyday coding, testing, and normal build work. |
-| Sol | $5 input / $30 output | Architecture, debugging, review, research, and orchestration. |
+| Terra | $2.50 input / $15 output | Everyday coding, testing, normal build work, and code review. |
+| Sol | $5 input / $30 output | Architecture, debugging, research, and orchestration. |
 
 Use Fast presets for latency-sensitive or simple work and Pro presets only for highest-risk reasoning such as security review and critique.
 

@@ -48,15 +48,26 @@ Think → Plan → Plan-review → Build → Review → Test → Ship → Reflec
 ### Model-routing philosophy (in `opencode.json`)
 
 OpenCode routing is OpenAI-only.
-Luna Fast handles lightweight writing, Terra handles everyday implementation, and Sol handles
-reasoning-intensive planning, debugging, and review.
+Luna Fast handles lightweight writing, Terra handles everyday implementation and review, and Sol
+handles reasoning-intensive planning and debugging.
 Sol Pro is reserved for the highest-risk security and critique work.
+
+`build` and `reviewer` sit a notch below their tier because they run on every ship.
+`build` drives the entire gate - review, auto-fix, test/lint fixes, CI fixes - and that fix work is
+high-volume and mechanical. `reviewer` backs the interactive review commands.
+
+The gate's review pass is the exception: `gate_review_opencode` in `scripts/.local/bin/gate`
+overrides `build`'s model to `gpt-5.6-terra`, because classifying findings `auto_fix` vs `ask_user`
+is judgment rather than mechanical. The gate never routes to the `reviewer` agent - it is a
+subagent, so headless runs cannot target it, and the gate carries its own inline review prompt.
 
 | Tier | Agents | Model |
 |---|---|---|
-| Workhorse | `build`, `tester`, `crewmate` | `openai/gpt-5.6-terra` |
+| Gate / build | `build` | `openai/gpt-5.6-terra-fast` (review pass: `terra`) |
+| Workhorse | `tester`, `crewmate` | `openai/gpt-5.6-terra` |
 | Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.6-sol` |
-| Debugging / review | `debugger`, `reviewer` | `openai/gpt-5.6-sol` |
+| Debugging | `debugger` | `openai/gpt-5.6-sol` |
+| Review | `reviewer` | `openai/gpt-5.6-terra` |
 | Security / critique | `security-reviewer`, `critic` | `openai/gpt-5.6-sol-pro` |
 | Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.6-luna-fast` |
 | Research | `researcher` | `openai/gpt-5.6-sol-fast` |
@@ -70,7 +81,7 @@ Generated Claude/Codex model map:
 
 | Role | OpenCode | Claude | Codex |
 |---|---|---|---|
-| `reviewer` | gpt-5.6-sol | opus | gpt-5.6-sol |
+| `reviewer` | gpt-5.6-terra | opus | gpt-5.6-sol |
 | `security-reviewer`, `critic` | gpt-5.6-sol-pro | opus | gpt-5.6-sol-pro |
 | `architect`, `refactor-planner` | gpt-5.6-sol | opus | gpt-5.6-sol |
 | `researcher` | gpt-5.6-sol-fast | sonnet | gpt-5.6-sol-fast |
@@ -120,7 +131,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: implement in small, isolated, repo-patterned changes.*
 
-1. Work on the default `build` agent (gpt-5.6-terra).
+1. Work on the default `build` agent (gpt-5.6-terra-fast).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
 3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
@@ -133,7 +144,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
    skill (debugger · gpt-5.6-sol). **Reproduce before fixing.**
 2. Fix on the `build` agent.
 3. `/qa-only` - exercise the changed behavior, report what still breaks (tester).
-4. `/review-diff` - catch regressions (reviewer · gpt-5.6-sol).
+4. `/review-diff` - catch regressions (reviewer · gpt-5.6-terra).
 5. `/second-pass <prior findings>` - after fixes, confirm resolved + no new regressions (reviewer).
 
 ### 6. Refactoring
@@ -381,22 +392,22 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/proposal-review` | critic (gpt-5.6-sol-pro) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
 | `/proposal-commercial-review` | critic (gpt-5.6-sol-pro) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
 | `/proposal-prototype` | docs-writer (gpt-5.6-luna-fast) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
-| `/review-diff` | reviewer (gpt-5.6-sol) | code-review | Review unstaged+staged diffs for bugs/regressions |
-| `/review-staged` | reviewer (gpt-5.6-sol) | code-review | Review only staged changes pre-commit |
-| `/long-context-review` | reviewer (gpt-5.6-sol) | code-review | Review across many files / a long diff |
-| `/ui-review` | reviewer (gpt-5.6-sol) | frontend-design | Visual/UI review of implemented components |
-| `/ship-check` | reviewer (gpt-5.6-sol) | - | Final readiness review before merge/release |
+| `/review-diff` | reviewer (gpt-5.6-terra) | code-review | Review unstaged+staged diffs for bugs/regressions |
+| `/review-staged` | reviewer (gpt-5.6-terra) | code-review | Review only staged changes pre-commit |
+| `/long-context-review` | reviewer (gpt-5.6-terra) | code-review | Review across many files / a long diff |
+| `/ui-review` | reviewer (gpt-5.6-terra) | frontend-design | Visual/UI review of implemented components |
+| `/ship-check` | reviewer (gpt-5.6-terra) | - | Final readiness review before merge/release |
 | `/security-review` | security-reviewer (gpt-5.6-sol-pro) | security-review | Security review of changes + nearby risky code |
 | `/ceo-review` | critic (gpt-5.6-sol-pro) | ceo-review | Founder-lens review of a **change/diff** |
 | `/second-opinion` | critic (gpt-5.6-sol-pro) | critique | Independent second opinion on a plan/diff/review |
 | `/critique` | critic (gpt-5.6-sol-pro) | critique | Critique of recent analysis/review |
 | `/claude-review` | reviewer → `claude` CLI | - | Second opinion from the Claude CLI (your Claude sub) |
-| `/second-pass` | reviewer (gpt-5.6-sol) | second-pass | Re-review after fixes; confirm resolved, no regressions |
+| `/second-pass` | reviewer (gpt-5.6-terra) | second-pass | Re-review after fixes; confirm resolved, no regressions |
 | `/test-plan` | tester (gpt-5.6-terra) | test-writer | Practical test plan for a change/feature |
 | `/qa-only` | tester (gpt-5.6-terra) | - | Test changed behavior, report bugs, no code changes |
 | `/debug-tests` | debugger (gpt-5.6-sol) | debugging | Debug failing tests, root-cause first |
 | `/crew` | captain (gpt-5.6-terra-fast) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
-| `/gate-review` | reviewer (gpt-5.6-sol) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
+| `/gate-review` | reviewer (gpt-5.6-terra) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
 | `/commit` | pr-writer (gpt-5.6-luna-fast) | git-commit | Commit staged changes (this repo or child repos) |
 | `/commit-message` | pr-writer (gpt-5.6-luna-fast) | git-commit | Draft a commit message (never commits) |
@@ -404,8 +415,8 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/changelog` | pr-writer (gpt-5.6-luna-fast) | release-notes | Draft changelog/release notes from commits+diffs |
 | `/pr-body` | pr-writer (gpt-5.6-luna-fast) | pull-request | Draft a PR title + body from branch changes |
 | `/docs-update` | docs-writer (gpt-5.6-luna-fast) | documentation | Update docs/README from current changes |
-| `/init-agents-md` | build (gpt-5.6-terra) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
-| `/init-gate` | build (gpt-5.6-terra) | - | Seed optional `.gate.sh` ship-gate overrides |
+| `/init-agents-md` | build (gpt-5.6-terra-fast) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
+| `/init-gate` | build (gpt-5.6-terra-fast) | - | Seed optional `.gate.sh` ship-gate overrides |
 
 ### Skills (32) - shared across Claude, Codex, OpenCode
 
@@ -463,7 +474,7 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 | `architect` | gpt-5.6-sol | Architecture / plan reviews | no |
 | `debugger` | gpt-5.6-sol | Investigate bugs / failing tests | limited |
 | `tester` | gpt-5.6-terra | Test plans / QA, no code changes | no |
-| `reviewer` | gpt-5.6-sol | Code/UI/ship review, findings-first | no (deny) |
+| `reviewer` | gpt-5.6-terra | Code/UI/ship review, findings-first | no (deny) |
 | `security-reviewer` | gpt-5.6-sol-pro | Security review | no |
 | `docs-writer` | gpt-5.6-luna-fast | Docs / README | docs only |
 | `pr-writer` | gpt-5.6-luna-fast | Commits, PR bodies, changelogs | commit-scope |
