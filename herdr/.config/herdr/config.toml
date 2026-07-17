@@ -14,6 +14,12 @@ delivery = "system"
 [experimental]
 pane_history = true
 
+# Back-and-forth to the last focused pane, across workspaces and tabs
+# (tmux switch-client -l style). Overrides the default cycle_pane_next
+# on the same key.
+[keys]
+last_pane = "prefix+tab"
+
 # Sessionizer: fuzzy-jump to projects, workspaces, and agents;
 # clones from GitHub on ctrl-g. Same muscle memory as tmux prefix+f.
 [[keys.command]]
