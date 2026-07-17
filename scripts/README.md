@@ -114,7 +114,8 @@ constrained to that effect - auto-approve everything except an explicit deny-lis
 yolo mode: `opencode` via `--agent crewmate --auto` (auto-approves, but the agent still denies
 `git push`/`sudo`/hard-reset; `--auto` is required since headless `run` has no TTY to approve),
 `claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
-via the `workspace-write` sandbox (network off, so push is blocked).
+via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Code via print
+mode's auto permission policy plus explicit local-only, non-destructive task guardrails.
 
 `crew` is **task-first**: give it the task and the branch is AI-named for you
 (via `ai-branch-name`, printed as `-> branch: ...`). Pass `-b/--branch <name>`
@@ -124,6 +125,7 @@ only when you want to reuse or force a specific branch.
 crew new "add dark mode"             # standard profile: Terra / Sonnet / Terra
 crew new --profile fast "update README examples"
 crew new --profile deep --claude "fix transaction race" --attach
+crew new --profile fast --kimi "update shell completion docs"
 crew new -b feat/dark "add toggle"   # force the branch name
 crew new -b spike-y                  # no task -> interactive opencode in the worktree
 crew status                          # branch | engine | profile | model | running/done(rc) | commits-ahead
@@ -136,11 +138,16 @@ crew stop feat/dark -D               # kill session (-D also removes worktree + 
 
 Profiles explicitly select the model for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex |
-| --- | --- | --- | --- | --- |
-| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast |
-| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code |
+| --- | --- | --- | --- | --- | --- |
+| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code |
+| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 |
+
+Kimi is opt-in with `--kimi`; OpenCode remains the default engine.
+Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not provide a documented
+way to seed a prompt into its interactive TUI.
+Interactive Kimi sessions are still available with `crew new -b <branch> --kimi`.
 
 crew is **scoped per repository**: sessions/workspaces are named `crew_<repo-key>_<branch>` and
 state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
@@ -160,10 +167,11 @@ own worktree/background orchestration.
 
 `gate` validates a branch's committed work in a **disposable worktree**, then pushes and
 opens a PR only if the gate passes. Our own take on no-mistakes - no external binary,
-built on `git-wt` + `opencode`/`claude` + `gh`.
+built on `git-wt` + `opencode`/`claude`/`codex`/`kimi` + `gh`.
 
 ```bash
-gate init          # optional: seed .gate.sh deterministic overrides
+gate init                          # optional: seed OpenCode .gate.sh overrides
+gate init --engine kimi            # optional Kimi variant; does not change the default
 gate status        # show the resolved config
 gate run [branch]  # review → test → docs → lint (+auto-fix) → push → PR → CI monitor
 ```

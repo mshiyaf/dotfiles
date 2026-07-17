@@ -4,8 +4,8 @@
 > command/skill/config reference).
 
 GNU Stow package for the **shared, cross-agent layer**: the global instruction file
-**and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code, Codex, and
-OpenCode all read the same instructions and portable `SKILL.md` set.
+**and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code,
+Codex, OpenCode, and Kimi Code all read the same instructions and portable `SKILL.md` set.
 
 ## Shared instructions
 
@@ -17,19 +17,21 @@ agents/AGENTS.md                       <- the real file
   ~/.claude/CLAUDE.md   -> ~/AGENTS.md (Claude Code)
   ~/.codex/AGENTS.md    -> ~/AGENTS.md (Codex)
   ~/.config/opencode/AGENTS.md -> ~/AGENTS.md (OpenCode)
+  ~/.kimi-code/AGENTS.md -> ~/AGENTS.md (Kimi Code)
 ```
 
 ## Shared Skills
 
-Skills use the one format all three tools agree on (`SKILL.md` = `name` + `description` +
+Skills use the portable format all four tools support (`SKILL.md` = `name` + `description` +
 markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude and Codex
-symlink their whole skills dir to it:
+and Kimi Code symlink their whole skills dir to it:
 
 ```text
 agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
   ~/.config/opencode/skills/           (OpenCode - real dir of per-file symlinks)
   ~/.claude/skills  -> ~/.config/opencode/skills  (Claude Code)
   ~/.codex/skills   -> ~/.config/opencode/skills  (Codex)
+  ~/.kimi-code/skills -> ~/.config/opencode/skills (Kimi Code)
 ```
 
 New command-backed skills: `autoplan`, `investigate`, `research`, `critique`, `explain`, and `init-agents-md`.
@@ -50,6 +52,11 @@ agents/models.json                         <- role -> model map
 agents/.claude/agents/*.md                 <- generated Claude Code subagents
 agents/.codex/agents/*.toml                <- generated Codex subagents
 ```
+
+Kimi Code does not currently document an equivalent format for independently model-pinned custom
+role agents.
+It uses the shared skills and the native `coder`, `explore`, and `plan` subagents instead;
+workflows that require explicit K2.7 or K3 routing launch that model through `crew` or `gate`.
 
 Run `make agents-sync` after editing an OpenCode agent or `agents/models.json`.
 Run `agents-sync --check` in verification to fail if generated files are stale.
@@ -136,8 +143,8 @@ If `~/.codex/skills` is already a symlink from an older setup, preserve `.system
 ## Verify
 
 ```bash
-readlink -f ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md   # -> agents/AGENTS.md
-readlink -f ~/.claude/skills ~/.codex/skills                                       # -> the shared skills dir
+readlink -f ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.kimi-code/AGENTS.md   # -> agents/AGENTS.md
+readlink -f ~/.claude/skills ~/.codex/skills ~/.kimi-code/skills                                       # -> the shared skills dir
 readlink -f ~/.claude/settings.json ~/.claude/agents/reviewer.md ~/.codex/agents/reviewer.toml
 agents-sync --check
 ls ~/.claude/skills ~/.config/opencode/skills | sort -u | head                     # same skill set

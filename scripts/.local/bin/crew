@@ -15,9 +15,11 @@
 #                                   herdr: task -> interactive agent TUI seeded with the
 #                                   task, so herdr tracks live status (working/blocked/idle);
 #                                   pass --headless for the bounded non-interactive run.
+#                                   Kimi tasks are always headless because its TUI has no
+#                                   documented seeded-prompt launch mode.
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
-#                                        --attach (jump to it), --claude, --codex,
+#                                        --attach (jump to it), --claude, --codex, --kimi,
 #                                        --headless (bounded run on herdr; already the
 #                                        default on tmux), --profile fast|standard|deep,
 #                                        --start <ref> (branch start-point).
@@ -35,7 +37,7 @@
 # push. Review each ready branch (/review-diff) and ship it (/ship-gate).
 # Backend: auto-detected per crewmate at spawn - herdr inside herdr (HERDR_ENV), tmux inside
 # tmux, else tmux if installed; CREW_BACKEND=tmux|herdr forces one. Requires: tmux, or
-# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex. Run from inside
+# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi. Run from inside
 # the target git repo.
 
 set -euo pipefail
@@ -90,6 +92,7 @@ crewmate_alive() {
 PREFIX="crew_"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
 TASK_SUFFIX="When done, commit your work on this branch with a Conventional-commit message. Do not push. If blocked, print BLOCKED: <reason> and stop."
+KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
@@ -97,6 +100,7 @@ TASK_SUFFIX="When done, commit your work on this branch with a Conventional-comm
 #             git push / sudo / hard-reset / rm -rf; --auto honors those denies).
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
 #   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
+#   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
 OPENCODE_CREW_FLAGS="--agent crewmate --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
@@ -115,6 +119,9 @@ resolve_profile() {
 		fast:codex)      printf '%s' 'gpt-5.6-luna-fast' ;;
 		standard:codex)  printf '%s' 'gpt-5.6-terra' ;;
 		deep:codex)      printf '%s' 'gpt-5.6-sol' ;;
+		fast:kimi)       printf '%s' 'kimi-code/kimi-for-coding' ;;
+		standard:kimi)   printf '%s' 'kimi-code/kimi-for-coding' ;;
+		deep:kimi)       printf '%s' 'kimi-code/k3' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
@@ -202,12 +209,14 @@ herdr_spawn() {
 	printf '%s\n' "$pane" > "$sdir/pane_id"
 
 	local launch full
-	if [ -n "$task" ] && [ "$headless" -eq 1 ]; then
+	if [ -n "$task" ] && { [ "$headless" -eq 1 ] || [ "$engine" = kimi ]; }; then
 		full="$task. $TASK_SUFFIX"
+		[ "$engine" != kimi ] || full="$full $KIMI_TASK_SUFFIX"
 		case "$engine" in
 			claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
 			codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 			opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
+			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			*) die "unknown engine: $engine" ;;
 		esac
 		printf 'running\n' > "$sdir/status"
@@ -227,7 +236,11 @@ herdr_spawn() {
 		herdr pane run "$pane" "$launch" >/dev/null
 	else
 		printf 'interactive\n' > "$sdir/status"
-		herdr pane run "$pane" "$engine" >/dev/null
+		if [ "$engine" = kimi ]; then
+			herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null
+		else
+			herdr pane run "$pane" "$engine" >/dev/null
+		fi
 	fi
 }
 
@@ -239,6 +252,7 @@ cmd_new() {
 			--attach) attach=1 ;;
 			--claude) engine="claude" ;;
 			--codex) engine="codex" ;;
+			--kimi) engine="kimi" ;;
 			--headless) headless=1 ;;
 			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
@@ -311,10 +325,12 @@ cmd_new() {
 			local launch
 			if [ -n "$task" ]; then
 				local full="$task. $TASK_SUFFIX"
+				[ "$engine" != kimi ] || full="$full $KIMI_TASK_SUFFIX"
 				case "$engine" in
 					claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
 					codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 					opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
+					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					*) die "unknown engine: $engine" ;;
 				esac
 				# Wrap so we capture output to the log and record the real exit code on finish.
@@ -324,7 +340,11 @@ cmd_new() {
 				tmux send-keys -t "$name" "$wrapped" C-m
 			else
 				printf 'interactive\n' > "$sdir/status"
-				tmux send-keys -t "$name" "$engine" C-m
+				if [ "$engine" = kimi ]; then
+					tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m
+				else
+					tmux send-keys -t "$name" "$engine" C-m
+				fi
 			fi
 		fi
 		printf 'crew %s ready in %s (%s, %s)\n' "$name" "$path" "$profile" "$model"

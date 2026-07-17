@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Shared by Claude Code, Codex, and OpenCode.
+Shared by Claude Code, Codex, OpenCode, and Kimi Code.
 Keep this file short; it loads into every agent's context.
 Project-specific rules live in each repo's own `AGENTS.md`.
 
@@ -40,6 +40,19 @@ Project-specific rules live in each repo's own `AGENTS.md`.
 - Don't re-read files already shown in context.
 - Reviews: findings first, severity-tagged, one line of context each. Don't summarize a diff the user can read.
 - Prefer targeted `grep` / read over broad `find` / `cat`.
+
+## Kimi Code role routing
+When running under Kimi Code, compose shared skills with its native subagents:
+- Reviewer: `code-review` + read-only `explore`.
+- Security reviewer: `security-review` + read-only `explore`.
+- Architect: `autoplan` and `eng-review` as relevant + non-editing `plan`.
+- Refactor planner: `refactor-planner` + non-editing `plan`.
+- Researcher: `research` on the main agent; use `explore` only for local repository evidence.
+- Critic: `critique` on the main agent; do not edit.
+- Debugger: `systematic-debugging`, then `coder` only after reproducing and confirming the root cause.
+- Tester: `test-writer` or `test-driven-development` + `coder`; limit edits to tests unless explicitly asked otherwise.
+- Documentation writer: `documentation` + `coder`; limit edits to documentation.
+- PR writer: `pull-request` on the main agent; do not edit or create a PR unless explicitly asked.
 
 ## More context
 - For decisions that would benefit from the user's viewpoints, read `~/OPINIONS.md`.

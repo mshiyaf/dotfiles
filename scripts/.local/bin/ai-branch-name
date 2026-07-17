@@ -6,13 +6,14 @@
 # inventing a branch name. Prints exactly one sanitized branch name on stdout.
 #
 # Usage:
-#   ai-branch-name [--engine opencode|claude|codex] <task words...>
+#   ai-branch-name [--engine opencode|claude|codex|kimi] <task words...>
 #
 # Engine: default `opencode`; override with --engine or $WT_AI_ENGINE.
 #   opencode -> uses the configured `small_model` (see ~/.config/opencode/
 #               opencode.json, default openai/gpt-5.4-nano) - naming is cheap/fast.
 #   claude   -> claude -p ... (haiku, for speed)
 #   codex    -> codex exec ...
+#   kimi     -> kimi -p ... (regular K2.7 Code, for speed and reliability)
 #
 # Robustness: the model call is wrapped in `timeout`. If the engine is missing,
 # errors, times out, or returns nothing usable, we fall back to a deterministic
@@ -91,6 +92,9 @@ ask_engine() {
 			;;
 		codex)
 			timeout "$AI_TIMEOUT" codex exec "$PROMPT" 2>/dev/null
+			;;
+		kimi)
+			timeout "$AI_TIMEOUT" kimi --model kimi-code/kimi-for-coding -p "$PROMPT" 2>/dev/null
 			;;
 		*) return 1 ;;
 	esac

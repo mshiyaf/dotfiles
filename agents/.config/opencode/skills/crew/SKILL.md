@@ -15,6 +15,13 @@ The user asks to build 2-3 (or more) independent features/fixes at once, or to f
 similar changes across a codebase. If the work is a single change, do it directly instead - crew
 is overhead you only want for genuine parallelism.
 
+## Native subagents versus crew
+Use native subagents, including Kimi Code's `AgentSwarm`, for parallel read-only exploration,
+review, research, or tightly coordinated subtasks that contribute to one main-agent result.
+Use `crew` when each task should independently edit, test, and commit a shippable branch.
+Native subagents share the parent workspace and are not a substitute for crew's Git worktree
+isolation. Do not dispatch concurrent editing subagents that may touch the same files.
+
 ## The protocol
 1. **Split** the request into independent features. Each must be shippable on its own and must
    not fight another crewmate over the same files (crewmates do not coordinate shared edits).
@@ -25,10 +32,13 @@ is overhead you only want for genuine parallelism.
    `crew` appends those.
 3. **Dispatch** one crewmate per feature:
    ```bash
-   crew new <branch> "<self-contained task>"
+   crew new "<self-contained task>"
+   # Or force a branch name:
+   crew new -b <branch> "<self-contained task>"
    ```
-   Runs `opencode run "<task>" --agent crewmate` headless in the worktree. Add `--claude` or
-   `--codex` to use a different engine.
+   OpenCode is the default engine. Add `--claude`, `--codex`, or `--kimi` to select another
+   engine. Kimi tasks use regular K2.7 for `fast` and `standard`, K3 for `deep`, and run
+   headlessly because Kimi has no documented seeded-prompt interactive launch mode.
 4. **Report and stop.** After dispatching, tell the user what you launched and how to check in
    (`crew status`, `crew logs <branch>`, and `crew watch` in a separate pane for push alerts when a
    crewmate is ready or blocked), then **end your turn and hand control back**. There is no live

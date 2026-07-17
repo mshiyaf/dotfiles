@@ -2,7 +2,7 @@
 #
 # gate - our own AI ship-gate. Validates a branch in a disposable worktree, then
 # pushes and opens a PR only after the gate passes. Our own take on no-mistakes;
-# no external binary, built on `git-wt` + `opencode`/`claude`/`codex` + `gh`.
+# no external binary, built on `git-wt` + `opencode`/`claude`/`codex`/`kimi` + `gh`.
 #
 # Pipeline (per `gate run`):
 #   1. Copy the current branch's HEAD into a disposable worktree (your work stays put).
@@ -20,7 +20,7 @@
 #   8. Tear down the disposable worktree.
 #
 # Usage:
-#   gate init [--engine opencode|claude|codex]
+#   gate init [--engine opencode|claude|codex|kimi]
 #                      Seed optional .gate.sh overrides in the current repo.
 #   gate run [branch]  Run the gate for <branch> (default: current branch).
 #   gate status        Show the resolved config.
@@ -102,6 +102,10 @@ cmd_init() {
 			review_cmd='codex exec "Use the gate-review skill on the current branch diff; output only the JSON"'
 			fix_cmd='codex exec "$GATE_PROMPT"'
 			;;
+		kimi)
+			review_cmd='gate_review_kimi'
+			fix_cmd='gate_fix_kimi'
+			;;
 		*) die "unknown engine: $engine" ;;
 	esac
 	local cfg; cfg="$(repo_root)/.gate.sh"
@@ -128,6 +132,7 @@ GATE_REVIEW_CMD='$review_cmd'
 # GATE_REVIEW_CMD='gate_review_opencode'
 # GATE_REVIEW_CMD='claude -p "/gate-review" --output-format text'
 # GATE_REVIEW_CMD='codex exec "Use the gate-review skill on the current branch diff; output only the JSON"'
+# GATE_REVIEW_CMD='gate_review_kimi'
 
 # 1 = ask_user findings need human approval before shipping (prompted interactively;
 #     blocked when headless). 0 = informational only, never blocks.
@@ -136,9 +141,10 @@ GATE_REVIEW_APPROVE=1
 # How auto-fixes are requested. The failing-stage / fix prompt is passed in GATE_PROMPT.
 GATE_FIX_CMD='$fix_cmd'
 # Alternatives:
-# GATE_FIX_CMD='opencode run "$GATE_PROMPT" --agent build --auto'
-# GATE_FIX_CMD='claude -p "$GATE_PROMPT" --output-format text'
-# GATE_FIX_CMD='codex exec "$GATE_PROMPT"'
+# GATE_FIX_CMD='opencode run "\$GATE_PROMPT" --agent build --auto'
+# GATE_FIX_CMD='claude -p "\$GATE_PROMPT" --output-format text'
+# GATE_FIX_CMD='codex exec "\$GATE_PROMPT"'
+# GATE_FIX_CMD='gate_fix_kimi'
 
 GATE_MAX_ROUNDS=3                    # auto-fix attempts per enforced stage / CI
 GATE_EVIDENCE_DIR=".gate/evidence"   # review evidence trail (gitignored)
@@ -306,6 +312,22 @@ gate_review_opencode() {
 	# Review overrides build's model: classifying auto_fix vs ask_user is judgment, not mechanical
 	# like the fixes, so it runs a reasoning notch above GATE_FIX_CMD.
 	opencode run "$(gate_review_prompt)" --agent build --model openai/gpt-5.6-terra --auto --pure
+}
+
+gate_review_kimi() {
+	# K3 handles the judgment-heavy review. stream-json keeps thinking and progress off
+	# stdout; select the final Assistant message so the gate receives only its JSON payload.
+	kimi --model kimi-code/k3 -p "$(gate_review_prompt)" --output-format stream-json 2>/dev/null \
+		| jq -sr '[.[] | select(.role == "assistant" and (.content | type == "string")) | .content] | last // ""'
+}
+
+gate_fix_kimi() {
+	# Regular K2.7 is the reliable coding model for bounded mechanical fixes. Kimi print
+	# mode uses auto permissions, so reinforce the gate's local-only safety boundary.
+	kimi --model kimi-code/kimi-for-coding -p "$GATE_PROMPT
+
+Work only in the current disposable worktree. Do not push, open or modify pull requests,
+use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions."
 }
 
 run_review() {

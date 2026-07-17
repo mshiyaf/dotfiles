@@ -1,7 +1,8 @@
 # Agentic Development Workflow
 
 A practical guide to the agentic setup in these dotfiles - **what to run when**, and **what
-every piece is for**. It spans three AI coding tools (Claude Code, Codex, OpenCode) and three
+every piece is for**. Its shared instruction and skill layer spans four AI coding tools
+(Claude Code, Codex, OpenCode, Kimi Code) and three
 stow packages (`agents/`, `opencode/`, `scripts/`).
 
 - New here? Read **Part 1** (the mental model) once, then keep **Part 2** (playbooks) open while you work.
@@ -13,29 +14,36 @@ stow packages (`agents/`, `opencode/`, `scripts/`).
 
 ## Part 1 - The mental model
 
-### Three tools, one shared brain
+### Four tools, one shared brain
 
-| Layer | Shared across all 3? | Where it lives |
+| Layer | Shared across all 4? | Where it lives |
 |---|---|---|
 | **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → symlinked into each tool |
-| **Skills** (31) | ✅ identical | `agents/.config/opencode/skills/` → symlinked into each tool |
+| **Skills** (33) | ✅ identical | `agents/.config/opencode/skills/` → symlinked into each tool |
 | **Commands** (39 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
-| **Subagents** (10 generated roles + OpenCode built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files |
-| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` |
+| **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi uses native `coder`/`explore`/`plan` |
+| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` |
 
 Skills are the shared command layer.
 Subagent prompts are canonical in OpenCode format and generated into Claude Code and Codex formats with per-harness model maps.
+Kimi composes those shared skills with its native `coder`, `explore`, and `plan` subagents using
+the conditional role-routing rules in `agents/AGENTS.md`.
+Kimi Code does not currently document a mechanism for independently model-pinned custom role
+agents equivalent to the generated Claude and Codex role files, so Kimi roles use the active
+session model unless a workflow such as `crew` or `gate` launches a separate model explicitly.
 OpenCode slash commands remain thin ergonomic wrappers for context injection and model routing.
 
 ### The four layers - what fires when
 
-- **Skills** = portable *knowledge* (a checklist / lens / procedure). Available in all three
+- **Skills** = portable *knowledge* (a checklist / lens / procedure). Available in all four
   tools. In Claude a skill is invocable as a slash (`/ceo-review`) or auto-activates by
-  description; in Codex it is invocable as `$ceo-review`; in OpenCode an agent uses it as a tool. **Rule: want a capability everywhere → make it a skill.**
+  description; in Codex it is invocable as `$ceo-review`; in OpenCode an agent uses it as a tool;
+  in Kimi use `/skill:ceo-review` or let the model select it. **Rule: want a capability everywhere → make it a skill.**
 - **Commands** (OpenCode) = ergonomic *slash triggers* that inject context (`git diff`, `$ARGUMENTS`),
   route to a subagent (which picks the model), and usually say "use the X skill". Thin wrappers over skills.
 - **Subagents** = named *roles* (`reviewer`, `critic`, `architect`…) generated for all three harnesses.
   OpenCode remains canonical for prompts and permissions; Claude/Codex get harness-specific generated files.
+  Kimi uses shared skills plus native subagents rather than generated custom role files.
 - **Scripts** (`scripts/.local/bin`, on `$PATH`) = plain CLI tools the human or an agent runs:
   `wt`/`git-wt` (worktrees), `crew` (parallel agents), `gate` (ship gate).
 
@@ -219,7 +227,7 @@ crew new "<task>"            # standard profile (the default): AI-name a branch,
                              #   opencode run "<task>" --agent crewmate
                               #   --profile fast|standard|deep -> explicit per-engine model tier
                               #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
-                             #   --claude / --codex -> use claude or codex (bounded the same way)
+                             #   --claude / --codex / --kimi -> select another engine
                              #   --attach  -> jump into the session now
                              #   --start <ref> -> branch from <ref>
 crew status [<branch>]       # table: branch | running/done(rc) | commits-ahead | last log line
@@ -245,6 +253,7 @@ state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`,
 ```bash
 crew new "fix the flaky login test"        # -> branch: fix/flaky-login (AI-named)
 crew new "add a dark-mode toggle to settings"
+crew new --profile fast --kimi "update shell completion docs"
 crew status                   # see both: running -> done:0 with commits-ahead
 crew logs fix/flaky-login     # read what a crewmate did (or -f to follow)
 # when each shows done with commits: review the branch (Playbook 7), ship via the gate (Playbook 11)
@@ -266,14 +275,17 @@ pushes, or merges; it hands the ready branches back to you.
 
 Crew profiles select explicit models for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex |
-|---|---|---|---|---|
-| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast |
-| `standard` | Normal implementation and tests | Terra | Sonnet | Terra |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code |
+|---|---|---|---|---|---|
+| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code |
+| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 |
 
 The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
 and `deep` only when stronger reasoning is justified.
+Kimi is available only when explicitly selected with `--kimi`; OpenCode remains the default.
+Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not document a way to seed
+a task into its interactive TUI.
 
 **Hands-off alerts (`crew watch`).** The captain has no background loop, so between your check-ins it
 is idle - "report on request" is deliberate, not laziness. If you want to be *pushed* an alert the
@@ -283,12 +295,13 @@ zero tokens, and fires a terminal bell + `notify-send` toast only on a real tran
 event-driven layer an in-chat agent cannot provide on its own.
 
 **How agnostic is this?** The engine (`crew` CLI, worktrees, tmux/herdr, state tracking) is fully
-tool-agnostic - dispatch `opencode`, `claude`, or `codex` crewmates from any terminal, all bounded
-the same way. The `crew` **skill** is shared across all three tools, so any of them can play captain.
+tool-agnostic - dispatch `opencode`, `claude`, `codex`, or `kimi` crewmates from any terminal, all bounded
+the same way. The `crew` **skill** is shared across all four tools, so any of them can play captain.
 Only the packaged `/crew` **command** and the `captain`/`crewmate` **agent** definitions are
 OpenCode-specific (commands and agents are per-tool). From **Claude**, get the same captain by
 invoking the `crew` skill - it surfaces as `/crew` (or just ask Claude to "use the crew skill to
 build A, B, C"); Claude then drives the same `crew` CLI. From **Codex**, invoke `$crew`.
+From **Kimi Code**, invoke `/skill:crew` or ask it to use the `crew` skill.
 
 **When to use which:** one focused task → `wt`; several independent tasks you want running
 (semi-)unattended → `crew` (manual) or `/crew` (captain-driven). Native alternatives if you prefer
@@ -310,6 +323,7 @@ agent + `gh`.*
 
 ```bash
 /init-gate        # (or: gate init) writes optional .gate.sh overrides
+gate init --engine kimi  # writes a Kimi-specific variant without changing the default
 ```
 
 `gate run` works without `.gate.sh`.
@@ -321,6 +335,9 @@ Use `.gate.sh` (plain sourced bash, not YAML) only for deterministic overrides:
 are requested), `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`, `GATE_PUSH_REMOTE`.
 The default OpenCode fix command uses `--auto` inside the disposable gate worktree; dangerous commands
 remain denied by `opencode.json`.
+The opt-in Kimi variant uses K3 for structured review and regular K2.7 Code for fixes and
+agent-detected validation.
+It uses Kimi's documented `stream-json` mode to pass only the final Assistant payload into the gate.
 
 `gate` inherits the shell environment you run it from.
 Put worktree-specific bootstrap in `.worktrees-setup`, for example:
@@ -500,8 +517,8 @@ headless runner) and are not generated for Claude/Codex.
 | Tool | Subcommands | Purpose |
 |---|---|---|
 | `git wt` / `wt` | `new`, `ls`, `path`, `rm`, `prune` | Sibling worktrees; `wt` adds `cd`; `.worktrees-setup` post-create hook |
-| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux/herdr multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex`/`--headless` |
-| `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex` |
+| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux/herdr multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex`/`--kimi`/`--headless` |
+| `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex|kimi` |
 | `codex-status` | `--json`, `--watch` | ChatGPT/Codex usage + rate-limit meter |
 
 Full usage: [`scripts/README.md`](../scripts/README.md).
