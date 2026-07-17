@@ -141,8 +141,6 @@ reasoning notch above its *fix* pass. The gate is a standalone script rather tha
 skill, and it cannot route to the `reviewer` agent - subagents are not targetable by `--agent` in
 headless runs - so the model is pinned at the call site.
 
-`opencode.json` model names use a short `Light`/`Standard`/`Heavy` tag (matching the table below) instead of spelling out pricing:
-
 | Tier | Cost per 1M tokens | Routing fit |
 | ---- | ------------------ | ----------- |
 | Luna | $1 input / $6 output | Fast and cheap tasks: docs, PR text, commits, boilerplate. |
