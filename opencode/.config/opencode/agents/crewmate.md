@@ -1,6 +1,6 @@
 ---
 description: Autonomous crew worker - implements one assigned task in an isolated git worktree and commits, running headless.
-mode: subagent
+mode: primary
 temperature: 0.2
 permission:
   read: allow

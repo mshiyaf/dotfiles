@@ -1,6 +1,6 @@
 ---
 description: Crew orchestrator - splits a request into features, dispatches a crewmate per feature, then stops and reports status only on request. Never edits code, loops on status, or pushes.
-mode: subagent
+mode: primary
 temperature: 0.2
 permission:
   read: allow
