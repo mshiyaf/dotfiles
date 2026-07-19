@@ -3,8 +3,8 @@
 > 📖 See [`docs/WORKFLOW.md`](../docs/WORKFLOW.md) for how `git-wt`, `crew`, and `gate` fit into
 > the agentic workflow (parallel agents + ship gate playbooks).
 
-GNU Stow package for personal CLI helpers. Everything lives under
-`scripts/.local/bin/` and stows to `~/.local/bin/` (already on `$PATH`).
+GNU Stow package for personal CLI helpers. Commands live under `scripts/.local/bin/` and stow to
+`~/.local/bin/` (already on `$PATH`); support data lives under `scripts/.local/share/`.
 
 Install / update:
 
@@ -111,11 +111,16 @@ toasts and the sessionizer - pass `--headless` to keep the bounded non-interacti
 A crewmate with a task runs **bounded**: it may
 edit, run tests, and commit on its branch, then stops - it never pushes. Each engine is
 constrained to that effect - auto-approve everything except an explicit deny-list, never a full
-yolo mode: `opencode` via `--agent crewmate --auto` (auto-approves, but the agent still denies
-`git push`/`sudo`/hard-reset; `--auto` is required since headless `run` has no TTY to approve),
+yolo mode: `opencode` via `--agent build --auto` (auto-approves, but the build agent still denies
+`git push`/`sudo`/hard-reset/`git clean`/dangerous `rm -rf`; `--auto` is required since headless
+`run` has no TTY to approve),
 `claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
 via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Code via print
-mode's auto permission policy plus explicit local-only, non-destructive task guardrails.
+mode's auto permission policy plus explicit local-only, non-destructive task guardrails. Amp uses
+a dedicated settings file that allows normal tools while rejecting push, hard-reset, `git clean`,
+`sudo`, and dangerous `rm -rf` shell calls.
+That policy lives at `.local/share/agentic/amp-settings.json`; set `CREW_AMP_SETTINGS` only when you
+need to supply an equivalent custom policy file.
 
 `crew` is **task-first**: give it the task and the branch is AI-named for you
 (via `ai-branch-name`, printed as `-> branch: ...`). Pass `-b/--branch <name>`
@@ -126,6 +131,7 @@ crew new "add dark mode"             # standard profile: Terra / Sonnet / Terra
 crew new --profile fast "update README examples"
 crew new --profile deep --claude "fix transaction race" --attach
 crew new --profile fast --kimi "update shell completion docs"
+crew new --profile standard --amp "add API pagination"
 crew new -b feat/dark "add toggle"   # force the branch name
 crew new -b spike-y                  # no task -> interactive opencode in the worktree
 crew status                          # branch | engine | profile | model | running/done(rc) | commits-ahead
@@ -138,16 +144,18 @@ crew stop feat/dark -D               # kill session (-D also removes worktree + 
 
 Profiles explicitly select the model for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex | Kimi Code |
-| --- | --- | --- | --- | --- | --- |
-| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code |
-| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp |
+| --- | --- | --- | --- | --- | --- | --- |
+| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low |
+| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | medium |
 
 Kimi is opt-in with `--kimi`; OpenCode remains the default engine.
 Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not provide a documented
 way to seed a prompt into its interactive TUI.
 Interactive Kimi sessions are still available with `crew new -b <branch> --kimi`.
+Amp is opt-in with `--amp`; `deep` deliberately stays on `medium`, so Crew never selects Amp's
+costly `high` or `ultra` modes.
 
 crew is **scoped per repository**: sessions/workspaces are named `crew_<repo-key>_<branch>` and
 state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
@@ -167,11 +175,12 @@ own worktree/background orchestration.
 
 `gate` validates a branch's committed work in a **disposable worktree**, then pushes and
 opens a PR only if the gate passes. Our own take on no-mistakes - no external binary,
-built on `git-wt` + `opencode`/`claude`/`codex`/`kimi` + `gh`.
+built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp` + `gh`.
 
 ```bash
 gate init                          # optional: seed OpenCode .gate.sh overrides
-gate init --engine kimi            # optional Kimi variant; does not change the default
+gate init --engine kimi            # optional Kimi variant
+gate init --engine amp             # optional Amp variant; uses medium mode
 gate status        # show the resolved config
 gate run [branch]  # review → test → docs → lint (+auto-fix) → push → PR → CI monitor
 ```
@@ -203,6 +212,11 @@ GATE_EVIDENCE_DIR=".gate/evidence"
 GATE_WATCH_CI=0             # 1 = watch CI after the PR and auto-fix failures
 GATE_PUSH_REMOTE="origin"
 ```
+
+`gate init --engine amp` uses Amp `medium` mode for review, fixes, and agent-detected checks.
+It applies the shared bounded Amp settings, which allow normal tools but reject pushes, sudo,
+hard resets, forced cleans, and dangerous removals. Override their path with `GATE_AMP_SETTINGS`.
+Gate never selects Amp `high` or `ultra` modes.
 
 The LLM only classifies findings; you approve the judgment calls (or a headless run blocks on
 them), so an LLM verdict is never trusted as an exit code. Commit your work before running - the

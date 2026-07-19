@@ -1,0 +1,40 @@
+{
+  "amp.permissions": [
+    {
+      "tool": "shell_command",
+      "matches": {
+        "command": [
+          "*git*push*",
+          "*git*reset*--hard*",
+          "*git*clean*-f*",
+          "*sudo*",
+          "*rm*-rf* /*",
+          "*rm*-rf* ~*",
+          "*rm*-rf* $HOME*",
+          "*:()*{*"
+        ]
+      },
+      "action": "reject"
+    },
+    {
+      "tool": "Bash",
+      "matches": {
+        "cmd": [
+          "*git*push*",
+          "*git*reset*--hard*",
+          "*git*clean*-f*",
+          "*sudo*",
+          "*rm*-rf* /*",
+          "*rm*-rf* ~*",
+          "*rm*-rf* $HOME*",
+          "*:()*{*"
+        ]
+      },
+      "action": "reject"
+    },
+    {
+      "tool": "*",
+      "action": "allow"
+    }
+  ]
+}

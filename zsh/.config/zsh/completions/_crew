@@ -46,6 +46,8 @@ _crew() {
                         '--attach[jump into the session now]' \
                         '--claude[use the claude engine]' \
                         '--codex[use the codex engine]' \
+                        '--kimi[use the Kimi Code engine]' \
+                        '--amp[use the Amp engine]' \
                         '--headless[bounded non-interactive run (herdr; default on tmux)]' \
                         '--profile[model profile]:profile:(fast standard deep)'
                     ;;

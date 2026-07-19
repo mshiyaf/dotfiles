@@ -5,7 +5,7 @@
 
 GNU Stow package for the **shared, cross-agent layer**: the global instruction file
 **and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code,
-Codex, OpenCode, and Kimi Code all read the same instructions and portable `SKILL.md` set.
+Codex, OpenCode, Kimi Code, and Amp all read the same instructions and portable `SKILL.md` set.
 
 ## Shared instructions
 
@@ -18,13 +18,14 @@ agents/AGENTS.md                       <- the real file
   ~/.codex/AGENTS.md    -> ~/AGENTS.md (Codex)
   ~/.config/opencode/AGENTS.md -> ~/AGENTS.md (OpenCode)
   ~/.kimi-code/AGENTS.md -> ~/AGENTS.md (Kimi Code)
+  Amp reads ~/AGENTS.md directly
 ```
 
 ## Shared Skills
 
-Skills use the portable format all four tools support (`SKILL.md` = `name` + `description` +
+Skills use the portable format all five tools support (`SKILL.md` = `name` + `description` +
 markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude and Codex
-and Kimi Code symlink their whole skills dir to it:
+and Kimi Code symlink their whole skills dir to it, while Amp discovers the Claude path:
 
 ```text
 agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
@@ -32,6 +33,7 @@ agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
   ~/.claude/skills  -> ~/.config/opencode/skills  (Claude Code)
   ~/.codex/skills   -> ~/.config/opencode/skills  (Codex)
   ~/.kimi-code/skills -> ~/.config/opencode/skills (Kimi Code)
+  Amp discovers ~/.claude/skills
 ```
 
 New command-backed skills: `autoplan`, `investigate`, `research`, `critique`, `explain`, and `init-agents-md`.

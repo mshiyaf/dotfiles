@@ -19,7 +19,7 @@
 #                                   documented seeded-prompt launch mode.
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
-#                                        --attach (jump to it), --claude, --codex, --kimi,
+#                                        --attach (jump to it), --claude, --codex, --kimi, --amp,
 #                                        --headless (bounded run on herdr; already the
 #                                        default on tmux), --profile fast|standard|deep,
 #                                        --start <ref> (branch start-point).
@@ -37,7 +37,7 @@
 # push. Review each ready branch (/review-diff) and ship it (/ship-gate).
 # Backend: auto-detected per crewmate at spawn - herdr inside herdr (HERDR_ENV), tmux inside
 # tmux, else tmux if installed; CREW_BACKEND=tmux|herdr forces one. Requires: tmux, or
-# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi. Run from inside
+# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi/amp. Run from inside
 # the target git repo.
 
 set -euo pipefail
@@ -93,17 +93,45 @@ PREFIX="crew_"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
 TASK_SUFFIX="When done, commit your work on this branch with a Conventional-commit message. Do not push. If blocked, print BLOCKED: <reason> and stop."
 KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
+AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
-#   opencode: --agent crewmate --auto  (auto-approve, but the crewmate agent still denies
-#             git push / sudo / hard-reset / rm -rf; --auto honors those denies).
+#   opencode: --agent build --auto  (auto-approve, but the build agent still denies
+#             git push / sudo / hard-reset / git clean / dangerous rm -rf; --auto honors those denies).
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
 #   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
 #   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
-OPENCODE_CREW_FLAGS="--agent crewmate --auto"
+#   amp     : a dedicated settings file allows tools but mechanically rejects push / sudo /
+#             hard-reset / git clean / dangerous rm -rf in both shell tool variants.
+OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
+
+task_with_guardrails() {
+	local engine="$1" task="$2" full="$task. $TASK_SUFFIX"
+	case "$engine" in
+		kimi) full="$full $KIMI_TASK_SUFFIX" ;;
+		amp)  full="$full $AMP_TASK_SUFFIX" ;;
+	esac
+	printf '%s' "$full"
+}
+
+amp_headless_command() {
+	printf 'amp --settings-file %q --no-notifications -m %q --plugin-ready-timeout 10 -x %q' \
+		"$AMP_CREW_SETTINGS" "$1" "$2"
+}
+
+amp_interactive_command() {
+	local mode="$1" prompt="${2:-}"
+	if [ -n "$prompt" ]; then
+		printf 'printf %%s\\n %q | amp --settings-file %q -m %q' "$prompt" "$AMP_CREW_SETTINGS" "$mode"
+	else
+		printf 'amp --settings-file %q -m %q' "$AMP_CREW_SETTINGS" "$mode"
+	fi
+}
 
 # Profiles make autonomous work predictable across engines instead of inheriting each CLI's
 # machine-local default. Standard is deliberately the default for implementation work.
@@ -122,6 +150,9 @@ resolve_profile() {
 		fast:kimi)       printf '%s' 'kimi-code/kimi-for-coding' ;;
 		standard:kimi)   printf '%s' 'kimi-code/kimi-for-coding' ;;
 		deep:kimi)       printf '%s' 'kimi-code/k3' ;;
+		fast:amp)         printf '%s' 'low' ;;
+		standard:amp)     printf '%s' 'medium' ;;
+		deep:amp)         printf '%s' 'medium' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
@@ -210,13 +241,13 @@ herdr_spawn() {
 
 	local launch full
 	if [ -n "$task" ] && { [ "$headless" -eq 1 ] || [ "$engine" = kimi ]; }; then
-		full="$task. $TASK_SUFFIX"
-		[ "$engine" != kimi ] || full="$full $KIMI_TASK_SUFFIX"
+		full=$(task_with_guardrails "$engine" "$task")
 		case "$engine" in
 			claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
 			codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 			opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
+			amp)      launch=$(amp_headless_command "$model" "$full") ;;
 			*) die "unknown engine: $engine" ;;
 		esac
 		printf 'running\n' > "$sdir/status"
@@ -225,22 +256,23 @@ herdr_spawn() {
 		wrapped="$report --state working >/dev/null 2>&1 || true; ( $launch ; rc=\$?; echo done:\$rc > \"$sdir/status\"; $report --state idle --message done:\$rc >/dev/null 2>&1 || true ) 2>&1 | tee \"$sdir/log\""
 		herdr pane run "$pane" "$wrapped" >/dev/null
 	elif [ -n "$task" ]; then
-		full="$task. $TASK_SUFFIX"
+		full=$(task_with_guardrails "$engine" "$task")
 		case "$engine" in
 			claude)   launch=$(printf 'claude --model %q %s %q' "$model" "$CLAUDE_CREW_FLAGS" "$full") ;;
 			codex)    launch=$(printf 'codex --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 			opencode) launch=$(printf 'opencode --model %q %s --prompt %q' "$model" "$OPENCODE_CREW_FLAGS" "$full") ;;
+			amp)      launch=$(amp_interactive_command "$model" "$full") ;;
 			*) die "unknown engine: $engine" ;;
 		esac
 		printf 'interactive\n' > "$sdir/status"
 		herdr pane run "$pane" "$launch" >/dev/null
 	else
 		printf 'interactive\n' > "$sdir/status"
-		if [ "$engine" = kimi ]; then
-			herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null
-		else
-			herdr pane run "$pane" "$engine" >/dev/null
-		fi
+		case "$engine" in
+			kimi) herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null ;;
+			amp)  herdr pane run "$pane" "$(amp_interactive_command "$model")" >/dev/null ;;
+			*)    herdr pane run "$pane" "$engine" >/dev/null ;;
+		esac
 	fi
 }
 
@@ -253,6 +285,7 @@ cmd_new() {
 			--claude) engine="claude" ;;
 			--codex) engine="codex" ;;
 			--kimi) engine="kimi" ;;
+			--amp) engine="amp" ;;
 			--headless) headless=1 ;;
 			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
@@ -268,6 +301,8 @@ cmd_new() {
 	git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
 	command -v "$engine" >/dev/null 2>&1 || die "$engine not on PATH"
 	local model; model=$(resolve_profile "$profile" "$engine")
+	[ "$engine" != amp ] || [ -r "$AMP_CREW_SETTINGS" ] \
+		|| die "Amp safety settings not found: $AMP_CREW_SETTINGS"
 
 	# Resolve the branch: explicit -b wins; otherwise AI-name it from the task.
 	if [ -z "$branch" ]; then
@@ -324,13 +359,13 @@ cmd_new() {
 
 			local launch
 			if [ -n "$task" ]; then
-				local full="$task. $TASK_SUFFIX"
-				[ "$engine" != kimi ] || full="$full $KIMI_TASK_SUFFIX"
+				local full; full=$(task_with_guardrails "$engine" "$task")
 				case "$engine" in
 					claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
 					codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 					opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
+					amp)      launch=$(amp_headless_command "$model" "$full") ;;
 					*) die "unknown engine: $engine" ;;
 				esac
 				# Wrap so we capture output to the log and record the real exit code on finish.
@@ -340,11 +375,11 @@ cmd_new() {
 				tmux send-keys -t "$name" "$wrapped" C-m
 			else
 				printf 'interactive\n' > "$sdir/status"
-				if [ "$engine" = kimi ]; then
-					tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m
-				else
-					tmux send-keys -t "$name" "$engine" C-m
-				fi
+				case "$engine" in
+					kimi) tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m ;;
+					amp)  tmux send-keys -t "$name" "$(amp_interactive_command "$model")" C-m ;;
+					*)    tmux send-keys -t "$name" "$engine" C-m ;;
+				esac
 			fi
 		fi
 		printf 'crew %s ready in %s (%s, %s)\n' "$name" "$path" "$profile" "$model"
@@ -469,7 +504,7 @@ notify() {
 }
 
 # Watch the state dir and alert when a crewmate reaches an actionable state (done, blocked,
-# or crashed). This is the event-driven layer the captain agent cannot provide on its own:
+# or crashed). This is the event-driven layer an in-chat captain cannot provide on its own:
 # it runs in its own pane, costs zero tokens, and only speaks up on a state transition.
 cmd_watch() {
 	local interval=5 once=0 all=0

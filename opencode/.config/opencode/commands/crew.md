@@ -1,6 +1,5 @@
 ---
 description: Captain - split a multi-feature request into tasks, dispatch a crewmate per feature, monitor, and report ready branches.
-agent: captain
 ---
 Orchestrate parallel agents to build several features at once. Use the `crew` skill.
 

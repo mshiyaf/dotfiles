@@ -16,8 +16,9 @@ similar changes across a codebase. If the work is a single change, do it directl
 is overhead you only want for genuine parallelism.
 
 ## Native subagents versus crew
-Use native subagents, including Kimi Code's `AgentSwarm`, for parallel read-only exploration,
-review, research, or tightly coordinated subtasks that contribute to one main-agent result.
+Use native subagents, including Kimi Code's `AgentSwarm` and Amp's `Task` tool, for parallel
+read-only exploration, review, research, or tightly coordinated subtasks that contribute to one
+main-agent result.
 Use `crew` when each task should independently edit, test, and commit a shippable branch.
 Native subagents share the parent workspace and are not a substitute for crew's Git worktree
 isolation. Do not dispatch concurrent editing subagents that may touch the same files.
@@ -36,9 +37,11 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    # Or force a branch name:
    crew new -b <branch> "<self-contained task>"
    ```
-   OpenCode is the default engine. Add `--claude`, `--codex`, or `--kimi` to select another
+   OpenCode is the default engine. Add `--claude`, `--codex`, `--kimi`, or `--amp` to select another
    engine. Kimi tasks use regular K2.7 for `fast` and `standard`, K3 for `deep`, and run
-   headlessly because Kimi has no documented seeded-prompt interactive launch mode.
+   headlessly because Kimi has no documented seeded-prompt interactive launch mode. Amp uses
+   `low` for `fast` and `medium` for both `standard` and `deep`; Crew never selects Amp's costly
+   `high` or `ultra` modes.
 4. **Report and stop.** After dispatching, tell the user what you launched and how to check in
    (`crew status`, `crew logs <branch>`, and `crew watch` in a separate pane for push alerts when a
    crewmate is ready or blocked), then **end your turn and hand control back**. There is no live

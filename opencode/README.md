@@ -214,15 +214,17 @@ grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.con
 
 ## Shared cross-agent AGENTS.md
 
-Global behavioral instructions are shared across Claude Code, Codex, and OpenCode via a
-separate **`agents/`** stow package (see `agents/README.md`). One canonical
-`~/AGENTS.md` is symlinked into each agent:
+Global behavioral instructions are shared across Claude Code, Codex, OpenCode, Kimi Code, and Amp
+via a separate **`agents/`** stow package (see `agents/README.md`).
+One canonical `~/AGENTS.md` is linked into each agent-specific path, while Amp reads it directly:
 
 ```text
 ~/AGENTS.md                          (canonical, short - loads into every agent's context)
 ~/.claude/CLAUDE.md          -> ~/AGENTS.md
 ~/.codex/AGENTS.md           -> ~/AGENTS.md
 ~/.config/opencode/AGENTS.md -> ~/AGENTS.md   (owned by the agents package, not this one)
+~/.kimi-code/AGENTS.md       -> ~/AGENTS.md
+Amp reads ~/AGENTS.md directly
 ```
 
 This `opencode/` package still owns everything else under `~/.config/opencode/`
@@ -356,8 +358,8 @@ OAuth/auth state is created per machine and is not synced through Git.
 ## Skills
 
 > Skills are owned by the **`agents/`** stow package (`agents/.config/opencode/skills/`) and
-> shared across OpenCode, Claude, and Codex via symlinks - the same `SKILL.md` set for all
-> three. See `agents/README.md`. The list below documents the shared set; it is not
+> shared across OpenCode, Claude, Codex, Kimi Code, and Amp - the same `SKILL.md` set for all
+> five. See `agents/README.md`. The list below documents the shared set; it is not
 > installed by this `opencode/` package.
 
 This set vendors a small reviewed subset of public skills and keeps concise local fallback skills for day-to-day work.

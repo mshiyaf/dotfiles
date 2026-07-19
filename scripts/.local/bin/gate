@@ -2,7 +2,7 @@
 #
 # gate - our own AI ship-gate. Validates a branch in a disposable worktree, then
 # pushes and opens a PR only after the gate passes. Our own take on no-mistakes;
-# no external binary, built on `git-wt` + `opencode`/`claude`/`codex`/`kimi` + `gh`.
+# no external binary, built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp` + `gh`.
 #
 # Pipeline (per `gate run`):
 #   1. Copy the current branch's HEAD into a disposable worktree (your work stays put).
@@ -20,7 +20,7 @@
 #   8. Tear down the disposable worktree.
 #
 # Usage:
-#   gate init [--engine opencode|claude|codex|kimi]
+#   gate init [--engine opencode|claude|codex|kimi|amp]
 #                      Seed optional .gate.sh overrides in the current repo.
 #   gate run [branch]  Run the gate for <branch> (default: current branch).
 #   gate status        Show the resolved config.
@@ -30,6 +30,9 @@
 # Requires: git-wt (PATH), jq, gh (for the PR/CI), and whatever checks the agent detects.
 
 set -euo pipefail
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+AMP_GATE_SETTINGS="${GATE_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
 
 die() { printf 'gate: %s\n' "$*" >&2; exit 1; }
 info() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
@@ -106,6 +109,10 @@ cmd_init() {
 			review_cmd='gate_review_kimi'
 			fix_cmd='gate_fix_kimi'
 			;;
+		amp)
+			review_cmd='gate_review_amp'
+			fix_cmd='gate_fix_amp'
+			;;
 		*) die "unknown engine: $engine" ;;
 	esac
 	local cfg; cfg="$(repo_root)/.gate.sh"
@@ -133,6 +140,7 @@ GATE_REVIEW_CMD='$review_cmd'
 # GATE_REVIEW_CMD='claude -p "/gate-review" --output-format text'
 # GATE_REVIEW_CMD='codex exec "Use the gate-review skill on the current branch diff; output only the JSON"'
 # GATE_REVIEW_CMD='gate_review_kimi'
+# GATE_REVIEW_CMD='gate_review_amp'
 
 # 1 = ask_user findings need human approval before shipping (prompted interactively;
 #     blocked when headless). 0 = informational only, never blocks.
@@ -145,6 +153,7 @@ GATE_FIX_CMD='$fix_cmd'
 # GATE_FIX_CMD='claude -p "\$GATE_PROMPT" --output-format text'
 # GATE_FIX_CMD='codex exec "\$GATE_PROMPT"'
 # GATE_FIX_CMD='gate_fix_kimi'
+# GATE_FIX_CMD='gate_fix_amp'
 
 GATE_MAX_ROUNDS=3                    # auto-fix attempts per enforced stage / CI
 GATE_EVIDENCE_DIR=".gate/evidence"   # review evidence trail (gitignored)
@@ -321,10 +330,25 @@ gate_review_kimi() {
 		| jq -sr '[.[] | select(.role == "assistant" and (.content | type == "string")) | .content] | last // ""'
 }
 
+gate_review_amp() {
+	[ -r "$AMP_GATE_SETTINGS" ] || { warn "Amp safety settings not found: $AMP_GATE_SETTINGS"; return 1; }
+	amp --settings-file "$AMP_GATE_SETTINGS" --no-notifications -m medium \
+		--plugin-ready-timeout 10 -x "$(gate_review_prompt)"
+}
+
 gate_fix_kimi() {
 	# Regular K2.7 is the reliable coding model for bounded mechanical fixes. Kimi print
 	# mode uses auto permissions, so reinforce the gate's local-only safety boundary.
 	kimi --model kimi-code/kimi-for-coding -p "$GATE_PROMPT
+
+Work only in the current disposable worktree. Do not push, open or modify pull requests,
+use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions."
+}
+
+gate_fix_amp() {
+	[ -r "$AMP_GATE_SETTINGS" ] || { warn "Amp safety settings not found: $AMP_GATE_SETTINGS"; return 1; }
+	amp --settings-file "$AMP_GATE_SETTINGS" --no-notifications -m medium \
+		--plugin-ready-timeout 10 -x "$GATE_PROMPT
 
 Work only in the current disposable worktree. Do not push, open or modify pull requests,
 use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions."

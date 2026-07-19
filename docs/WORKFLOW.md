@@ -1,8 +1,8 @@
 # Agentic Development Workflow
 
 A practical guide to the agentic setup in these dotfiles - **what to run when**, and **what
-every piece is for**. Its shared instruction and skill layer spans four AI coding tools
-(Claude Code, Codex, OpenCode, Kimi Code) and three
+every piece is for**. Its shared instruction and skill layer spans five AI coding tools
+(Claude Code, Codex, OpenCode, Kimi Code, Amp) and three
 stow packages (`agents/`, `opencode/`, `scripts/`).
 
 - New here? Read **Part 1** (the mental model) once, then keep **Part 2** (playbooks) open while you work.
@@ -14,15 +14,15 @@ stow packages (`agents/`, `opencode/`, `scripts/`).
 
 ## Part 1 - The mental model
 
-### Four tools, one shared brain
+### Five tools, one shared brain
 
-| Layer | Shared across all 4? | Where it lives |
+| Layer | Shared across all 5? | Where it lives |
 |---|---|---|
-| **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → symlinked into each tool |
-| **Skills** (33) | ✅ identical | `agents/.config/opencode/skills/` → symlinked into each tool |
+| **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
+| **Skills** (33) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills` |
 | **Commands** (39 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
-| **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi uses native `coder`/`explore`/`plan` |
-| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` |
+| **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi and Amp compose skills with native agents/tools |
+| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` |
 
 Skills are the shared command layer.
 Subagent prompts are canonical in OpenCode format and generated into Claude Code and Codex formats with per-harness model maps.
@@ -32,13 +32,16 @@ Kimi Code does not currently document a mechanism for independently model-pinned
 agents equivalent to the generated Claude and Codex role files, so Kimi roles use the active
 session model unless a workflow such as `crew` or `gate` launches a separate model explicitly.
 OpenCode slash commands remain thin ergonomic wrappers for context injection and model routing.
+Amp uses the shared skills with native tools such as `Task`, Oracle, Finder, and Librarian rather
+than generated custom role files.
 
 ### The four layers - what fires when
 
-- **Skills** = portable *knowledge* (a checklist / lens / procedure). Available in all four
+- **Skills** = portable *knowledge* (a checklist / lens / procedure). Available in all five
   tools. In Claude a skill is invocable as a slash (`/ceo-review`) or auto-activates by
   description; in Codex it is invocable as `$ceo-review`; in OpenCode an agent uses it as a tool;
-  in Kimi use `/skill:ceo-review` or let the model select it. **Rule: want a capability everywhere → make it a skill.**
+  in Kimi use `/skill:ceo-review`; in Amp ask for the skill or let the model select it.
+  **Rule: want a capability everywhere → make it a skill.**
 - **Commands** (OpenCode) = ergonomic *slash triggers* that inject context (`git diff`, `$ARGUMENTS`),
   route to a subagent (which picks the model), and usually say "use the X skill". Thin wrappers over skills.
 - **Subagents** = named *roles* (`reviewer`, `critic`, `architect`…) generated for all three harnesses.
@@ -72,14 +75,13 @@ subagent, so headless runs cannot target it, and the gate carries its own inline
 | Tier | Agents | Model |
 |---|---|---|
 | Gate / build | `build` | `openai/gpt-5.6-terra-fast` (review pass: `terra`) |
-| Workhorse | `tester`, `crewmate` | `openai/gpt-5.6-terra` |
+| Workhorse | `tester` | `openai/gpt-5.6-terra` |
 | Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.6-sol` |
 | Debugging | `debugger` | `openai/gpt-5.6-sol` |
 | Review | `reviewer` | `openai/gpt-5.6-terra` |
 | Security / critique | `security-reviewer`, `critic` | `openai/gpt-5.6-sol-pro` |
 | Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.6-luna-fast` |
 | Research | `researcher` | `openai/gpt-5.6-sol-fast` |
-| Orchestration | `captain` | `openai/gpt-5.6-terra-fast` |
 
 `small_model = openai/gpt-5.6-luna-fast` (lightweight ops); `default_agent = build`.
 On-demand escalation: `/claude-review` shells out to the `claude` CLI (your Claude subscription)
@@ -216,18 +218,19 @@ engine's interactive TUI seeded with the task, so herdr tracks live agent status
 A crewmate with a task runs **bounded**: it may edit, run tests, and
 commit on its branch, then stops - it never pushes. Each engine is constrained differently but to
 the same effect - auto-approve everything except an explicit deny-list, never a full yolo mode:
-`opencode` via `--agent crewmate --auto` (auto-approves, but the `crewmate` agent still denies
-`git push`/`sudo`/hard-reset); `claude` via `--permission-mode acceptEdits` + a
+`opencode` via `--agent build --auto` (auto-approves, but the `build` agent still denies
+`git push`/`sudo`/hard-reset/`git clean`/dangerous `rm -rf`); `claude` via `--permission-mode acceptEdits` + a
 `git push`/`sudo`/hard-reset deny-list; `codex` via the `workspace-write` sandbox (network off, so
-push is blocked). Headless `opencode run` has no TTY to approve prompts, so **`--auto` is required**
-or every crewmate action is auto-rejected.
+push is blocked); Amp uses a dedicated settings file that allows normal tools but rejects those
+same destructive shell patterns. Headless `opencode run` has no TTY to approve prompts, so
+**`--auto` is required** or every crewmate action is auto-rejected.
 
 ```bash
 crew new "<task>"            # standard profile (the default): AI-name a branch, then worktree + session/workspace running:
-                             #   opencode run "<task>" --agent crewmate
+                             #   opencode run "<task>" --agent build --auto
                               #   --profile fast|standard|deep -> explicit per-engine model tier
                               #   -b/--branch <name> -> force/reuse a branch (no task -> interactive)
-                             #   --claude / --codex / --kimi -> select another engine
+                             #   --claude / --codex / --kimi / --amp -> select another engine
                              #   --attach  -> jump into the session now
                              #   --start <ref> -> branch from <ref>
 crew status [<branch>]       # table: branch | running/done(rc) | commits-ahead | last log line
@@ -254,6 +257,7 @@ state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`,
 crew new "fix the flaky login test"        # -> branch: fix/flaky-login (AI-named)
 crew new "add a dark-mode toggle to settings"
 crew new --profile fast --kimi "update shell completion docs"
+crew new --profile standard --amp "add API pagination"
 crew status                   # see both: running -> done:0 with commits-ahead
 crew logs fix/flaky-login     # read what a crewmate did (or -f to follow)
 # when each shows done with commits: review the branch (Playbook 7), ship via the gate (Playbook 11)
@@ -261,7 +265,7 @@ crew stop fix/flaky-login -D
 ```
 
 *Captain-driven* - converse with **one** agent that dispatches and monitors for you (the firstmate
-feel). `/crew` routes to the **`captain` agent**, which uses the `crew` skill:
+feel). `/crew` uses the shared `crew` skill, which makes the current agent the captain for that task:
 
 ```bash
 /crew "add a dark-mode toggle, fix the flaky login test, and add a /health endpoint"
@@ -275,17 +279,19 @@ pushes, or merges; it hands the ready branches back to you.
 
 Crew profiles select explicit models for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex | Kimi Code |
-|---|---|---|---|---|---|
-| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code |
-| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp |
+|---|---|---|---|---|---|---|
+| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low |
+| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | medium |
 
 The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
 and `deep` only when stronger reasoning is justified.
 Kimi is available only when explicitly selected with `--kimi`; OpenCode remains the default.
 Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not document a way to seed
 a task into its interactive TUI.
+Amp is available only when explicitly selected with `--amp`.
+Its `deep` profile deliberately stays on `medium`, so Crew never selects costly `high` or `ultra`.
 
 **Hands-off alerts (`crew watch`).** The captain has no background loop, so between your check-ins it
 is idle - "report on request" is deliberate, not laziness. If you want to be *pushed* an alert the
@@ -295,13 +301,13 @@ zero tokens, and fires a terminal bell + `notify-send` toast only on a real tran
 event-driven layer an in-chat agent cannot provide on its own.
 
 **How agnostic is this?** The engine (`crew` CLI, worktrees, tmux/herdr, state tracking) is fully
-tool-agnostic - dispatch `opencode`, `claude`, `codex`, or `kimi` crewmates from any terminal, all bounded
-the same way. The `crew` **skill** is shared across all four tools, so any of them can play captain.
-Only the packaged `/crew` **command** and the `captain`/`crewmate` **agent** definitions are
-OpenCode-specific (commands and agents are per-tool). From **Claude**, get the same captain by
+tool-agnostic - dispatch `opencode`, `claude`, `codex`, `kimi`, or `amp` crewmates from any terminal,
+all bounded the same way. The `crew` **skill** is shared across all five tools, so any can play captain.
+Only the packaged `/crew` **command** is OpenCode-specific. From **Claude**, get the same captain by
 invoking the `crew` skill - it surfaces as `/crew` (or just ask Claude to "use the crew skill to
 build A, B, C"); Claude then drives the same `crew` CLI. From **Codex**, invoke `$crew`.
 From **Kimi Code**, invoke `/skill:crew` or ask it to use the `crew` skill.
+From **Amp**, ask it to use the `crew` skill.
 
 **When to use which:** one focused task → `wt`; several independent tasks you want running
 (semi-)unattended → `crew` (manual) or `/crew` (captain-driven). Native alternatives if you prefer
@@ -324,6 +330,7 @@ agent + `gh`.*
 ```bash
 /init-gate        # (or: gate init) writes optional .gate.sh overrides
 gate init --engine kimi  # writes a Kimi-specific variant without changing the default
+gate init --engine amp   # writes an Amp variant using medium mode
 ```
 
 `gate run` works without `.gate.sh`.
@@ -338,6 +345,10 @@ remain denied by `opencode.json`.
 The opt-in Kimi variant uses K3 for structured review and regular K2.7 Code for fixes and
 agent-detected validation.
 It uses Kimi's documented `stream-json` mode to pass only the final Assistant payload into the gate.
+The opt-in Amp variant uses `medium` for review, fixes, and agent-detected validation.
+It uses the shared bounded Amp settings, so unattended runs reject pushes and destructive commands;
+override the settings path with `GATE_AMP_SETTINGS`.
+Gate never selects Amp `high` or `ultra` modes.
 
 `gate` inherits the shell environment you run it from.
 Put worktree-specific bootstrap in `.worktrees-setup`, for example:
@@ -423,7 +434,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/test-plan` | tester (gpt-5.6-terra) | test-writer | Practical test plan for a change/feature |
 | `/qa-only` | tester (gpt-5.6-terra) | - | Test changed behavior, report bugs, no code changes |
 | `/debug-tests` | debugger (gpt-5.6-sol) | debugging | Debug failing tests, root-cause first |
-| `/crew` | captain (gpt-5.6-terra-fast) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
+| `/crew` | build (gpt-5.6-terra-fast) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
 | `/gate-review` | reviewer (gpt-5.6-terra) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
 | `/commit` | pr-writer (gpt-5.6-luna-fast) | git-commit | Commit staged changes (this repo or child repos) |
@@ -435,7 +446,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/init-agents-md` | build (gpt-5.6-terra-fast) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `/init-gate` | build (gpt-5.6-terra-fast) | - | Seed optional `.gate.sh` ship-gate overrides |
 
-### Skills (32) - shared across Claude, Codex, OpenCode
+### Skills (32) - shared across Claude, Codex, OpenCode, Kimi Code, and Amp
 
 | Skill | For | Used by |
 |---|---|---|
@@ -474,7 +485,8 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `init-agents-md` | Bootstrap per-repo `AGENTS.md` and `CLAUDE.md` symlink | `/init-agents-md` |
 
 Available everywhere: in **Claude** as `/skill-name` or auto-activated; in **OpenCode** invoked by
-agents (governed by each agent's `skill:` allowlist in its `.md`); in **Codex** as `$skill-name` from `~/.codex/skills`.
+agents (governed by each agent's `skill:` allowlist in its `.md`); in **Codex** as `$skill-name`;
+in **Kimi Code** as `/skill:skill-name`; and in **Amp** by asking for it or automatic selection.
 
 ### Subagents - three harnesses
 
@@ -502,23 +514,13 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.
 Generated Claude/Codex roles cover the 10 custom subagents above.
 
-**Orchestration agents (OpenCode-only, for `crew`):**
-
-| Agent | Model | Role | Can edit? |
-|---|---|---|---|
-| `captain` | gpt-5.6-terra-fast | Split a request, dispatch/monitor crewmates via the `crew` skill | no (deny) |
-| `crewmate` | profile-selected | Implement one task headless in a worktree and commit; never push | yes (bounded) |
-
-These two exist only in `opencode/.config/opencode/agents/` (they drive `crew`, which is OpenCode's
-headless runner) and are not generated for Claude/Codex.
-
 ### Scripts (`scripts/.local/bin`, on `$PATH`)
 
 | Tool | Subcommands | Purpose |
 |---|---|---|
 | `git wt` / `wt` | `new`, `ls`, `path`, `rm`, `prune` | Sibling worktrees; `wt` adds `cd`; `.worktrees-setup` post-create hook |
-| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux/herdr multi-agent orchestrator over `wt`; tasks run bounded (`--agent crewmate --auto`) + track completion; `watch` pushes alerts; `--claude`/`--codex`/`--kimi`/`--headless` |
-| `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex|kimi` |
+| `crew` | `new`, `status`, `logs`, `watch`, `ls`, `attach`, `stop` | tmux/herdr multi-agent orchestrator over `wt`; OpenCode tasks use bounded `build --auto`; tracks completion; `watch` pushes alerts; `--claude`/`--codex`/`--kimi`/`--amp`/`--headless` |
+| `gate` | `init`, `run`, `status` | Ship gate: structured review (auto-fix/ask-user + evidence) → test → docs → lint → push → PR → CI monitor; `init --engine opencode|claude|codex|kimi|amp` |
 | `codex-status` | `--json`, `--watch` | ChatGPT/Codex usage + rate-limit meter |
 
 Full usage: [`scripts/README.md`](../scripts/README.md).
@@ -527,15 +529,16 @@ Full usage: [`scripts/README.md`](../scripts/README.md).
 
 | File | Read by | Controls |
 |---|---|---|
-| `~/AGENTS.md` (→ `agents/AGENTS.md`) | all 3 tools | Global behavioral instructions (short, shared) |
+| `~/AGENTS.md` (→ `agents/AGENTS.md`) | all five tools | Global behavioral instructions (short, shared) |
 | `opencode.json` | OpenCode | Model routing (`agent` block), providers, `small_model`, global permissions |
 | `tui.json` | OpenCode TUI | Theme (`noctalia`) + local plugins (`./codex-status.ts` usage meter) |
 | Claude `settings.json` | Claude Code | Model, enabled plugins, marketplaces, permissions, statusline |
 | Codex `config.toml` | Codex | Model, per-project trust levels, features; not stowed |
 | Codex `rules/default.rules` | Codex | Exec-policy allow/forbid rules for shell approvals |
+| Amp settings | Amp | Runtime preferences; Crew and Gate additionally load the shared bounded policy |
 | `.gate.sh` (per repo, optional) | `gate` | Deterministic ship-gate overrides; empty test/lint uses auto-detection |
 | `.worktrees-setup` (per repo) | `git wt` | Post-create hook run inside each new worktree |
-| project `AGENTS.md` (per repo) | all 3 tools | Project-specific stack, commands, conventions, pitfalls |
+| project `AGENTS.md` (per repo) | all five tools | Project-specific stack, commands, conventions, pitfalls |
 
 `codex-status.ts` is a **local** OpenCode TUI plugin (needs `bun`) that renders your ChatGPT/Codex
 usage % in the status bar; the standalone `codex-status` CLI prints the same on demand.
@@ -544,17 +547,18 @@ usage % in the status bar; the standalone `codex-status` CLI prints the same on 
 
 ## Part 4 - Cross-tool cheatsheet
 
-**Same capability, three tools** (skills are shared; only the trigger differs):
+**Same capability, five tools** (skills are shared; only the trigger differs):
 
-| Capability | Claude Code | OpenCode | Codex |
-|---|---|---|---|
-| CEO review | `ceo-review` skill (`/ceo-review` or ask) | `/ceo-review` (→ critic) | `$ceo-review` skill |
-| Design review | `design-review` skill | `/plan-design-review` / `/ui-review` | `$design-review` skill |
-| Eng review | `eng-review` skill | `/plan-eng-review` / `/architecture-check` | `$eng-review` skill |
-| Code review | `code-review` skill | `/review-diff` | `$code-review` skill |
-| Re-review | `second-pass` skill | `/second-pass` | `$second-pass` skill |
-| Ship gate | run `gate run` | `/ship-gate` | run `gate run` |
-| Web QA | `browser` skill | `browser` skill | `browser` skill |
+| Capability | Claude Code | OpenCode | Codex | Kimi Code | Amp |
+|---|---|---|---|---|---|
+| CEO review | `/ceo-review` or ask | `/ceo-review` (→ critic) | `$ceo-review` | `/skill:ceo-review` | ask for `ceo-review` |
+| Design review | `/design-review` or ask | `/plan-design-review` / `/ui-review` | `$design-review` | `/skill:design-review` | ask for `design-review` |
+| Eng review | `/eng-review` or ask | `/plan-eng-review` / `/architecture-check` | `$eng-review` | `/skill:eng-review` | ask for `eng-review` |
+| Code review | `/code-review` or ask | `/review-diff` | `$code-review` | `/skill:code-review` | ask for `code-review` |
+| Re-review | `/second-pass` or ask | `/second-pass` | `$second-pass` | `/skill:second-pass` | ask for `second-pass` |
+| Crew captain | `/crew` or ask | `/crew` | `$crew` | `/skill:crew` | ask for `crew` |
+| Ship gate | run `gate run` | `/ship-gate` | run `gate run` | run `gate run` | run `gate run` |
+| Web QA | `browser` skill | `browser` skill | `$browser` | `/skill:browser` | ask for `browser` |
 
 **Rule of thumb:** want a capability in every tool → make it a **skill**. Want a slash trigger with
 model routing → add an OpenCode **command** that uses the skill.

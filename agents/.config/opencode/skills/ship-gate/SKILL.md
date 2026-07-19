@@ -26,6 +26,9 @@ passes. Built on `git-wt` + your coding agent + `gh`.
 ## Config - optional `.gate.sh` overrides (sourced bash, not YAML)
 `gate run` works without `.gate.sh`.
 Seed optional deterministic overrides with `gate init`.
+Use `gate init --engine opencode|claude|codex|kimi|amp` to select the agent commands written into
+the file. The Amp variant uses `medium` mode and the shared bounded safety policy; it never selects
+Amp `high` or `ultra` modes.
 Fields: `GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review; empty = skip),
 `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational), `GATE_FIX_CMD` (`%s` = fix prompt),
 `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`, `GATE_PUSH_REMOTE`, `GATE_PR_ARGS`.
@@ -46,6 +49,7 @@ pnpm install --frozen-lockfile
 ## Usage
 ```bash
 gate init          # optional: write .gate.sh deterministic overrides
+gate init --engine amp
 gate status        # show resolved config
 gate run [branch]  # validate → push → PR (default: current branch)
 ```
