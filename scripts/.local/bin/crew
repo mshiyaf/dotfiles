@@ -108,6 +108,47 @@ OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
 
+# Claude's default print format emits nothing until the whole run finishes. Consume its
+# realtime event stream and retain only concise, human-readable activity: short agent
+# updates, tool names/targets, and completion. Thinking and potentially large tool results
+# are deliberately omitted.
+CLAUDE_STREAM_FILTER='
+def clean:
+  tostring
+  | gsub("[\\r\\n]+"; " ")
+  | gsub("[[:space:]]+"; " ")
+  | .[0:240];
+if .type == "system" and .subtype == "init" then
+  "[started] Claude session"
+elif .type == "assistant" then
+  .message.content[]?
+  | if .type == "text" then
+      if (.text | contains("BLOCKED:")) then .text
+      else "[agent] " + (.text | clean)
+      end
+    elif .type == "tool_use" then
+      "[" + (.name // "tool") + "] "
+      + ((.input.description // .input.file_path // .input.path // .input.command // .input.pattern // "working") | clean)
+    else empty
+    end
+elif .type == "result" then
+  if (.is_error // false) then
+    "[error] " + ((.result // .error // "Claude failed") | clean)
+  else
+    "[done] Claude finished"
+  end
+else empty
+end'
+
+claude_stream_filter() {
+	jq --unbuffered -r "$CLAUDE_STREAM_FILTER"
+}
+
+claude_headless_command() {
+	printf 'set -o pipefail; claude -p --model %q --output-format stream-json --verbose %q %s | jq --unbuffered -r %q' \
+		"$1" "$2" "$CLAUDE_CREW_FLAGS" "$CLAUDE_STREAM_FILTER"
+}
+
 task_with_guardrails() {
 	local engine="$1" task="$2" full="$task. $TASK_SUFFIX"
 	case "$engine" in
@@ -250,7 +291,7 @@ herdr_spawn() {
 	if should_run_headless "$task"; then
 		full=$(task_with_guardrails "$engine" "$task")
 		case "$engine" in
-			claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
+			claude)   launch=$(claude_headless_command "$model" "$full") ;;
 			codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 			opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
@@ -296,6 +337,7 @@ cmd_new() {
 
 	git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
 	command -v "$engine" >/dev/null 2>&1 || die "$engine not on PATH"
+	[ "$engine" != claude ] || command -v jq >/dev/null 2>&1 || die "jq is required for Claude activity logs"
 	local model; model=$(resolve_profile "$profile" "$engine")
 	[ "$engine" != amp ] || [ -r "$AMP_CREW_SETTINGS" ] \
 		|| die "Amp safety settings not found: $AMP_CREW_SETTINGS"
@@ -358,7 +400,7 @@ cmd_new() {
 			if [ -n "$task" ]; then
 				local full; full=$(task_with_guardrails "$engine" "$task")
 				case "$engine" in
-					claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
+					claude)   launch=$(claude_headless_command "$model" "$full") ;;
 					codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
 					opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;

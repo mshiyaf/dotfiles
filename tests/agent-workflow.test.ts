@@ -116,6 +116,47 @@ describe("Crew Amp execution", () => {
     return result.stdout.toString();
   };
 
+  test("streams concise Claude activity without thinking or tool results", () => {
+    const events = [
+      { type: "system", subtype: "init" },
+      {
+        type: "assistant",
+        message: {
+          content: [
+            { type: "thinking", thinking: "private reasoning" },
+            { type: "text", text: "I am checking the migration." },
+            { type: "tool_use", name: "Bash", input: { description: "Run focused database tests", command: "bun test" } },
+            { type: "tool_use", name: "Edit", input: { file_path: "src/store.ts" } },
+          ],
+        },
+      },
+      { type: "user", message: { content: [{ type: "tool_result", content: "very long output" }] } },
+      { type: "result", subtype: "success", result: "Finished" },
+    ];
+    const input = events.map((event) => JSON.stringify(event)).join("\n");
+    const encoded = Buffer.from(input).toString("base64");
+    const output = callCrewFunction(`printf %s '${encoded}' | base64 -d | claude_stream_filter`);
+
+    expect(output).toBe([
+      "[started] Claude session",
+      "[agent] I am checking the migration.",
+      "[Bash] Run focused database tests",
+      "[Edit] src/store.ts",
+      "[done] Claude finished",
+      "",
+    ].join("\n"));
+    expect(output).not.toContain("private reasoning");
+    expect(output).not.toContain("very long output");
+  });
+
+  test("launches Claude with realtime streaming output", () => {
+    const command = callCrewFunction("claude_headless_command sonnet 'finish task'");
+    expect(command).toContain("claude -p --model sonnet");
+    expect(command).toContain("--output-format stream-json --verbose");
+    expect(command).toContain("jq --unbuffered");
+    expect(command).toContain("set -o pipefail");
+  });
+
   test("uses execute mode for Amp headless runs", () => {
     const command = callCrewFunction("amp_headless_command medium 'finish task'");
     expect(command).toContain("CREW_MANAGED=1 amp --settings-file");

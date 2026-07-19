@@ -119,6 +119,9 @@ via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Co
 mode's auto permission policy plus explicit local-only, non-destructive task guardrails. Amp uses
 minimal execute-mode settings plus the required `workflow-guardrails` plugin, which parses direct
 shell commands and rejects risky operations without false-blocking quoted text.
+Headless Claude runs use its realtime event stream to log concise agent updates and tool activity
+while omitting thinking and verbose tool results, so `crew status` and `crew logs -f` remain useful
+before the task finishes.
 Set `CREW_AMP_SETTINGS` only when supplying equivalent execute-mode settings.
 The guard plugin must be installed at Amp's system plugin path via `make restow-amp`.
 
