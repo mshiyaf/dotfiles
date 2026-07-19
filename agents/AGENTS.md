@@ -25,9 +25,10 @@ Project-specific rules live in each repo's own `AGENTS.md`.
 - No half-done work. If tests fail or a step is skipped, say so plainly with the output.
 - Fix bugs by first reproducing them end-to-end, as a real user would.
   That is how you find the real problem so the fix actually solves it.
-- Boy-scout rule: if you notice lint errors, test failures, or flaky tests, fix them even if unrelated to your task.
+- Report unrelated lint errors, test failures, flaky tests, or defects.
+  Fix them only when they block the requested work, were caused by the current change, or the user approves expanding scope.
 - UI/UX: match existing tokens, spacing, and states (loading / empty / error).
-  Be obsessed with pixel perfection; if something clearly looks off, fix it even if it is not what you set out to do.
+  If unrelated UI clearly looks wrong, report it without broadening the task.
 
 ## Writing
 - Never use em dashes. Use a plain hyphen "-" instead.

@@ -1,0 +1,83 @@
+#!/usr/bin/env bun
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+const repo = resolve(import.meta.dir, "../../..");
+let failed = false;
+
+function failure(message: string) {
+  failed = true;
+  console.error(`FAIL: ${message}`);
+}
+
+function run(command: string[], optional = false) {
+  const result = Bun.spawnSync(command, { cwd: repo, stdout: "inherit", stderr: "inherit" });
+  if (result.exitCode !== 0 && !optional) failure(`${command.join(" ")} exited ${result.exitCode}`);
+  return result.exitCode === 0;
+}
+
+const skillsRoot = join(repo, "agents/.config/opencode/skills");
+const names = new Set<string>();
+for (const directory of readdirSync(skillsRoot, { withFileTypes: true }).filter(
+  (entry) => entry.isDirectory() && !entry.name.startsWith("."),
+)) {
+  const file = join(skillsRoot, directory.name, "SKILL.md");
+  let content: string;
+  try {
+    content = readFileSync(file, "utf8");
+  } catch {
+    failure(`missing ${file}`);
+    continue;
+  }
+  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/i)?.[1];
+  const name = frontmatter?.match(/^name:\s*(.+)$/m)?.[1].trim();
+  const description = frontmatter?.match(/^description:\s*(.+)$/m)?.[1].trim();
+  if (!name) failure(`${file} has no frontmatter name`);
+  if (!description) failure(`${file} has no frontmatter description`);
+  if (name && name !== directory.name) failure(`${file} declares name ${name}, expected ${directory.name}`);
+  if (name && names.has(name)) failure(`duplicate skill name: ${name}`);
+  if (name) names.add(name);
+}
+
+for (const file of [
+  "agents/models.json",
+  "agents/.claude/settings.json",
+  "opencode/.config/opencode/opencode.json",
+  "amp/.config/amp/settings.json",
+  "scripts/.local/share/agentic/amp-settings.json",
+]) {
+  try {
+    JSON.parse(readFileSync(join(repo, file), "utf8"));
+  } catch (error) {
+    failure(`${file} is invalid JSON: ${error}`);
+  }
+}
+
+run([join(repo, "scripts/.local/bin/agents-sync"), "--check"]);
+
+const scriptsRoot = join(repo, "scripts/.local/bin");
+const bashScripts = readdirSync(scriptsRoot)
+  .map((name) => join(scriptsRoot, name))
+  .filter((file) => readFileSync(file, "utf8").startsWith("#!/usr/bin/env bash"));
+for (const file of bashScripts) run(["bash", "-n", file]);
+
+if (Bun.which("shellcheck")) run(["shellcheck", ...bashScripts]);
+else console.warn("SKIP: shellcheck is not installed");
+
+run(["bun", "test", "tests/agent-workflow.test.ts"]);
+
+if (Bun.which("amp")) {
+  run([
+    "amp",
+    "plugins",
+    "exec",
+    join(repo, "amp/.config/amp/plugins/workflow-guardrails.ts"),
+    "tool.call",
+    "--data",
+    '{"toolUseID":"tool-test","tool":"shell_command","input":{"command":"git status --short"},"thread":{"id":"T-00000000-0000-0000-0000-000000000000"}}',
+  ]);
+} else console.warn("SKIP: amp is not installed; permission and plugin smoke tests were not run");
+
+if (failed) process.exit(1);
+console.log(`OK: validated ${names.size} skills, generated agents, JSON, shell syntax, and workflow tests`);

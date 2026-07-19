@@ -27,4 +27,15 @@ Steps:
 9. Create `CLAUDE.md` as a symlink to `AGENTS.md` with `ln -s AGENTS.md CLAUDE.md`, skipping if it exists.
 10. Print both paths and remind the user to review and commit.
 
+After the core files are ready, offer only the project-specific lifecycle files that the repository needs:
+
+- `.agents/setup` for fresh Amp orb dependency installation and generation. Keep it short and executable.
+- `.agents/resume` for fast, idempotent reconnect repair only. It must not install dependencies.
+- `.worktrees-setup` for local Crew worktree bootstrap.
+- `.gate.sh` for deterministic project test, docs, and lint overrides.
+- `.amp/services.yaml` for supervised development services and authenticated portals.
+
+Do not create these optional files blindly.
+Prefer calling one project-owned bootstrap command from orb and worktree setup instead of duplicating dependency logic.
+
 Keep it short because this file loads into every agent's context for the project.

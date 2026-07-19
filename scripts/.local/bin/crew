@@ -11,17 +11,14 @@
 #   crew new <task...>            Create a worktree + session/workspace and launch an agent.
 #                                   The branch is AI-named from the task (printed as
 #                                   "-> branch: ..."); no need to invent a name.
-#                                   tmux: task -> headless agent that implements + commits.
-#                                   herdr: task -> interactive agent TUI seeded with the
-#                                   task, so herdr tracks live status (working/blocked/idle);
-#                                   pass --headless for the bounded non-interactive run.
-#                                   Kimi tasks are always headless because its TUI has no
-#                                   documented seeded-prompt launch mode.
+#                                   A task always runs headlessly, implements + commits,
+#                                   then exits on both Herdr and tmux.
+#                                   No task -> interactive agent TUI in the worktree.
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
 #                                        --attach (jump to it), --claude, --codex, --kimi, --amp,
-#                                        --headless (bounded run on herdr; already the
-#                                        default on tmux), --profile fast|standard|deep,
+#                                        --headless (accepted for compatibility; tasked runs
+#                                        are always bounded), --profile fast|standard|deep,
 #                                        --start <ref> (branch start-point).
 #   crew status [branch] [--all]  Report crewmates: engine, profile, model, running/done, commits, last log line.
 #   crew logs <branch> [-f]       Print (or follow with -f) a crewmate's captured output.
@@ -96,6 +93,7 @@ KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or 
 AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
+AMP_GUARD_PLUGIN="$HOME/.config/amp/plugins/workflow-guardrails.ts"
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
@@ -104,8 +102,8 @@ AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-setting
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
 #   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
 #   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
-#   amp     : a dedicated settings file allows tools but mechanically rejects push / sudo /
-#             hard-reset / git clean / dangerous rm -rf in both shell tool variants.
+#   amp     : execute mode loads minimal commit settings; the required workflow-guardrails
+#             plugin rejects push / sudo / hard-reset / git clean / dangerous rm commands.
 OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
@@ -120,17 +118,27 @@ task_with_guardrails() {
 }
 
 amp_headless_command() {
-	printf 'amp --settings-file %q --no-notifications -m %q --plugin-ready-timeout 10 -x %q' \
+	printf 'CREW_MANAGED=1 amp --settings-file %q --no-notifications -m %q --plugin-ready-timeout 10 -x %q' \
 		"$AMP_CREW_SETTINGS" "$1" "$2"
 }
 
 amp_interactive_command() {
 	local mode="$1" prompt="${2:-}"
 	if [ -n "$prompt" ]; then
-		printf 'printf %%s\\n %q | amp --settings-file %q -m %q' "$prompt" "$AMP_CREW_SETTINGS" "$mode"
+		printf 'printf %%s\\n %q | amp -m %q' "$prompt" "$mode"
 	else
-		printf 'amp --settings-file %q -m %q' "$AMP_CREW_SETTINGS" "$mode"
+		printf 'amp -m %q' "$mode"
 	fi
+}
+
+should_run_headless() {
+	local task="$1"
+	[ -n "$task" ]
+}
+
+require_amp_guard() {
+	[ -r "$AMP_GUARD_PLUGIN" ] \
+		|| die "Amp workflow guard plugin not found: $AMP_GUARD_PLUGIN (run: make restow-amp)"
 }
 
 # Profiles make autonomous work predictable across engines instead of inheriting each CLI's
@@ -152,7 +160,7 @@ resolve_profile() {
 		deep:kimi)       printf '%s' 'kimi-code/k3' ;;
 		fast:amp)         printf '%s' 'low' ;;
 		standard:amp)     printf '%s' 'medium' ;;
-		deep:amp)         printf '%s' 'medium' ;;
+		deep:amp)         printf '%s' 'high' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
@@ -223,11 +231,10 @@ enter_crewmate() {
 	fi
 }
 
-# Spawn a crewmate as a background herdr workspace. Expects cmd_new locals in scope:
-# name path sdir engine model task headless. With a task, launches the engine's
-# interactive TUI seeded with it so herdr's native agent detection tracks live status;
-# --headless keeps the tmux-style bounded run (wrapped to tee a log + record exit code)
-# and registers the pane via report-agent so it still shows up in `herdr agent list`.
+# Spawn a crewmate as a background Herdr workspace. Expects cmd_new locals in scope:
+# name path sdir engine model task. A task always launches the bounded non-interactive
+# command, wrapped to tee a log, record its exit code, and report agent state to Herdr.
+# A branch-only launch without a task remains interactive.
 herdr_spawn() {
 	local out wsid pane
 	out=$(herdr workspace create --cwd "$path" --label "$name" --no-focus) \
@@ -240,7 +247,7 @@ herdr_spawn() {
 	printf '%s\n' "$pane" > "$sdir/pane_id"
 
 	local launch full
-	if [ -n "$task" ] && { [ "$headless" -eq 1 ] || [ "$engine" = kimi ]; }; then
+	if should_run_headless "$task"; then
 		full=$(task_with_guardrails "$engine" "$task")
 		case "$engine" in
 			claude)   launch=$(printf 'claude -p --model %q %q %s' "$model" "$full" "$CLAUDE_CREW_FLAGS") ;;
@@ -253,19 +260,8 @@ herdr_spawn() {
 		printf 'running\n' > "$sdir/status"
 		local report="herdr pane report-agent $pane --source crew --agent $engine"
 		local wrapped
-		wrapped="$report --state working >/dev/null 2>&1 || true; ( $launch ; rc=\$?; echo done:\$rc > \"$sdir/status\"; $report --state idle --message done:\$rc >/dev/null 2>&1 || true ) 2>&1 | tee \"$sdir/log\""
+		wrapped="$report --state working >/dev/null 2>&1 || true; ( $launch ; rc=\$?; echo done:\$rc > \"$sdir/status\"; state=idle; [ \$rc -eq 0 ] || state=blocked; $report --state \$state --message done:\$rc >/dev/null 2>&1 || true ) 2>&1 | tee \"$sdir/log\""
 		herdr pane run "$pane" "$wrapped" >/dev/null
-	elif [ -n "$task" ]; then
-		full=$(task_with_guardrails "$engine" "$task")
-		case "$engine" in
-			claude)   launch=$(printf 'claude --model %q %s %q' "$model" "$CLAUDE_CREW_FLAGS" "$full") ;;
-			codex)    launch=$(printf 'codex --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
-			opencode) launch=$(printf 'opencode --model %q %s --prompt %q' "$model" "$OPENCODE_CREW_FLAGS" "$full") ;;
-			amp)      launch=$(amp_interactive_command "$model" "$full") ;;
-			*) die "unknown engine: $engine" ;;
-		esac
-		printf 'interactive\n' > "$sdir/status"
-		herdr pane run "$pane" "$launch" >/dev/null
 	else
 		printf 'interactive\n' > "$sdir/status"
 		case "$engine" in
@@ -277,7 +273,7 @@ herdr_spawn() {
 }
 
 cmd_new() {
-	local branch="" start="" task="" attach=0 engine="opencode" profile="standard" headless=0
+	local branch="" start="" task="" attach=0 engine="opencode" profile="standard"
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			-b|--branch) shift; branch="${1:-}" ;;
@@ -286,7 +282,7 @@ cmd_new() {
 			--codex) engine="codex" ;;
 			--kimi) engine="kimi" ;;
 			--amp) engine="amp" ;;
-			--headless) headless=1 ;;
+			--headless) : ;;
 			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
 			--) shift; break ;;
@@ -303,6 +299,7 @@ cmd_new() {
 	local model; model=$(resolve_profile "$profile" "$engine")
 	[ "$engine" != amp ] || [ -r "$AMP_CREW_SETTINGS" ] \
 		|| die "Amp safety settings not found: $AMP_CREW_SETTINGS"
+	[ "$engine" != amp ] || require_amp_guard
 
 	# Resolve the branch: explicit -b wins; otherwise AI-name it from the task.
 	if [ -z "$branch" ]; then
@@ -669,4 +666,6 @@ main() {
 	esac
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

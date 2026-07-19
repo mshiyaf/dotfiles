@@ -26,14 +26,14 @@ STOW_FLAGS ?= --no-folding -v
 ALL_PACKAGES := $(filter-out codex,$(patsubst %/,%,$(wildcard */)))
 
 # Packages installed by `make stow` and `make restow`.
-DEFAULT_PACKAGES := agents alacritty fastfetch git herdr kitty niri noctalia nvim opencode scripts tmux zprofile zsh zshenv
+DEFAULT_PACKAGES := agents alacritty amp fastfetch git herdr kitty niri noctalia nvim opencode scripts tmux zprofile zsh zshenv
 
 # Packages to act on. Defaults to the active, tested package set. Override on
 # the command line for a targeted operation, e.g.
 #   make stow PKG="opencode nvim tmux"
 PKG ?= $(DEFAULT_PACKAGES)
 
-.PHONY: help list stow restow unstow agents-sync
+.PHONY: help list stow restow unstow agents-sync verify-agent-workflow
 
 help:
 	@echo "Targets:"
@@ -42,6 +42,7 @@ help:
 	@echo "  make restow [PKG=\"a b c\"]       Refresh default packages, or only PKG"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
 	@echo "  make agents-sync                Regenerate Claude/Codex subagents"
+	@echo "  make verify-agent-workflow      Validate agent config, scripts, and safety tests"
 	@echo "  make stow-<pkg>                Stow a single package (e.g. stow-opencode)"
 	@echo "  make unstow-<pkg>              Unstow a single package"
 	@echo "  make restow-<pkg>             Restow a single package"
@@ -72,6 +73,9 @@ unstow:
 
 agents-sync:
 	./scripts/.local/bin/agents-sync
+
+verify-agent-workflow:
+	./scripts/.local/bin/verify-agent-workflow
 
 # Per-package convenience targets: make stow-opencode / unstow-nvim / restow-tmux
 stow-%:

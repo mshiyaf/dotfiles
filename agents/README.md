@@ -7,6 +7,10 @@ GNU Stow package for the **shared, cross-agent layer**: the global instruction f
 **and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code,
 Codex, OpenCode, Kimi Code, and Amp all read the same instructions and portable `SKILL.md` set.
 
+Amp-specific settings, checks, plugins, and routing guidance live in the separate `amp/` Stow package.
+Its workflow plugin reports Amp lifecycle state to Herdr and asks before risky shell commands in interactive sessions.
+Unattended Crew and Gate runs require that plugin and fail closed when it is not installed.
+
 ## Shared instructions
 
 One canonical file - `agents/AGENTS.md` - symlinked into each host:
@@ -145,6 +149,7 @@ If `~/.codex/skills` is already a symlink from an older setup, preserve `.system
 ## Verify
 
 ```bash
+make verify-agent-workflow
 readlink -f ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.kimi-code/AGENTS.md   # -> agents/AGENTS.md
 readlink -f ~/.claude/skills ~/.codex/skills ~/.kimi-code/skills                                       # -> the shared skills dir
 readlink -f ~/.claude/settings.json ~/.claude/agents/reviewer.md ~/.codex/agents/reviewer.toml
@@ -157,4 +162,5 @@ ls ~/.claude/skills ~/.config/opencode/skills | sort -u | head                  
 - The OpenCode `opencode/` package owns `~/.config/opencode/opencode.json`, `tui.json`,
   `agents/`, `commands/`, `themes/`. This package owns `~/.config/opencode/AGENTS.md` and
   `~/.config/opencode/skills/`, so there is no stow conflict.
+- The `amp/` package owns `~/.config/amp/settings.json`, Amp-specific guidance, checks, and plugins.
 - Keep `AGENTS.md` short - it loads into every agent's context on every session.

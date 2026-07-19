@@ -100,14 +100,14 @@ git wt rm feature-x -D       # remove worktree + branch
 ## crew - tmux/herdr multi-agent orchestrator
 
 `crew` runs several agents in parallel, each in its own `git wt` worktree and its own
-detached tmux session or background herdr workspace. Our own lightweight take on firstmate -
+background Herdr workspace or detached tmux session. Herdr is the primary local backend and tmux
+is the fallback. This is our own lightweight take on firstmate -
 no daemon, no external scripts. Run it from inside the target repo. The backend is
 auto-detected per crewmate at spawn (herdr inside herdr, tmux inside tmux, else tmux if
 installed; `CREW_BACKEND=tmux|herdr` forces one) and recorded in the state dir, so
-`status`/`attach`/`stop` keep working from anywhere. On tmux, a crewmate with a task runs
-**headless**; on herdr it launches the engine's **interactive TUI seeded with the task**
-instead, so herdr's native agent detection tracks live status (working/blocked/idle) for
-toasts and the sessionizer - pass `--headless` to keep the bounded non-interactive run.
+`status`/`attach`/`stop` keep working from anywhere.
+Every tasked crewmate runs headlessly on both Herdr and tmux, then exits when its bounded work is complete.
+A branch-only launch without a task remains interactive.
 A crewmate with a task runs **bounded**: it may
 edit, run tests, and commit on its branch, then stops - it never pushes. Each engine is
 constrained to that effect - auto-approve everything except an explicit deny-list, never a full
@@ -117,10 +117,10 @@ yolo mode: `opencode` via `--agent build --auto` (auto-approves, but the build a
 `claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
 via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Code via print
 mode's auto permission policy plus explicit local-only, non-destructive task guardrails. Amp uses
-a dedicated settings file that allows normal tools while rejecting push, hard-reset, `git clean`,
-`sudo`, and dangerous `rm -rf` shell calls.
-That policy lives at `.local/share/agentic/amp-settings.json`; set `CREW_AMP_SETTINGS` only when you
-need to supply an equivalent custom policy file.
+minimal execute-mode settings plus the required `workflow-guardrails` plugin, which parses direct
+shell commands and rejects risky operations without false-blocking quoted text.
+Set `CREW_AMP_SETTINGS` only when supplying equivalent execute-mode settings.
+The guard plugin must be installed at Amp's system plugin path via `make restow-amp`.
 
 `crew` is **task-first**: give it the task and the branch is AI-named for you
 (via `ai-branch-name`, printed as `-> branch: ...`). Pass `-b/--branch <name>`
@@ -148,14 +148,16 @@ Profiles explicitly select the model for every engine rather than inheriting mac
 | --- | --- | --- | --- | --- | --- | --- |
 | `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low |
 | `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | medium |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high |
 
 Kimi is opt-in with `--kimi`; OpenCode remains the default engine.
 Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not provide a documented
 way to seed a prompt into its interactive TUI.
 Interactive Kimi sessions are still available with `crew new -b <branch> --kimi`.
-Amp is opt-in with `--amp`; `deep` deliberately stays on `medium`, so Crew never selects Amp's
-costly `high` or `ultra` modes.
+Amp is opt-in with `--amp` and tasked Amp runs use execute mode on both backends, fixing the TUI
+remaining open after a Herdr crewmate finishes.
+Interactive Amp remains available with `crew new -b <branch> --amp`.
+Amp `deep` uses `high`; Crew never selects `ultra` automatically.
 
 crew is **scoped per repository**: sessions/workspaces are named `crew_<repo-key>_<branch>` and
 state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
@@ -214,8 +216,10 @@ GATE_PUSH_REMOTE="origin"
 ```
 
 `gate init --engine amp` uses Amp `medium` mode for review, fixes, and agent-detected checks.
-It applies the shared bounded Amp settings, which allow normal tools but reject pushes, sudo,
-hard resets, forced cleans, and dangerous removals. Override their path with `GATE_AMP_SETTINGS`.
+It applies minimal shared settings and requires the Amp workflow-guardrails plugin to reject risky
+direct shell commands when no approval UI is available.
+Override the execute-mode settings path with `GATE_AMP_SETTINGS`.
+The guard plugin must be installed at Amp's system plugin path via `make restow-amp`.
 Gate never selects Amp `high` or `ultra` modes.
 
 The LLM only classifies findings; you approve the judgment calls (or a headless run blocks on

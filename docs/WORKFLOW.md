@@ -20,7 +20,7 @@ stow packages (`agents/`, `opencode/`, `scripts/`).
 |---|---|---|
 | **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
 | **Skills** (33) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills` |
-| **Commands** (39 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
+| **Commands** (41 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
 | **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi and Amp compose skills with native agents/tools |
 | **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` |
 
@@ -211,18 +211,19 @@ root, `wt`/`git wt new` runs it inside the new worktree (copy `.env`, install de
 
 **`crew` - many agents at once.** Our lightweight orchestrator (our own take on firstmate - no
 external scripts). Each crewmate = a branch in its own `wt` worktree running an agent in its own
-detached **tmux session or background herdr workspace** (backend auto-detected at spawn: herdr
-inside herdr, tmux otherwise; `CREW_BACKEND=tmux|herdr` forces one). On herdr a task launches the
-engine's interactive TUI seeded with the task, so herdr tracks live agent status
-(working/blocked/idle); `--headless` keeps the tmux-style bounded run.
+detached **tmux session or background Herdr workspace** (backend auto-detected at spawn: Herdr
+inside Herdr, tmux otherwise; `CREW_BACKEND=tmux|herdr` forces one).
+On both backends, every tasked crewmate runs in bounded non-interactive mode, commits, and exits.
+A branch-only crewmate without a task remains interactive.
 A crewmate with a task runs **bounded**: it may edit, run tests, and
 commit on its branch, then stops - it never pushes. Each engine is constrained differently but to
 the same effect - auto-approve everything except an explicit deny-list, never a full yolo mode:
 `opencode` via `--agent build --auto` (auto-approves, but the `build` agent still denies
 `git push`/`sudo`/hard-reset/`git clean`/dangerous `rm -rf`); `claude` via `--permission-mode acceptEdits` + a
 `git push`/`sudo`/hard-reset deny-list; `codex` via the `workspace-write` sandbox (network off, so
-push is blocked); Amp uses a dedicated settings file that allows normal tools but rejects those
-same destructive shell patterns. Headless `opencode run` has no TTY to approve prompts, so
+push is blocked); Amp requires the stowed `workflow-guardrails` plugin, which parses direct shell
+commands and rejects risky operations when no interactive approval surface exists.
+Headless `opencode run` has no TTY to approve prompts, so
 **`--auto` is required** or every crewmate action is auto-rejected.
 
 ```bash
@@ -283,15 +284,16 @@ Crew profiles select explicit models for every engine rather than inheriting mac
 |---|---|---|---|---|---|---|
 | `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low |
 | `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | medium |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high |
 
 The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
 and `deep` only when stronger reasoning is justified.
 Kimi is available only when explicitly selected with `--kimi`; OpenCode remains the default.
-Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not document a way to seed
-a task into its interactive TUI.
+Like every tasked crewmate, Kimi runs headlessly on both tmux and Herdr.
 Amp is available only when explicitly selected with `--amp`.
-Its `deep` profile deliberately stays on `medium`, so Crew never selects costly `high` or `ultra`.
+Tasked Amp crewmates use execute mode, so they exit when the bounded turn finishes.
+An Amp crewmate with an explicit branch and no task remains interactive.
+Amp `deep` uses `high`; Crew never selects `ultra` automatically.
 
 **Hands-off alerts (`crew watch`).** The captain has no background loop, so between your check-ins it
 is idle - "report on request" is deliberate, not laziness. If you want to be *pushed* an alert the
@@ -312,6 +314,10 @@ From **Amp**, ask it to use the `crew` skill.
 **When to use which:** one focused task → `wt`; several independent tasks you want running
 (semi-)unattended → `crew` (manual) or `/crew` (captain-driven). Native alternatives if you prefer
 Claude's own: `claude --tmux`, `claude --bg`.
+
+Use Amp native threads for independent research, read-only reviews, and clean-clone orb work.
+Use Crew for concurrent edits, cross-harness execution, or tasks that depend on uncommitted local state.
+Orb threads start from a fresh clone; use a live Amp runner or Crew when local state matters.
 
 **Guardrails:** every worktree is fully isolated, so parallel agents never collide. Crewmates commit
 but never push; the captain never pushes or merges. Always review each ready branch and run it
@@ -345,9 +351,11 @@ remain denied by `opencode.json`.
 The opt-in Kimi variant uses K3 for structured review and regular K2.7 Code for fixes and
 agent-detected validation.
 It uses Kimi's documented `stream-json` mode to pass only the final Assistant payload into the gate.
-The opt-in Amp variant uses `medium` for review, fixes, and agent-detected validation.
-It uses the shared bounded Amp settings, so unattended runs reject pushes and destructive commands;
-override the settings path with `GATE_AMP_SETTINGS`.
+The opt-in Amp gate variant uses `medium` for review, fixes, and agent-detected validation.
+It uses minimal shared settings plus the required Amp workflow-guardrails plugin, so unattended
+runs reject risky direct shell commands without blocking harmless quoted text.
+Override the execute-mode settings path with `GATE_AMP_SETTINGS`.
+The guard plugin must be installed at Amp's system plugin path via `make restow-amp`.
 Gate never selects Amp `high` or `ultra` modes.
 
 `gate` inherits the shell environment you run it from.
@@ -535,7 +543,9 @@ Full usage: [`scripts/README.md`](../scripts/README.md).
 | Claude `settings.json` | Claude Code | Model, enabled plugins, marketplaces, permissions, statusline |
 | Codex `config.toml` | Codex | Model, per-project trust levels, features; not stowed |
 | Codex `rules/default.rules` | Codex | Exec-policy allow/forbid rules for shell approvals |
-| Amp settings | Amp | Runtime preferences; Crew and Gate additionally load the shared bounded policy |
+| `~/.config/amp/settings.json` | Amp | Runtime preferences and commit attribution |
+| `~/.config/amp/plugins/workflow-guardrails.ts` | Amp | Approval gate for risky shell commands plus Herdr agent-state reporting |
+| Amp Crew/Gate settings | Amp Crew/Gate | Minimal commit attribution settings for execute mode |
 | `.gate.sh` (per repo, optional) | `gate` | Deterministic ship-gate overrides; empty test/lint uses auto-detection |
 | `.worktrees-setup` (per repo) | `git wt` | Post-create hook run inside each new worktree |
 | project `AGENTS.md` (per repo) | all five tools | Project-specific stack, commands, conventions, pitfalls |
@@ -569,6 +579,7 @@ model routing → add an OpenCode **command** that uses the skill.
 # generated subagents are current
 make agents-sync && git diff --exit-code agents/
 agents-sync --check
+make verify-agent-workflow
 
 # skills present in OpenCode (and no duplicates)
 opencode debug skill | grep '"name"' | sort | uniq -d      # prints nothing = no dupes
