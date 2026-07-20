@@ -169,6 +169,13 @@ describe("Crew Amp execution", () => {
     }
   });
 
+  test("launches tasked Herdr crewmates through a bounded wrapper command", () => {
+    expect(crew).toContain('launcher="$sdir/run.sh"');
+    expect(crew).toContain("printf '#!/usr/bin/env bash\\n%s\\n' \"$wrapped\" > \"$launcher\"");
+    expect(crew).toContain('herdr pane run "$pane" "$(printf \'bash %q\' "$launcher")"');
+    expect(crew).not.toContain('herdr pane run "$pane" "$wrapped"');
+  });
+
   test("maps the deep Amp profile to high", () => {
     expect(callCrewFunction("resolve_profile deep amp")).toBe("high");
   });

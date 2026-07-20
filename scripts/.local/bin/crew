@@ -300,9 +300,15 @@ herdr_spawn() {
 		esac
 		printf 'running\n' > "$sdir/status"
 		local report="herdr pane report-agent $pane --source crew --agent $engine"
-		local wrapped
+		local wrapped launcher
 		wrapped="$report --state working >/dev/null 2>&1 || true; ( $launch ; rc=\$?; echo done:\$rc > \"$sdir/status\"; state=idle; [ \$rc -eq 0 ] || state=blocked; $report --state \$state --message done:\$rc >/dev/null 2>&1 || true ) 2>&1 | tee \"$sdir/log\""
-		herdr pane run "$pane" "$wrapped" >/dev/null
+		# Herdr injects `pane run` commands through the terminal. Long escaped prompts can
+		# exceed that input path's size limit and leave the shell waiting at `subsh>` before
+		# the lifecycle reporter runs. Keep terminal input bounded and execute the full
+		# command from Crew's state directory instead.
+		launcher="$sdir/run.sh"
+		printf '#!/usr/bin/env bash\n%s\n' "$wrapped" > "$launcher"
+		herdr pane run "$pane" "$(printf 'bash %q' "$launcher")" >/dev/null
 	else
 		printf 'interactive\n' > "$sdir/status"
 		case "$engine" in

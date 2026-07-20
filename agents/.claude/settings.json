@@ -93,7 +93,8 @@
     "command": "~/.local/bin/claude-statusline"
   },
   "enabledPlugins": {
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "37signals": {
