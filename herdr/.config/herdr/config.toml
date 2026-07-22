@@ -19,6 +19,10 @@ pane_history = true
 # on the same key.
 [keys]
 last_pane = "prefix+tab"
+previous_agent = "ctrl+alt+p"
+next_agent = "ctrl+alt+n"
+previous_workspace = "ctrl+alt+comma"
+next_workspace = "ctrl+alt+period"
 
 # Sessionizer: fuzzy-jump to projects, workspaces, and agents;
 # clones from GitHub on ctrl-g. Same muscle memory as tmux prefix+f.
