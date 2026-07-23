@@ -5,7 +5,7 @@
 
 GNU Stow package for the **shared, cross-agent layer**: the global instruction file
 **and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code,
-Codex, OpenCode, Kimi Code, and Amp all read the same instructions and portable `SKILL.md` set.
+Codex, OpenCode, Kimi Code, Amp, and CommandCode all read the same instructions and portable `SKILL.md` set.
 
 Amp-specific settings, checks, plugins, and routing guidance live in the separate `amp/` Stow package.
 Its workflow plugin reports Amp lifecycle state to Herdr and asks before risky shell commands in interactive sessions.
@@ -27,9 +27,9 @@ agents/AGENTS.md                       <- the real file
 
 ## Shared Skills
 
-Skills use the portable format all five tools support (`SKILL.md` = `name` + `description` +
-markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude and Codex
-and Kimi Code symlink their whole skills dir to it, while Amp discovers the Claude path:
+Skills use the portable format all six tools support (`SKILL.md` = `name` + `description` +
+markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude, Codex,
+Kimi Code, and CommandCode symlink their whole skills dir to it, while Amp discovers the Claude path:
 
 ```text
 agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)

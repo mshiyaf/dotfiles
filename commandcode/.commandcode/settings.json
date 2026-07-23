@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.commandcode/hooks/crew-guard.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

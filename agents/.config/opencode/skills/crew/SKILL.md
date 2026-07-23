@@ -37,11 +37,15 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    # Or force a branch name:
    crew new -b <branch> "<self-contained task>"
    ```
-   OpenCode is the default engine. Add `--claude`, `--codex`, `--kimi`, or `--amp` to select another
-   engine. Kimi tasks use regular K2.7 for `fast` and `standard`, K3 for `deep`, and run
+   OpenCode is the default engine. Add `--claude`, `--codex`, `--kimi`, `--amp`, or `--commandcode`
+   to select another engine. Kimi tasks use regular K2.7 for `fast` and `standard`, K3 for `deep`, and run
    headlessly because Kimi has no documented seeded-prompt interactive launch mode. Amp uses
    `low` for `fast` and `medium` for both `standard` and `deep`; Crew never selects Amp's costly
-   `high` or `ultra` modes.
+   `high` or `ultra` modes. CommandCode uses DeepSeek V4 Flash for `fast`, DeepSeek V4 Pro for
+   `standard`, and Qwen3.7-Max for `deep`; its headless (`-p`) mode cannot write without `--yolo`,
+   so tasked crewmates run `--yolo` bounded by the required `CREW_MANAGED`-gated guard hook
+   (`crew-guard.sh`), which denies push/sudo/hard-reset/clean/rm. Crew refuses to launch a
+   CommandCode crewmate if that hook is missing.
 4. **Report and stop.** After dispatching, tell the user what you launched and how to check in
    (`crew status`, `crew logs <branch>`, and `crew watch` in a separate pane for push alerts when a
    crewmate is ready or blocked), then **end your turn and hand control back**. There is no live

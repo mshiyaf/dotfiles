@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Shared by Claude Code, Codex, OpenCode, Kimi Code, and Amp.
+Shared by Claude Code, Codex, OpenCode, Kimi Code, Amp, and CommandCode.
 Keep this file short; it loads into every agent's context.
 Project-specific rules live in each repo's own `AGENTS.md`.
 

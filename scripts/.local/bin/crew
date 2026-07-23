@@ -17,6 +17,7 @@
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
 #                                        --attach (jump to it), --claude, --codex, --kimi, --amp,
+#                                        --commandcode,
 #                                        --headless (accepted for compatibility; tasked runs
 #                                        are always bounded), --profile fast|standard|deep,
 #                                        --start <ref> (branch start-point).
@@ -34,7 +35,7 @@
 # push. Review each ready branch (/review-diff) and ship it (/ship-gate).
 # Backend: auto-detected per crewmate at spawn - herdr inside herdr (HERDR_ENV), tmux inside
 # tmux, else tmux if installed; CREW_BACKEND=tmux|herdr forces one. Requires: tmux, or
-# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi/amp. Run from inside
+# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi/amp/commandcode. Run from inside
 # the target git repo.
 
 set -euo pipefail
@@ -91,9 +92,11 @@ STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
 TASK_SUFFIX="When done, commit your work on this branch with a Conventional-commit message. Do not push. If blocked, print BLOCKED: <reason> and stop."
 KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
 AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
+COMMANDCODE_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
 AMP_GUARD_PLUGIN="$HOME/.config/amp/plugins/workflow-guardrails.ts"
+COMMANDCODE_GUARD_HOOK="$HOME/.commandcode/hooks/crew-guard.sh"
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
@@ -104,6 +107,10 @@ AMP_GUARD_PLUGIN="$HOME/.config/amp/plugins/workflow-guardrails.ts"
 #   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
 #   amp     : execute mode loads minimal commit settings; the required workflow-guardrails
 #             plugin rejects push / sudo / hard-reset / git clean / dangerous rm commands.
+#   commandcode : -p headless mode is read-only unless --yolo, so a tasked crewmate runs
+#             --yolo bounded by the required CREW_MANAGED-gated PreToolUse guard hook
+#             (crew-guard.sh), which denies push / sudo / hard-reset / git clean / dangerous
+#             rm. The hook is a no-op outside CREW_MANAGED, so interactive use is unaffected.
 OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
@@ -154,6 +161,7 @@ task_with_guardrails() {
 	case "$engine" in
 		kimi) full="$full $KIMI_TASK_SUFFIX" ;;
 		amp)  full="$full $AMP_TASK_SUFFIX" ;;
+		commandcode) full="$full $COMMANDCODE_TASK_SUFFIX" ;;
 	esac
 	printf '%s' "$full"
 }
@@ -172,6 +180,17 @@ amp_interactive_command() {
 	fi
 }
 
+# CommandCode: -p headless writes require --yolo, so bound the run with CREW_MANAGED (the
+# guard hook denies push/sudo/hard-reset/clean/rm). Output is plain text - tee it as-is,
+# no stream filter needed. $1=model, $2=task.
+commandcode_headless_command() {
+	printf 'CREW_MANAGED=1 commandcode -p %q --model %q --yolo --skip-onboarding -t' "$2" "$1"
+}
+
+commandcode_interactive_command() {
+	printf 'commandcode --model %q' "$1"
+}
+
 should_run_headless() {
 	local task="$1"
 	[ -n "$task" ]
@@ -180,6 +199,13 @@ should_run_headless() {
 require_amp_guard() {
 	[ -r "$AMP_GUARD_PLUGIN" ] \
 		|| die "Amp workflow guard plugin not found: $AMP_GUARD_PLUGIN (run: make restow-amp)"
+}
+
+# CommandCode crewmates run --yolo, so the deny-list guard hook is load-bearing: refuse
+# to launch without it rather than run unbounded.
+require_commandcode_guard() {
+	[ -x "$COMMANDCODE_GUARD_HOOK" ] \
+		|| die "CommandCode crew guard hook not found: $COMMANDCODE_GUARD_HOOK (run: make restow-commandcode)"
 }
 
 # Profiles make autonomous work predictable across engines instead of inheriting each CLI's
@@ -202,6 +228,9 @@ resolve_profile() {
 		fast:amp)         printf '%s' 'low' ;;
 		standard:amp)     printf '%s' 'medium' ;;
 		deep:amp)         printf '%s' 'high' ;;
+		fast:commandcode)     printf '%s' 'deepseek/deepseek-v4-flash' ;;
+		standard:commandcode) printf '%s' 'deepseek/deepseek-v4-pro' ;;
+		deep:commandcode)     printf '%s' 'Qwen/Qwen3.7-Max' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
@@ -296,6 +325,7 @@ herdr_spawn() {
 			opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			amp)      launch=$(amp_headless_command "$model" "$full") ;;
+			commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
 			*) die "unknown engine: $engine" ;;
 		esac
 		printf 'running\n' > "$sdir/status"
@@ -314,6 +344,7 @@ herdr_spawn() {
 		case "$engine" in
 			kimi) herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null ;;
 			amp)  herdr pane run "$pane" "$(amp_interactive_command "$model")" >/dev/null ;;
+			commandcode) herdr pane run "$pane" "$(commandcode_interactive_command "$model")" >/dev/null ;;
 			*)    herdr pane run "$pane" "$engine" >/dev/null ;;
 		esac
 	fi
@@ -329,6 +360,7 @@ cmd_new() {
 			--codex) engine="codex" ;;
 			--kimi) engine="kimi" ;;
 			--amp) engine="amp" ;;
+			--commandcode) engine="commandcode" ;;
 			--headless) : ;;
 			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
@@ -348,6 +380,7 @@ cmd_new() {
 	[ "$engine" != amp ] || [ -r "$AMP_CREW_SETTINGS" ] \
 		|| die "Amp safety settings not found: $AMP_CREW_SETTINGS"
 	[ "$engine" != amp ] || require_amp_guard
+	[ "$engine" != commandcode ] || require_commandcode_guard
 
 	# Resolve the branch: explicit -b wins; otherwise AI-name it from the task.
 	if [ -z "$branch" ]; then
@@ -411,6 +444,7 @@ cmd_new() {
 					opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					amp)      launch=$(amp_headless_command "$model" "$full") ;;
+					commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
 					*) die "unknown engine: $engine" ;;
 				esac
 				# Wrap so we capture output to the log and record the real exit code on finish.
@@ -423,6 +457,7 @@ cmd_new() {
 				case "$engine" in
 					kimi) tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m ;;
 					amp)  tmux send-keys -t "$name" "$(amp_interactive_command "$model")" C-m ;;
+					commandcode) tmux send-keys -t "$name" "$(commandcode_interactive_command "$model")" C-m ;;
 					*)    tmux send-keys -t "$name" "$engine" C-m ;;
 				esac
 			fi

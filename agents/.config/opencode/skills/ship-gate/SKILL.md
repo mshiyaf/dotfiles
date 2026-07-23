@@ -26,9 +26,11 @@ passes. Built on `git-wt` + your coding agent + `gh`.
 ## Config - optional `.gate.sh` overrides (sourced bash, not YAML)
 `gate run` works without `.gate.sh`.
 Seed optional deterministic overrides with `gate init`.
-Use `gate init --engine opencode|claude|codex|kimi|amp` to select the agent commands written into
+Use `gate init --engine opencode|claude|codex|kimi|amp|commandcode` to select the agent commands written into
 the file. The Amp variant uses `medium` mode and the shared bounded safety policy; it never selects
-Amp `high` or `ultra` modes.
+Amp `high` or `ultra` modes. The CommandCode variant reviews with Qwen3.7-Max (read-only `-p`, no
+`--yolo`) and applies fixes with DeepSeek V4 Pro under `--yolo`, bounded by the required
+`CREW_MANAGED`-gated guard hook (`crew-guard.sh`); it fails closed if the hook is missing.
 Fields: `GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review; empty = skip),
 `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational), `GATE_FIX_CMD` (`%s` = fix prompt),
 `GATE_MAX_ROUNDS`, `GATE_EVIDENCE_DIR`, `GATE_WATCH_CI`, `GATE_PUSH_REMOTE`, `GATE_PR_ARGS`.

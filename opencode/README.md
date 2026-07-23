@@ -214,8 +214,8 @@ grep -hRE '^model:' ~/.config/opencode/commands ~/.config/opencode/agents ~/.con
 
 ## Shared cross-agent AGENTS.md
 
-Global behavioral instructions are shared across Claude Code, Codex, OpenCode, Kimi Code, and Amp
-via a separate **`agents/`** stow package (see `agents/README.md`).
+Global behavioral instructions are shared across Claude Code, Codex, OpenCode, Kimi Code, Amp, and
+CommandCode via a separate **`agents/`** stow package (see `agents/README.md`).
 One canonical `~/AGENTS.md` is linked into each agent-specific path, while Amp reads it directly:
 
 ```text
@@ -358,8 +358,8 @@ OAuth/auth state is created per machine and is not synced through Git.
 ## Skills
 
 > Skills are owned by the **`agents/`** stow package (`agents/.config/opencode/skills/`) and
-> shared across OpenCode, Claude, Codex, Kimi Code, and Amp - the same `SKILL.md` set for all
-> five. See `agents/README.md`. The list below documents the shared set; it is not
+> shared across OpenCode, Claude, Codex, Kimi Code, Amp, and CommandCode - the same `SKILL.md` set
+> for all six. See `agents/README.md`. The list below documents the shared set; it is not
 > installed by this `opencode/` package.
 
 This set vendors a small reviewed subset of public skills and keeps concise local fallback skills for day-to-day work.

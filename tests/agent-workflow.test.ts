@@ -164,7 +164,7 @@ describe("Crew Amp execution", () => {
   });
 
   test("runs every tasked Herdr crewmate headlessly", () => {
-    for (const engine of ["amp", "opencode", "claude", "codex", "kimi"]) {
+    for (const engine of ["amp", "opencode", "claude", "codex", "kimi", "commandcode"]) {
       expect(callCrewFunction(`should_run_headless task && printf ${engine}`)).toBe(engine);
     }
   });
@@ -206,5 +206,79 @@ describe("Crew Amp execution", () => {
     );
     expect(gateResult.exitCode).not.toBe(0);
     expect(gateResult.stderr.toString()).toContain("Amp workflow guard plugin not found");
+  });
+});
+
+describe("Crew CommandCode execution", () => {
+  const callCrewFunction = (body: string) => {
+    const result = Bun.spawnSync(["bash", "-c", `source "$1"; ${body}`, "test", resolve(repo, "scripts/.local/bin/crew")]);
+    expect(result.exitCode).toBe(0);
+    return result.stdout.toString();
+  };
+
+  test("maps CommandCode profiles to cost-tiered models", () => {
+    expect(callCrewFunction("resolve_profile fast commandcode")).toBe("deepseek/deepseek-v4-flash");
+    expect(callCrewFunction("resolve_profile standard commandcode")).toBe("deepseek/deepseek-v4-pro");
+    expect(callCrewFunction("resolve_profile deep commandcode")).toBe("Qwen/Qwen3.7-Max");
+  });
+
+  test("runs headless CommandCode bounded by --yolo + the CREW_MANAGED guard", () => {
+    const command = callCrewFunction("commandcode_headless_command deepseek/deepseek-v4-pro 'finish task'");
+    expect(command).toContain("CREW_MANAGED=1 commandcode -p");
+    expect(command).toContain("--model deepseek/deepseek-v4-pro");
+    expect(command).toContain("--yolo");
+    expect(command).toContain("--skip-onboarding -t");
+  });
+
+  test("does not apply --yolo to interactive CommandCode", () => {
+    const command = callCrewFunction("commandcode_interactive_command deepseek/deepseek-v4-pro");
+    expect(command).toBe("commandcode --model deepseek/deepseek-v4-pro");
+    expect(command).not.toContain("--yolo");
+  });
+
+  test("fails closed when the CommandCode guard hook is missing", () => {
+    const emptyHome = resolve(repo, ".tmp-missing-commandcode-hook");
+    for (const script of ["scripts/.local/bin/crew", "scripts/.local/bin/gate"]) {
+      const result = Bun.spawnSync(
+        ["bash", "-c", 'source "$1"; require_commandcode_guard', "test", resolve(repo, script)],
+        { env: { ...process.env, HOME: emptyHome }, stdout: "pipe", stderr: "pipe" },
+      );
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain("CommandCode crew guard hook not found");
+    }
+  });
+});
+
+describe("CommandCode crew guard hook", () => {
+  const hook = resolve(repo, "commandcode/.commandcode/hooks/crew-guard.sh");
+  const runHook = (payload: string, env: Record<string, string> = {}) => {
+    const result = Bun.spawnSync(["bash", hook], {
+      stdin: Buffer.from(payload),
+      env: { ...process.env, ...env },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    return result.stdout.toString();
+  };
+  const denied = (out: string) => out.includes('"permissionDecision":"deny"');
+
+  test("blocks outward/destructive commands under CREW_MANAGED", () => {
+    for (const command of ["git push origin HEAD", "sudo rm -rf /etc", "git reset --hard HEAD~1", "git clean -fdx", "rm -rf build"]) {
+      expect(denied(runHook(JSON.stringify({ tool_input: { command } }), { CREW_MANAGED: "1" }))).toBe(true);
+    }
+  });
+
+  test("allows ordinary commands under CREW_MANAGED", () => {
+    for (const command of ["git commit -m wip", "git add -A", "bun test", "npm run build"]) {
+      expect(denied(runHook(JSON.stringify({ tool_input: { command } }), { CREW_MANAGED: "1" }))).toBe(false);
+    }
+  });
+
+  test("is a no-op outside CREW_MANAGED so interactive sessions are unaffected", () => {
+    expect(runHook(JSON.stringify({ tool_input: { command: "git push origin HEAD" } }))).toBe("");
+  });
+
+  test("fails closed: malformed input under CREW_MANAGED is denied", () => {
+    expect(denied(runHook("not json at all", { CREW_MANAGED: "1" }))).toBe(true);
   });
 });

@@ -135,6 +135,7 @@ crew new --profile fast "update README examples"
 crew new --profile deep --claude "fix transaction race" --attach
 crew new --profile fast --kimi "update shell completion docs"
 crew new --profile standard --amp "add API pagination"
+crew new --profile standard --commandcode "add a /health endpoint"
 crew new -b feat/dark "add toggle"   # force the branch name
 crew new -b spike-y                  # no task -> interactive opencode in the worktree
 crew status                          # branch | engine | profile | model | running/done(rc) | commits-ahead
@@ -147,11 +148,11 @@ crew stop feat/dark -D               # kill session (-D also removes worktree + 
 
 Profiles explicitly select the model for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp |
-| --- | --- | --- | --- | --- | --- | --- |
-| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low |
-| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp | CommandCode |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash |
+| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max |
 
 Kimi is opt-in with `--kimi`; OpenCode remains the default engine.
 Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not provide a documented
@@ -161,6 +162,12 @@ Amp is opt-in with `--amp` and tasked Amp runs use execute mode on both backends
 remaining open after a Herdr crewmate finishes.
 Interactive Amp remains available with `crew new -b <branch> --amp`.
 Amp `deep` uses `high`; Crew never selects `ultra` automatically.
+CommandCode is opt-in with `--commandcode`. Its headless (`-p`) mode is read-only and cannot edit
+or commit without `--yolo`, so tasked CommandCode crewmates run `--yolo` bounded by the required
+`CREW_MANAGED`-gated guard hook (`~/.commandcode/hooks/crew-guard.sh`), which denies
+push/sudo/hard-reset/clean/dangerous rm and fails closed; Crew refuses to launch one if the hook is
+missing (`make restow-commandcode`). Interactive CommandCode remains available with
+`crew new -b <branch> --commandcode` and never uses `--yolo`.
 
 crew is **scoped per repository**: sessions/workspaces are named `crew_<repo-key>_<branch>` and
 state lives in `~/.local/state/crew/<repo-key>/<branch>/` (`branch`, `worktree`, `session`, `task`,
@@ -180,12 +187,13 @@ own worktree/background orchestration.
 
 `gate` validates a branch's committed work in a **disposable worktree**, then pushes and
 opens a PR only if the gate passes. Our own take on no-mistakes - no external binary,
-built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp` + `gh`.
+built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp`/`commandcode` + `gh`.
 
 ```bash
 gate init                          # optional: seed OpenCode .gate.sh overrides
 gate init --engine kimi            # optional Kimi variant
 gate init --engine amp             # optional Amp variant; uses medium mode
+gate init --engine commandcode     # optional CommandCode variant; Qwen3.7-Max review, DeepSeek V4 Pro fixes
 gate status        # show the resolved config
 gate run [branch]  # review → test → docs → lint (+auto-fix) → push → PR → CI monitor
 ```
@@ -223,6 +231,9 @@ It applies minimal shared settings and requires the Amp workflow-guardrails plug
 direct shell commands when no approval UI is available.
 Override the execute-mode settings path with `GATE_AMP_SETTINGS`.
 The guard plugin must be installed at Amp's system plugin path via `make restow-amp`.
+`gate init --engine commandcode` reviews with Qwen3.7-Max in read-only `-p` mode (no `--yolo`) and
+applies fixes with DeepSeek V4 Pro under `--yolo`, bounded by the required `CREW_MANAGED`-gated guard
+hook; the fix stage fails closed if the hook is missing (`make restow-commandcode`).
 Gate never selects Amp `high` or `ultra` modes.
 
 The LLM only classifies findings; you approve the judgment calls (or a headless run blocks on
