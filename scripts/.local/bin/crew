@@ -95,6 +95,7 @@ AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 COMMANDCODE_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
+OPENCODE_CREW_SETTINGS="${CREW_OPENCODE_SETTINGS:-$SCRIPT_DIR/../share/agentic/opencode-crew-settings.json}"
 AMP_GUARD_PLUGIN="$HOME/.config/amp/plugins/workflow-guardrails.ts"
 COMMANDCODE_GUARD_HOOK="$HOME/.commandcode/hooks/crew-guard.sh"
 
@@ -114,6 +115,13 @@ COMMANDCODE_GUARD_HOOK="$HOME/.commandcode/hooks/crew-guard.sh"
 OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
+
+opencode_headless_command() {
+	local settings
+	settings=$(cat "$OPENCODE_CREW_SETTINGS") || die "could not read OpenCode Crew settings: $OPENCODE_CREW_SETTINGS"
+	printf 'CREW_MANAGED=1 OPENCODE_CONFIG_CONTENT=%q opencode run --model %q %q %s' \
+		"$settings" "$1" "$2" "$OPENCODE_CREW_FLAGS"
+}
 
 # Claude's default print format emits nothing until the whole run finishes. Consume its
 # realtime event stream and retain only concise, human-readable activity: short agent
@@ -322,7 +330,7 @@ herdr_spawn() {
 		case "$engine" in
 			claude)   launch=$(claude_headless_command "$model" "$full") ;;
 			codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
-			opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
+			opencode) launch=$(opencode_headless_command "$model" "$full") ;;
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			amp)      launch=$(amp_headless_command "$model" "$full") ;;
 			commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
@@ -441,7 +449,7 @@ cmd_new() {
 				case "$engine" in
 					claude)   launch=$(claude_headless_command "$model" "$full") ;;
 					codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
-					opencode) launch=$(printf 'opencode run --model %q %q %s' "$model" "$full" "$OPENCODE_CREW_FLAGS") ;;
+					opencode) launch=$(opencode_headless_command "$model" "$full") ;;
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					amp)      launch=$(amp_headless_command "$model" "$full") ;;
 					commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
