@@ -16,6 +16,8 @@ permission:
   webfetch: ask
   skill:
     "*": deny
+    "autoplan": allow
+    "grill-me": allow
     "api-design": allow
     "database-review": allow
     "refactor-planner": allow

@@ -18,7 +18,9 @@ Do not propose or apply a fix until you have enough evidence for the root cause.
 
 ## Phase 1: Root cause investigation
 - Read the exact error, warning, stack trace, file path, line number, and exit code.
-- Reproduce the issue reliably when possible.
+- Before theorizing, name and run one red-capable command that detects the user's exact symptom deterministically and is practical for an agent to rerun.
+- If the exact symptom cannot be automated, document the nearest executable signal and what it does not prove.
+- Reproduce the issue reliably and minimize the reproduction when that shortens the feedback loop without changing the symptom.
 - Check recent changes: diffs, commits, dependency updates, config, and environment.
 - Trace the data or control flow backward to the earliest wrong value, state, or assumption.
 - For multi-component systems, add or request diagnostic output at each boundary before guessing.
@@ -31,6 +33,8 @@ Do not propose or apply a fix until you have enough evidence for the root cause.
 
 ## Phase 3: Hypothesis testing
 - State one clear hypothesis: `I think X is failing because Y`.
+- For difficult failures, maintain 3-5 ranked, falsifiable hypotheses and update the ranking as evidence arrives.
+- State the predicted observation before each probe.
 - Test one variable at a time.
 - Use the smallest command, instrumentation, or code change that can confirm or reject the hypothesis.
 - If rejected, return to evidence gathering instead of stacking fixes.
@@ -38,7 +42,9 @@ Do not propose or apply a fix until you have enough evidence for the root cause.
 ## Phase 4: Implementation
 - Prefer a failing regression test before fixing when feasible.
 - Make the smallest targeted fix for the confirmed root cause.
-- Verify the narrow failure first, then the broader relevant test suite.
+- Verify the narrow regression first, then the broader relevant test suite.
+- Rerun the original, unminimized user scenario as well as the minimized reproduction.
+- Remove temporary instrumentation, debug markers, and throwaway harnesses, or explicitly document why an artifact remains.
 - If three fixes fail, stop and question the design or assumptions before trying another patch.
 
 ## Red flags
@@ -48,3 +54,4 @@ Do not propose or apply a fix until you have enough evidence for the root cause.
 - Skipping the failure reproduction.
 - Ignoring a stack trace or test failure message.
 - Claiming completion without rerunning the relevant check.
+- Treating the minimized test as proof without rerunning the original scenario.

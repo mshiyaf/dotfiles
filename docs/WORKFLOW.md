@@ -19,7 +19,7 @@ stow packages (`agents/`, `opencode/`, `scripts/`, `commandcode/`).
 | Layer | Shared across all 6? | Where it lives |
 |---|---|---|
 | **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
-| **Skills** (33) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills` |
+| **Skills** (36) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills` |
 | **Commands** (41 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
 | **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi, Amp, and CommandCode compose skills with native agents/tools |
 | **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` / CommandCode `settings.json` |
@@ -57,7 +57,7 @@ profile, so it does not use generated custom role files either.
 ### The sprint shape
 
 ```
-Think → Plan → Plan-review → Build → Review → Test → Ship → Reflect
+Think → Align → Plan → Plan-review → Build → Review → Test → Ship → Handoff/Reflect
 ```
 
 ### Model-routing philosophy (in `opencode.json`)
@@ -110,15 +110,27 @@ Generated Claude/Codex model map:
 Each step names the exact command (OpenCode `/slash`) or skill, and the model that runs it.
 In Claude/Codex, use the same-named skill instead of the slash command.
 
+### Optional front door - Grill requirements
+
+*Goal: resolve consequential decisions before planning or implementation.*
+
+Use `grill-me` only when you explicitly want a thorough interview.
+Serial mode asks one dependency-aware question at a time; frontier mode batches all currently
+independent questions.
+The agent investigates facts itself, recommends an answer for each decision, tracks assumptions,
+and waits for confirmation before acting.
+
 ### 1. Planning a product
 
 *Goal: decide whether and what to build before designing anything.*
 
-1. `/research <topic>` - gather live context (researcher · gpt-5.6-sol-low).
-2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · gpt-5.6-sol).
-3. `/plan-ceo-review <the idea>` - founder lens: is the problem real, who's the user, what to
+1. Use `grill-me` first when the problem, users, constraints, or success criteria need deliberate alignment.
+2. `/research <topic>` - gather live context (researcher · gpt-5.6-sol-low).
+3. `/autoplan <idea>` or `/agentic-plan` - produce verified facts, decisions, assumptions,
+   acceptance criteria, test seams, and dependency-ordered vertical slices (architect · gpt-5.6-sol).
+4. `/plan-ceo-review <the idea>` - founder lens: is the problem real, who's the user, what to
    cut, stronger alternatives (critic · gpt-5.6-sol-pro). **Framing before features.**
-4. Capture the agreed scope + non-goals in the repo's `AGENTS.md` (seed with `/init-agents-md`).
+5. Capture the agreed scope + non-goals in the repo's `AGENTS.md` (seed with `/init-agents-md`).
 
 ### 2. Client proposal / estimation
 
@@ -135,11 +147,13 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: a locked, reviewed implementation plan - no code yet.*
 
-1. `/plan-feature <feature>` - implementation plan (architect · gpt-5.6-sol).
-2. `/plan-eng-review` - architecture, data flow, edge cases, tests, failure modes (architect).
-3. `/plan-design-review` - if there's UI: flow, design-system fit, a11y, AI-slop (architect).
-4. `/plan-ceo-review` - scope/value gut-check (critic).
-5. Lock the plan; only then build.
+1. Use `grill-me` when important product or architecture decisions remain unresolved.
+2. `/plan-feature <feature>` - implementation plan with observable acceptance criteria, test seams,
+   assumptions, and independently verifiable vertical slices (architect · gpt-5.6-sol).
+3. `/plan-eng-review` - architecture, data flow, edge cases, tests, failure modes (architect).
+4. `/plan-design-review` - if there's UI: flow, design-system fit, a11y, AI-slop (architect).
+5. `/plan-ceo-review` - scope/value gut-check (critic).
+6. Lock the plan; only then build.
 
 ### 4. Building
 
@@ -148,18 +162,21 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 1. Work on the default `build` agent (gpt-5.6-terra-low).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
-3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
+3. When dispatching Crew, give each worker an evidence contract: desired behavior, acceptance
+   criteria, non-goals, authority, exact verification, relevant artifacts, and blockers.
+4. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
 
 ### 5. Fixing a bug
 
 *Goal: reproduce first, then fix, then prove it's fixed.*
 
-1. `/investigate <bug>` or `/debug-tests` - root-cause first, using the **`systematic-debugging`**
-   skill (debugger · gpt-5.6-sol). **Reproduce before fixing.**
+1. `/investigate <bug>` or `/debug-tests` - establish one deterministic red-capable command before
+   theorizing, then investigate root cause with **`systematic-debugging`** (debugger · gpt-5.6-sol).
 2. Fix on the `build` agent.
-3. `/qa-only` - exercise the changed behavior, report what still breaks (tester).
-4. `/review-diff` - catch regressions (reviewer · gpt-5.6-terra).
-5. `/second-pass <prior findings>` - after fixes, confirm resolved + no new regressions (reviewer).
+3. Rerun both the minimized regression and the original, unminimized user scenario.
+4. `/qa-only` - exercise the changed behavior, report what still breaks (tester).
+5. `/review-diff` - catch regressions (reviewer · gpt-5.6-terra).
+6. `/second-pass <prior findings>` - after fixes, confirm resolved + no new regressions (reviewer).
 
 ### 6. Refactoring
 
@@ -171,13 +188,15 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: deep review before you hand off to the gate.*
 
-1. `/review-diff` (unstaged+staged) or `/review-staged` (pre-commit) - correctness/regressions (reviewer).
-2. `/security-review` - auth, data handling, dependencies, risky code (security-reviewer · gpt-5.6-sol-pro).
-3. `/ui-review` - if UI: visual hierarchy, states, tokens (reviewer + frontend-design skill).
-4. `/ceo-review` - is this the right change / right scope (critic).
-5. `/claude-review` - independent second opinion via the `claude` CLI (reviewer → Claude).
-6. `/second-pass` - after you apply fixes, re-check.
-7. `/long-context-review` - for very large diffs spanning many files.
+1. Establish a fixed review snapshot and the source requirement or accepted plan.
+2. `/review-diff` (unstaged+staged) or `/review-staged` (pre-commit) - review independent **Spec**
+   fidelity and **Standards** correctness axes (reviewer).
+3. `/security-review` - auth, data handling, dependencies, risky code (security-reviewer · gpt-5.6-sol-pro).
+4. `/ui-review` - if UI: visual hierarchy, states, tokens (reviewer + frontend-design skill).
+5. `/ceo-review` - is this the right change / right scope (critic).
+6. `/claude-review` - independent second opinion via the `claude` CLI (reviewer → Claude).
+7. `/second-pass` - after you apply fixes, re-check.
+8. `/long-context-review` - for very large diffs spanning many files.
 
 ### 8. Testing
 
@@ -186,11 +205,16 @@ In Claude/Codex, use the same-named skill instead of the slash command.
    test can define the behavior first.
 3. `/qa-only` - behavior testing without code changes; for web use the **`browser`** skill
    (headless: fetch text, screenshot, click, fill, assert, axe a11y).
+4. Use **`adversarial-verification`** for guardrails, validators, hooks, permissions, and invariants:
+   prove valid pass → controlled violation fail → restored valid pass.
 
 ### 9. Reflect
 
 - `/critique` or `/second-opinion` - an independent gut-check on your analysis or a review, to
   surface what the first pass missed (critic · gpt-5.6-sol-pro).
+- Use `handoff` when pausing, changing tools, resetting context, or transferring work.
+  It records decisions, repository state, exact verification, risks, and the next action in a
+  redacted temporary artifact without modifying the project.
 
 ### Playbook 10 - Parallel multi-agent development (`wt` + `crew`)
 
@@ -431,7 +455,7 @@ a ~350-line bash script, not a Go binary or git-proxy - so a plain `git push` st
 
 ## Part 3 - Reference
 
-### Commands (40) - OpenCode `/slash`, grouped by stage
+### Commands (41) - OpenCode `/slash`, grouped by stage
 
 Each routes to a subagent (which fixes the model) and usually uses the linked skill.
 
@@ -479,7 +503,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/init-agents-md` | build (gpt-5.6-terra-low) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `/init-gate` | build (gpt-5.6-terra-low) | - | Seed optional `.gate.sh` ship-gate overrides |
 
-### Skills (32) - shared across Claude, Codex, OpenCode, Kimi Code, Amp, and CommandCode
+### Skills (36) - shared across Claude, Codex, OpenCode, Kimi Code, Amp, and CommandCode
 
 | Skill | For | Used by |
 |---|---|---|
@@ -510,6 +534,9 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `crew` | Orchestrate parallel crewmates: split, dispatch, monitor, report | `/crew` |
 | `browser` | Headless web QA (`browser-cli.ts`) | (any agent) |
 | `find-skills` | Find/evaluate public skills before installing | (any agent) |
+| `grill-me` | Explicit, dependency-aware requirements interview in serial or frontier mode | (any agent, user-invoked only) |
+| `handoff` | Redacted cross-agent or cross-session continuation artifact | (any agent) |
+| `adversarial-verification` | Pass-fail-pass proof for guardrails, validators, permissions, and invariants | (build/tester/reviewer) |
 | `autoplan` | End-to-end implementation, feature, and agentic workflow plans | `/autoplan`, `/plan-feature`, `/agentic-plan` |
 | `investigate` | Read-only bug/failure investigation before fixes | `/investigate` |
 | `research` | External/web research with citations | `/research` |
@@ -593,6 +620,9 @@ usage % in the status bar; the standalone `codex-status` CLI prints the same on 
 | Eng review | `/eng-review` or ask | `/plan-eng-review` / `/architecture-check` | `$eng-review` | `/skill:eng-review` | ask for `eng-review` | `/skills` or ask |
 | Code review | `/code-review` or ask | `/review-diff` | `$code-review` | `/skill:code-review` | ask for `code-review` | `/skills` or ask |
 | Re-review | `/second-pass` or ask | `/second-pass` | `$second-pass` | `/skill:second-pass` | ask for `second-pass` | `/skills` or ask |
+| Requirements grill | `/grill-me` | ask to use `grill-me` | `$grill-me` | `/skill:grill-me` | ask for `grill-me` | `/skills` or ask |
+| Handoff | `/handoff` | ask to use `handoff` | `$handoff` | `/skill:handoff` | ask for `handoff` | `/skills` or ask |
+| Adversarial verification | `/adversarial-verification` | ask to use it | `$adversarial-verification` | `/skill:adversarial-verification` | ask for it | `/skills` or ask |
 | Crew captain | `/crew` or ask | `/crew` | `$crew` | `/skill:crew` | ask for `crew` | `/skills` or ask |
 | Ship gate | run `gate run` | `/ship-gate` | run `gate run` | run `gate run` | run `gate run` | run `gate run` |
 | Web QA | `browser` skill | `browser` skill | `$browser` | `/skill:browser` | ask for `browser` | `/skills` or ask |

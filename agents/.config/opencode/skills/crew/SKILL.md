@@ -28,9 +28,33 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    not fight another crewmate over the same files (crewmates do not coordinate shared edits).
    If two "features" touch the same core file, merge them into one task or sequence them.
 2. **Name + brief** each feature: a short branch name (`feat-dark-mode`) and a crisp,
-   self-contained task string. The crewmate has no other context, so the task must state the
-   goal, the acceptance criteria, and any constraint. It does not need commit/push instructions -
-   `crew` appends those.
+   self-contained task string. The crewmate has no other context, so use the evidence contract
+   below. It does not need generic commit/push instructions - `crew` appends those.
+
+   ```markdown
+   ## Goal
+   ## Desired behavior
+   ## Acceptance criteria
+   ## Out of scope
+   ## Ownership boundary or likely touchpoints
+   ## Allowed authority
+   - May edit:
+   - May add dependencies:
+   - May commit: yes
+   - May push/publish/deploy: no
+   ## Verification
+   - Focused command:
+   - Broader command:
+   - Manual scenario, if unavoidable:
+   ## Relevant artifacts
+   - Plan/spec:
+   - Decisions/research/prototype verdict:
+   ## Blocked by
+   ```
+
+   Use exact commands when they are known from repository evidence.
+   If an authority boundary or prerequisite decision is unclear, resolve it before dispatch rather
+   than asking the crewmate to guess.
 3. **Dispatch** one crewmate per feature:
    ```bash
    crew new "<self-contained task>"
