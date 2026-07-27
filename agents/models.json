@@ -25,9 +25,9 @@
     "codex": "gpt-5.6-sol"
   },
   "researcher": {
-    "opencode": "gpt-5.6-sol-fast",
+    "opencode": "gpt-5.6-sol-low",
     "claude": "sonnet",
-    "codex": "gpt-5.6-sol-fast"
+    "codex": "gpt-5.6-sol-low"
   },
   "debugger": {
     "opencode": "gpt-5.6-sol",
@@ -40,13 +40,13 @@
     "codex": "gpt-5.6-terra"
   },
   "docs-writer": {
-    "opencode": "gpt-5.6-luna-fast",
+    "opencode": "gpt-5.6-luna-low",
     "claude": "haiku",
-    "codex": "gpt-5.6-luna-fast"
+    "codex": "gpt-5.6-luna-low"
   },
   "pr-writer": {
-    "opencode": "gpt-5.6-luna-fast",
+    "opencode": "gpt-5.6-luna-low",
     "claude": "haiku",
-    "codex": "gpt-5.6-luna-fast"
+    "codex": "gpt-5.6-luna-low"
   }
 }

@@ -213,13 +213,13 @@ require_commandcode_guard() {
 resolve_profile() {
 	local profile="$1" engine="$2"
 	case "$profile:$engine" in
-		fast:opencode)   printf '%s' 'openai/gpt-5.6-luna-fast' ;;
+		fast:opencode)   printf '%s' 'openai/gpt-5.6-luna-low' ;;
 		standard:opencode) printf '%s' 'openai/gpt-5.6-terra' ;;
 		deep:opencode)   printf '%s' 'openai/gpt-5.6-sol' ;;
 		fast:claude)     printf '%s' 'haiku' ;;
 		standard:claude) printf '%s' 'sonnet' ;;
 		deep:claude)     printf '%s' 'opus' ;;
-		fast:codex)      printf '%s' 'gpt-5.6-luna-fast' ;;
+		fast:codex)      printf '%s' 'gpt-5.6-luna-low' ;;
 		standard:codex)  printf '%s' 'gpt-5.6-terra' ;;
 		deep:codex)      printf '%s' 'gpt-5.6-sol' ;;
 		fast:kimi)       printf '%s' 'kimi-code/kimi-for-coding' ;;

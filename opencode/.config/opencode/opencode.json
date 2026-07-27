@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "openai/gpt-5.6-terra",
-  "small_model": "openai/gpt-5.6-luna-fast",
+  "small_model": "openai/gpt-5.6-luna-low",
   "default_agent": "build",
   "enabled_providers": [
     "openai",
@@ -20,7 +20,7 @@
   },
   "agent": {
     "build": {
-      "model": "openai/gpt-5.6-terra-fast",
+      "model": "openai/gpt-5.6-terra-low",
       "permission": {
         "bash": {
           "*": "ask",
@@ -69,16 +69,16 @@
       "model": "openai/gpt-5.6-sol-pro"
     },
     "docs-writer": {
-      "model": "openai/gpt-5.6-luna-fast"
+      "model": "openai/gpt-5.6-luna-low"
     },
     "pr-writer": {
-      "model": "openai/gpt-5.6-luna-fast"
+      "model": "openai/gpt-5.6-luna-low"
     },
     "refactor-planner": {
       "model": "openai/gpt-5.6-sol"
     },
     "researcher": {
-      "model": "openai/gpt-5.6-sol-fast"
+      "model": "openai/gpt-5.6-sol-low"
     },
     "critic": {
       "model": "openai/gpt-5.6-sol-pro"
@@ -129,8 +129,8 @@
             }
           }
         },
-        "gpt-5.6-fast": {
-          "name": "GPT 5.6 Fast (OAuth)",
+        "gpt-5.6-low": {
+          "name": "GPT 5.6 Low (OAuth)",
           "id": "gpt-5.6",
           "limit": {
             "context": 1050000,
@@ -189,8 +189,8 @@
             ]
           }
         },
-        "gpt-5.6-luna-fast": {
-          "name": "GPT 5.6 Luna Fast",
+        "gpt-5.6-luna-low": {
+          "name": "GPT 5.6 Luna Low",
           "id": "gpt-5.6-luna",
           "limit": {
             "context": 1050000,
@@ -249,8 +249,8 @@
             ]
           }
         },
-        "gpt-5.6-terra-fast": {
-          "name": "GPT 5.6 Terra Fast",
+        "gpt-5.6-terra-low": {
+          "name": "GPT 5.6 Terra Low",
           "id": "gpt-5.6-terra",
           "limit": {
             "context": 1050000,
@@ -309,8 +309,8 @@
             ]
           }
         },
-        "gpt-5.6-sol-fast": {
-          "name": "GPT 5.6 Sol Fast",
+        "gpt-5.6-sol-low": {
+          "name": "GPT 5.6 Sol Low",
           "id": "gpt-5.6-sol",
           "limit": {
             "context": 1050000,

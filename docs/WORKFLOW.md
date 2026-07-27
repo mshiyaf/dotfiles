@@ -63,7 +63,7 @@ Think → Plan → Plan-review → Build → Review → Test → Ship → Reflec
 ### Model-routing philosophy (in `opencode.json`)
 
 OpenCode routing is OpenAI-only.
-Luna Fast handles lightweight writing, Terra handles everyday implementation and review, and Sol
+Luna Low handles lightweight writing, Terra handles everyday implementation and review, and Sol
 handles reasoning-intensive planning and debugging.
 Sol Pro is reserved for the highest-risk security and critique work.
 
@@ -78,16 +78,16 @@ subagent, so headless runs cannot target it, and the gate carries its own inline
 
 | Tier | Agents | Model |
 |---|---|---|
-| Gate / build | `build` | `openai/gpt-5.6-terra-fast` (review pass: `terra`) |
+| Gate / build | `build` | `openai/gpt-5.6-terra-low` (review pass: `terra`) |
 | Workhorse | `tester` | `openai/gpt-5.6-terra` |
 | Planning | `plan`, `architect`, `refactor-planner` | `openai/gpt-5.6-sol` |
 | Debugging | `debugger` | `openai/gpt-5.6-sol` |
 | Review | `reviewer` | `openai/gpt-5.6-terra` |
 | Security / critique | `security-reviewer`, `critic` | `openai/gpt-5.6-sol-pro` |
-| Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.6-luna-fast` |
-| Research | `researcher` | `openai/gpt-5.6-sol-fast` |
+| Writing | `docs-writer`, `pr-writer` | `openai/gpt-5.6-luna-low` |
+| Research | `researcher` | `openai/gpt-5.6-sol-low` |
 
-`small_model = openai/gpt-5.6-luna-fast` (lightweight ops); `default_agent = build`.
+`small_model = openai/gpt-5.6-luna-low` (lightweight ops); `default_agent = build`.
 On-demand escalation: `/claude-review` shells out to the `claude` CLI (your Claude subscription)
 for a different-family second opinion - spend only when you ask.
 
@@ -98,10 +98,10 @@ Generated Claude/Codex model map:
 | `reviewer` | gpt-5.6-terra | opus | gpt-5.6-sol |
 | `security-reviewer`, `critic` | gpt-5.6-sol-pro | opus | gpt-5.6-sol-pro |
 | `architect`, `refactor-planner` | gpt-5.6-sol | opus | gpt-5.6-sol |
-| `researcher` | gpt-5.6-sol-fast | sonnet | gpt-5.6-sol-fast |
+| `researcher` | gpt-5.6-sol-low | sonnet | gpt-5.6-sol-low |
 | `debugger` | gpt-5.6-sol | sonnet | gpt-5.6-sol |
 | `tester` | gpt-5.6-terra | sonnet | gpt-5.6-terra |
-| `docs-writer`, `pr-writer` | gpt-5.6-luna-fast | haiku | gpt-5.6-luna-fast |
+| `docs-writer`, `pr-writer` | gpt-5.6-luna-low | haiku | gpt-5.6-luna-low |
 
 ---
 
@@ -114,7 +114,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: decide whether and what to build before designing anything.*
 
-1. `/research <topic>` - gather live context (researcher · gpt-5.6-sol-fast).
+1. `/research <topic>` - gather live context (researcher · gpt-5.6-sol-low).
 2. `/autoplan <idea>` or `/agentic-plan` - end-to-end plan draft (architect · gpt-5.6-sol).
 3. `/plan-ceo-review <the idea>` - founder lens: is the problem real, who's the user, what to
    cut, stronger alternatives (critic · gpt-5.6-sol-pro). **Framing before features.**
@@ -145,7 +145,7 @@ In Claude/Codex, use the same-named skill instead of the slash command.
 
 *Goal: implement in small, isolated, repo-patterned changes.*
 
-1. Work on the default `build` agent (gpt-5.6-terra-fast).
+1. Work on the default `build` agent (gpt-5.6-terra-low).
 2. Use the **`grounding`** skill when touching unfamiliar APIs/versions - forces verification
    against real code instead of hallucinating signatures.
 3. Isolate the work in a worktree so it never disturbs your main checkout → **Playbook 10**.
@@ -437,7 +437,7 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 
 | Command | Agent (model) | Uses skill | Purpose |
 |---|---|---|---|
-| `/research` | researcher (gpt-5.6-sol-fast) | research | Research a topic using live web sources |
+| `/research` | researcher (gpt-5.6-sol-low) | research | Research a topic using live web sources |
 | `/explain` | debugger (gpt-5.6-sol) | explain | Explain code, behavior, or repo structure |
 | `/investigate` | debugger (gpt-5.6-sol) | investigate | Investigate a bug/failure before proposing fixes |
 | `/autoplan` | architect (gpt-5.6-sol) | autoplan | End-to-end implementation plan, no edits |
@@ -449,10 +449,10 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/plan-ceo-review` | critic (gpt-5.6-sol-pro) | ceo-review | Founder-lens review of a **plan** |
 | `/plan-design-review` | architect (gpt-5.6-sol) | design-review | Plan-stage UX/design-system/a11y review |
 | `/plan-eng-review` | architect (gpt-5.6-sol) | eng-review | Plan-stage architecture/edge-case/test review |
-| `/proposal-draft` | docs-writer (gpt-5.6-luna-fast) | proposal-writing | Draft a client proposal from requirements or notes |
+| `/proposal-draft` | docs-writer (gpt-5.6-luna-low) | proposal-writing | Draft a client proposal from requirements or notes |
 | `/proposal-review` | critic (gpt-5.6-sol-pro) | proposal-writing, ceo-review | Review proposal clarity, scope safety, and consistency |
 | `/proposal-commercial-review` | critic (gpt-5.6-sol-pro) | proposal-writing, effort-estimate, ceo-review | Review pricing, AMC, hosting, payment terms, and commercial risk |
-| `/proposal-prototype` | docs-writer (gpt-5.6-luna-fast) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
+| `/proposal-prototype` | docs-writer (gpt-5.6-luna-low) | prototyping-proposals, proposal-writing, frontend-design | Create proposal-aligned prototype plans, HTML prototypes, or image prompts |
 | `/review-diff` | reviewer (gpt-5.6-terra) | code-review | Review unstaged+staged diffs for bugs/regressions |
 | `/review-staged` | reviewer (gpt-5.6-terra) | code-review | Review only staged changes pre-commit |
 | `/long-context-review` | reviewer (gpt-5.6-terra) | code-review | Review across many files / a long diff |
@@ -467,17 +467,17 @@ Each routes to a subagent (which fixes the model) and usually uses the linked sk
 | `/test-plan` | tester (gpt-5.6-terra) | test-writer | Practical test plan for a change/feature |
 | `/qa-only` | tester (gpt-5.6-terra) | - | Test changed behavior, report bugs, no code changes |
 | `/debug-tests` | debugger (gpt-5.6-sol) | debugging | Debug failing tests, root-cause first |
-| `/crew` | build (gpt-5.6-terra-fast) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
+| `/crew` | build (gpt-5.6-terra-low) | crew | Dispatch a crewmate per feature, monitor, report ready branches |
 | `/gate-review` | reviewer (gpt-5.6-terra) | gate-review | Structured JSON review for the gate (auto_fix vs ask_user) |
 | `/ship-gate` | build → `gate` | ship-gate | Validate in a disposable worktree, then push + PR |
-| `/commit` | pr-writer (gpt-5.6-luna-fast) | git-commit | Commit staged changes (this repo or child repos) |
-| `/commit-message` | pr-writer (gpt-5.6-luna-fast) | git-commit | Draft a commit message (never commits) |
-| `/branch-name` | pr-writer (gpt-5.6-luna-fast) | - | Suggest short branch names from worktree context |
-| `/changelog` | pr-writer (gpt-5.6-luna-fast) | release-notes | Draft changelog/release notes from commits+diffs |
-| `/pr-body` | pr-writer (gpt-5.6-luna-fast) | pull-request | Draft a PR title + body from branch changes |
-| `/docs-update` | docs-writer (gpt-5.6-luna-fast) | documentation | Update docs/README from current changes |
-| `/init-agents-md` | build (gpt-5.6-terra-fast) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
-| `/init-gate` | build (gpt-5.6-terra-fast) | - | Seed optional `.gate.sh` ship-gate overrides |
+| `/commit` | pr-writer (gpt-5.6-luna-low) | git-commit | Commit staged changes (this repo or child repos) |
+| `/commit-message` | pr-writer (gpt-5.6-luna-low) | git-commit | Draft a commit message (never commits) |
+| `/branch-name` | pr-writer (gpt-5.6-luna-low) | - | Suggest short branch names from worktree context |
+| `/changelog` | pr-writer (gpt-5.6-luna-low) | release-notes | Draft changelog/release notes from commits+diffs |
+| `/pr-body` | pr-writer (gpt-5.6-luna-low) | pull-request | Draft a PR title + body from branch changes |
+| `/docs-update` | docs-writer (gpt-5.6-luna-low) | documentation | Update docs/README from current changes |
+| `/init-agents-md` | build (gpt-5.6-terra-low) | init-agents-md | Seed a per-project `AGENTS.md` (+ `CLAUDE.md` symlink) |
+| `/init-gate` | build (gpt-5.6-terra-low) | - | Seed optional `.gate.sh` ship-gate overrides |
 
 ### Skills (32) - shared across Claude, Codex, OpenCode, Kimi Code, Amp, and CommandCode
 
@@ -538,10 +538,10 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 | `tester` | gpt-5.6-terra | Test plans / QA, no code changes | no |
 | `reviewer` | gpt-5.6-terra | Code/UI/ship review, findings-first | no (deny) |
 | `security-reviewer` | gpt-5.6-sol-pro | Security review | no |
-| `docs-writer` | gpt-5.6-luna-fast | Docs / README | docs only |
-| `pr-writer` | gpt-5.6-luna-fast | Commits, PR bodies, changelogs | commit-scope |
+| `docs-writer` | gpt-5.6-luna-low | Docs / README | docs only |
+| `pr-writer` | gpt-5.6-luna-low | Commits, PR bodies, changelogs | commit-scope |
 | `refactor-planner` | gpt-5.6-sol | Refactor planning | no |
-| `researcher` | gpt-5.6-sol-fast | Live web research | no |
+| `researcher` | gpt-5.6-sol-low | Live web research | no |
 | `critic` | gpt-5.6-sol-pro | Founder/critique/second-opinion | no |
 
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.

@@ -128,8 +128,8 @@ opencode
 
 Model selection is **centralized in `opencode.json`** under the `agent` block. Commands only choose an agent; they do not choose models. Skills are prompt/tooling instructions and do not choose models.
 
-Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.6-terra-fast`.
-`small_model` uses `openai/gpt-5.6-luna-fast` for quick, cheap helper work.
+Normal initial sessions use `default_agent: build` with `model: openai/gpt-5.6-terra-low`.
+`small_model` uses `openai/gpt-5.6-luna-low` for quick, cheap helper work.
 
 `build` and `reviewer` sit a notch below their tier because they run on every ship. `build` drives
 the whole ship gate (review, auto-fix, test/lint and CI fixes) and that fix work is high-volume and
@@ -147,7 +147,7 @@ headless runs - so the model is pinned at the call site.
 | Terra | $2.50 input / $15 output | Everyday coding, testing, normal build work, and code review. |
 | Sol | $5 input / $30 output | Architecture, debugging, research, and orchestration. |
 
-Use Fast presets for latency-sensitive or simple work and Pro presets only for highest-risk reasoning such as security review and critique.
+Use Low presets for simple work that needs less reasoning and Pro presets only for highest-risk reasoning such as security review and critique.
 
 To change routing on a new machine, edit `~/.config/opencode/opencode.json` only. Agent `.md`, command `.md`, and skill `SKILL.md` files should not contain `model:` frontmatter.
 
@@ -287,7 +287,7 @@ Guardrails are baked into `~/AGENTS.md` and the review commands:
 - Shortest useful answer first; don't re-read files already in context.
 - Reviews: findings first, severity-tagged, one line of context each - don't summarize a diff.
 - Prefer targeted `grep`/read over broad `find`/`cat`.
-- Routing is OpenAI-only by default (`small_model` = `openai/gpt-5.6-luna-fast`);
+- Routing is OpenAI-only by default (`small_model` = `openai/gpt-5.6-luna-low`);
   edit `opencode.json` if you want to change agent-specific model choices.
 
 ## Plugins
