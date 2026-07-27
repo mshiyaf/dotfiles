@@ -10,6 +10,23 @@ import workflowGuardrails, {
 
 const repo = resolve(import.meta.dir, "..");
 
+describe("OpenCode subagent permissions", () => {
+  const config = JSON.parse(readFileSync(resolve(repo, "opencode/.config/opencode/opencode.json"), "utf8"));
+
+  test("allows routine read-only Git inspection outside the build agent", () => {
+    expect(config.permission.bash).toMatchObject({
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git branch*": "allow",
+      "git remote*": "allow",
+      "git merge-base*": "allow",
+      "git rev-parse*": "allow",
+    });
+  });
+});
+
 describe("Amp workflow guardrails", () => {
   test.each([
     "git push origin main",
