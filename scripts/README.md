@@ -111,9 +111,9 @@ A branch-only launch without a task remains interactive.
 A crewmate with a task runs **bounded**: it may
 edit, run tests, and commit on its branch, then stops - it never pushes. Each engine is
 constrained to that effect - auto-approve everything except an explicit deny-list, never a full
-yolo mode: `opencode` via `--agent build --auto` (auto-approves, but the build agent still denies
-`git push`/`sudo`/hard-reset/`git clean`/dangerous `rm -rf`; `--auto` is required since headless
-`run` has no TTY to approve),
+yolo mode: `opencode` via `--agent build --auto` plus a Crew-only global policy inherited by
+delegated subagents (auto-approves edits and routine commands, but still denies `git push`/`sudo`/
+hard-reset/`git clean`/dangerous `rm -rf`; `--auto` is required since headless `run` has no TTY),
 `claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
 via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Code via print
 mode's auto permission policy plus explicit local-only, non-destructive task guardrails. Amp uses

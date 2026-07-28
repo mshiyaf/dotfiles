@@ -180,7 +180,7 @@ describe("Crew Amp execution", () => {
     expect(command).toContain("--plugin-ready-timeout 10 -x");
   });
 
-  test("propagates bounded auto-approval to OpenCode reviewer subagents", () => {
+  test("propagates bounded auto-approval to every OpenCode subagent", () => {
     const settingsPath = resolve(repo, "scripts/.local/share/agentic/opencode-crew-settings.json");
     const command = callCrewFunction(`OPENCODE_CREW_SETTINGS='${settingsPath}'; opencode_headless_command openai/gpt-5.6-terra 'finish task'`);
     expect(command).toContain("CREW_MANAGED=1 OPENCODE_CONFIG_CONTENT=");
@@ -188,7 +188,8 @@ describe("Crew Amp execution", () => {
     expect(command).toContain("--agent build --auto");
 
     const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
-    expect(settings.agent.reviewer.permission).toMatchObject({
+    expect(settings.permission).toMatchObject({
+      edit: "allow",
       external_directory: "allow",
       webfetch: "allow",
       bash: {
@@ -197,8 +198,12 @@ describe("Crew Amp execution", () => {
         "git reset --hard*": "deny",
         "git clean -f*": "deny",
         "sudo*": "deny",
+        "rm -rf /*": "deny",
+        "rm -rf ~*": "deny",
+        "rm -rf $HOME*": "deny",
       },
     });
+    expect(settings.agent).toBeUndefined();
   });
 
   test("runs every tasked Herdr crewmate headlessly", () => {

@@ -101,8 +101,8 @@ COMMANDCODE_GUARD_HOOK="$HOME/.commandcode/hooks/crew-guard.sh"
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
-#   opencode: --agent build --auto  (auto-approve, but the build agent still denies
-#             git push / sudo / hard-reset / git clean / dangerous rm -rf; --auto honors those denies).
+#   opencode: --agent build --auto plus a global Crew-only policy inherited by delegated
+#             subagents; both retain explicit denies for push / sudo / destructive commands.
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
 #   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
 #   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.

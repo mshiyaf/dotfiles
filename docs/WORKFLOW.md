@@ -246,8 +246,8 @@ A branch-only crewmate without a task remains interactive.
 A crewmate with a task runs **bounded**: it may edit, run tests, and
 commit on its branch, then stops - it never pushes. Each engine is constrained differently but to
 the same effect - auto-approve everything except an explicit deny-list:
-`opencode` via `--agent build --auto` plus Crew-only reviewer settings (auto-approves the
-primary agent and reviewer subagents, but still denies `git push`/`sudo`/hard-reset/`git clean`/
+`opencode` via `--agent build --auto` plus a Crew-only global subagent policy (auto-approves the
+primary agent and delegated subagents, but still denies `git push`/`sudo`/hard-reset/`git clean`/
 dangerous `rm -rf`); `claude` via `--permission-mode acceptEdits` + a
 `git push`/`sudo`/hard-reset deny-list; `codex` via the `workspace-write` sandbox (network off, so
 push is blocked); Amp requires the stowed `workflow-guardrails` plugin, which parses direct shell
@@ -262,8 +262,8 @@ failure mode differs: the others fail *safe* if their config breaks, whereas Com
 refuse to launch a CommandCode run when the hook is missing, to keep that residual risk small.
 The guard is a no-op outside `CREW_MANAGED`, so your interactive CommandCode sessions can still push.
 Headless `opencode run` has no TTY to approve prompts, so
-**`--auto` and the stowed reviewer settings are required**. OpenCode does not propagate
-`--auto` to reviewer subagents, so Crew injects the bounded policy through
+**`--auto` and the stowed subagent settings are required**. OpenCode does not propagate
+`--auto` to delegated subagents, so Crew injects the global bounded policy through
 `OPENCODE_CONFIG_CONTENT` to prevent invisible review permission prompts from hanging a run.
 
 ```bash
