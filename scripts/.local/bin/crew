@@ -93,6 +93,7 @@ TASK_SUFFIX="When done, commit your work on this branch with a Conventional-comm
 KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
 AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 COMMANDCODE_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
+ANTIGRAVITY_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
 OPENCODE_CREW_SETTINGS="${CREW_OPENCODE_SETTINGS:-$SCRIPT_DIR/../share/agentic/opencode-crew-settings.json}"
@@ -170,6 +171,7 @@ task_with_guardrails() {
 		kimi) full="$full $KIMI_TASK_SUFFIX" ;;
 		amp)  full="$full $AMP_TASK_SUFFIX" ;;
 		commandcode) full="$full $COMMANDCODE_TASK_SUFFIX" ;;
+		antigravity|agy) full="$full $ANTIGRAVITY_TASK_SUFFIX" ;;
 	esac
 	printf '%s' "$full"
 }
@@ -197,6 +199,18 @@ commandcode_headless_command() {
 
 commandcode_interactive_command() {
 	printf 'commandcode --model %q' "$1"
+}
+
+antigravity_headless_command() {
+	local bin="agy"
+	command -v agy >/dev/null 2>&1 || bin="antigravity"
+	printf 'CREW_MANAGED=1 %s -p %q --model %q --dangerously-skip-permissions' "$bin" "$2" "$1"
+}
+
+antigravity_interactive_command() {
+	local bin="agy"
+	command -v agy >/dev/null 2>&1 || bin="antigravity"
+	printf '%s --model %q' "$bin" "$1"
 }
 
 should_run_headless() {
@@ -239,6 +253,9 @@ resolve_profile() {
 		fast:commandcode)     printf '%s' 'deepseek/deepseek-v4-flash' ;;
 		standard:commandcode) printf '%s' 'deepseek/deepseek-v4-pro' ;;
 		deep:commandcode)     printf '%s' 'Qwen/Qwen3.7-Max' ;;
+		fast:antigravity|fast:agy)         printf '%s' 'gemini-3.6-flash-low' ;;
+		standard:antigravity|standard:agy) printf '%s' 'gemini-3.6-flash-high' ;;
+		deep:antigravity|deep:agy)         printf '%s' 'gemini-3.1-pro-high' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
@@ -334,6 +351,7 @@ herdr_spawn() {
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			amp)      launch=$(amp_headless_command "$model" "$full") ;;
 			commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
+			antigravity|agy) launch=$(antigravity_headless_command "$model" "$full") ;;
 			*) die "unknown engine: $engine" ;;
 		esac
 		printf 'running\n' > "$sdir/status"
@@ -353,6 +371,7 @@ herdr_spawn() {
 			kimi) herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null ;;
 			amp)  herdr pane run "$pane" "$(amp_interactive_command "$model")" >/dev/null ;;
 			commandcode) herdr pane run "$pane" "$(commandcode_interactive_command "$model")" >/dev/null ;;
+			antigravity|agy) herdr pane run "$pane" "$(antigravity_interactive_command "$model")" >/dev/null ;;
 			*)    herdr pane run "$pane" "$engine" >/dev/null ;;
 		esac
 	fi
@@ -369,6 +388,7 @@ cmd_new() {
 			--kimi) engine="kimi" ;;
 			--amp) engine="amp" ;;
 			--commandcode) engine="commandcode" ;;
+			--antigravity|--agy) engine="antigravity" ;;
 			--headless) : ;;
 			--profile) shift; profile="${1:-}" ;;
 			--start) shift; start="${1:-}" ;;
@@ -453,6 +473,7 @@ cmd_new() {
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					amp)      launch=$(amp_headless_command "$model" "$full") ;;
 					commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
+					antigravity|agy) launch=$(antigravity_headless_command "$model" "$full") ;;
 					*) die "unknown engine: $engine" ;;
 				esac
 				# Wrap so we capture output to the log and record the real exit code on finish.
@@ -466,6 +487,7 @@ cmd_new() {
 					kimi) tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m ;;
 					amp)  tmux send-keys -t "$name" "$(amp_interactive_command "$model")" C-m ;;
 					commandcode) tmux send-keys -t "$name" "$(commandcode_interactive_command "$model")" C-m ;;
+					antigravity|agy) tmux send-keys -t "$name" "$(antigravity_interactive_command "$model")" C-m ;;
 					*)    tmux send-keys -t "$name" "$engine" C-m ;;
 				esac
 			fi

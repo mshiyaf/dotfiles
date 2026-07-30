@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-type ModelMap = Record<string, { opencode: string; claude: string; codex: string }>;
+type ModelMap = Record<string, { opencode: string; claude: string; codex: string; antigravity?: string }>;
 
 const EDIT_CAPABLE = new Set(["debugger", "tester", "docs-writer", "pr-writer"]);
 const EDIT_DENY = new Set([

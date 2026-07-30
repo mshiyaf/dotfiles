@@ -1,9 +1,9 @@
 # Agentic Development Workflow
 
 A practical guide to the agentic setup in these dotfiles - **what to run when**, and **what
-every piece is for**. Its shared instruction and skill layer spans six AI coding tools
-(Claude Code, Codex, OpenCode, Kimi Code, Amp, CommandCode) and four
-stow packages (`agents/`, `opencode/`, `scripts/`, `commandcode/`).
+every piece is for**. Its shared instruction and skill layer spans seven AI coding tools
+(Claude Code, Codex, OpenCode, Kimi Code, Amp, CommandCode, Google Antigravity) and five
+stow packages (`agents/`, `opencode/`, `scripts/`, `commandcode/`, `antigravity/`).
 
 - New here? Read **Part 1** (the mental model) once, then keep **Part 2** (playbooks) open while you work.
 - Looking up a specific command/skill/config? Jump to **Part 3** (reference).
@@ -14,15 +14,15 @@ stow packages (`agents/`, `opencode/`, `scripts/`, `commandcode/`).
 
 ## Part 1 - The mental model
 
-### Six tools, one shared brain
+### Seven tools, one shared brain
 
-| Layer | Shared across all 6? | Where it lives |
+| Layer | Shared across all 7? | Where it lives |
 |---|---|---|
-| **Instructions** (`AGENTS.md` / `CLAUDE.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
-| **Skills** (36) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills` |
+| **Instructions** (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
+| **Skills** (36) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills`; Antigravity discovers `~/.gemini/antigravity-cli/skills` |
 | **Commands** (41 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
-| **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi, Amp, and CommandCode compose skills with native agents/tools |
-| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` / CommandCode `settings.json` |
+| **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi, Amp, CommandCode, and Antigravity compose skills with native agents/tools |
+| **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` / CommandCode `settings.json` / Antigravity `settings.json` |
 
 Skills are the shared command layer.
 Subagent prompts are canonical in OpenCode format and generated into Claude Code and Codex formats with per-harness model maps.
@@ -321,11 +321,11 @@ pushes, or merges; it hands the ready branches back to you.
 
 Crew profiles select explicit models for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp | CommandCode |
-|---|---|---|---|---|---|---|---|
-| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash |
-| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max |
+| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp | CommandCode | Antigravity |
+|---|---|---|---|---|---|---|---|---|
+| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash | Gemini 3.6 Flash Low |
+| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro | Gemini 3.6 Flash High |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max | Gemini 3.1 Pro High |
 
 The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
 and `deep` only when stronger reasoning is justified.
@@ -614,21 +614,21 @@ usage % in the status bar; the standalone `codex-status` CLI prints the same on 
 
 ## Part 4 - Cross-tool cheatsheet
 
-**Same capability, six tools** (skills are shared; only the trigger differs):
+**Same capability, seven tools** (skills are shared; only the trigger differs):
 
-| Capability | Claude Code | OpenCode | Codex | Kimi Code | Amp | CommandCode |
-|---|---|---|---|---|---|---|
-| CEO review | `/ceo-review` or ask | `/ceo-review` (→ critic) | `$ceo-review` | `/skill:ceo-review` | ask for `ceo-review` | `/skills` or ask |
-| Design review | `/design-review` or ask | `/plan-design-review` / `/ui-review` | `$design-review` | `/skill:design-review` | ask for `design-review` | `/skills` or ask |
-| Eng review | `/eng-review` or ask | `/plan-eng-review` / `/architecture-check` | `$eng-review` | `/skill:eng-review` | ask for `eng-review` | `/skills` or ask |
-| Code review | `/code-review` or ask | `/review-diff` | `$code-review` | `/skill:code-review` | ask for `code-review` | `/skills` or ask |
-| Re-review | `/second-pass` or ask | `/second-pass` | `$second-pass` | `/skill:second-pass` | ask for `second-pass` | `/skills` or ask |
-| Requirements grill | `/grill-me` | ask to use `grill-me` | `$grill-me` | `/skill:grill-me` | ask for `grill-me` | `/skills` or ask |
-| Handoff | `/handoff` | ask to use `handoff` | `$handoff` | `/skill:handoff` | ask for `handoff` | `/skills` or ask |
-| Adversarial verification | `/adversarial-verification` | ask to use it | `$adversarial-verification` | `/skill:adversarial-verification` | ask for it | `/skills` or ask |
-| Crew captain | `/crew` or ask | `/crew` | `$crew` | `/skill:crew` | ask for `crew` | `/skills` or ask |
-| Ship gate | run `gate run` | `/ship-gate` | run `gate run` | run `gate run` | run `gate run` | run `gate run` |
-| Web QA | `browser` skill | `browser` skill | `$browser` | `/skill:browser` | ask for `browser` | `/skills` or ask |
+| Capability | Claude Code | OpenCode | Codex | Kimi Code | Amp | CommandCode | Google Antigravity |
+|---|---|---|---|---|---|---|---|
+| CEO review | `/ceo-review` or ask | `/ceo-review` (→ critic) | `$ceo-review` | `/skill:ceo-review` | ask for `ceo-review` | `/skills` or ask | ask for `ceo-review` |
+| Design review | `/design-review` or ask | `/plan-design-review` / `/ui-review` | `$design-review` | `/skill:design-review` | ask for `design-review` | `/skills` or ask | ask for `design-review` |
+| Eng review | `/eng-review` or ask | `/plan-eng-review` / `/architecture-check` | `$eng-review` | `/skill:eng-review` | ask for `eng-review` | `/skills` or ask | ask for `eng-review` |
+| Code review | `/code-review` or ask | `/review-diff` | `$code-review` | `/skill:code-review` | ask for `code-review` | `/skills` or ask | ask for `code-review` |
+| Re-review | `/second-pass` or ask | `/second-pass` | `$second-pass` | `/skill:second-pass` | ask for `second-pass` | `/skills` or ask | ask for `second-pass` |
+| Requirements grill | `/grill-me` | ask to use `grill-me` | `$grill-me` | `/skill:grill-me` | ask for `grill-me` | `/skills` or ask | ask for `grill-me` |
+| Handoff | `/handoff` | ask to use `handoff` | `$handoff` | `/skill:handoff` | ask for `handoff` | `/skills` or ask | ask for `handoff` |
+| Adversarial verification | `/adversarial-verification` | ask to use it | `$adversarial-verification` | `/skill:adversarial-verification` | ask for it | `/skills` or ask | ask for it |
+| Crew captain | `/crew` or ask | `/crew` | `$crew` | `/skill:crew` | ask for `crew` | `/skills` or ask | ask for `crew` |
+| Ship gate | run `gate run` | `/ship-gate` | run `gate run` | run `gate run` | run `gate run` | run `gate run` | run `gate run` |
+| Web QA | `browser` skill | `browser` skill | `$browser` | `/skill:browser` | ask for `browser` | `/skills` or ask | `browser` skill |
 
 **Rule of thumb:** want a capability in every tool → make it a **skill**. Want a slash trigger with
 model routing → add an OpenCode **command** that uses the skill.
@@ -647,8 +647,8 @@ opencode debug skill | grep '"name"' | sort | uniq -d      # prints nothing = no
 # in Claude Code: /reload-skills  → should list your user skills
 
 # shared symlinks resolve to one canonical source
-readlink -f ~/AGENTS.md ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.commandcode/AGENTS.md | sort -u
-readlink -f ~/.claude/skills ~/.codex/skills ~/.commandcode/skills   # -> the shared skills dir
+readlink -f ~/AGENTS.md ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.commandcode/AGENTS.md ~/.gemini/antigravity-cli/AGENTS.md | sort -u
+readlink -f ~/.claude/skills ~/.codex/skills ~/.commandcode/skills ~/.gemini/antigravity-cli/skills   # -> the shared skills dir
 readlink -f ~/.claude/settings.json ~/.claude/agents/reviewer.md ~/.codex/agents/reviewer.toml
 test -L ~/.claude/settings.json
 
@@ -656,5 +656,5 @@ test -L ~/.claude/settings.json
 test -x ~/.commandcode/hooks/crew-guard.sh && echo "commandcode guard ok"
 
 # engines on PATH
-command -v wt git-wt crew gate claude-statusline commandcode
+command -v wt git-wt crew gate claude-statusline commandcode agy
 ```

@@ -15,6 +15,7 @@
 #   codex    -> codex exec ...
 #   kimi     -> kimi -p ... (regular K2.7 Code, for speed and reliability)
 #   amp      -> amp -m low -x ...
+#   antigravity -> agy --model gemini-3.6-flash-high -p ...
 #
 # Robustness: the model call is wrapped in `timeout`. If the engine is missing,
 # errors, times out, or returns nothing usable, we fall back to a deterministic
@@ -83,22 +84,32 @@ PROMPT=$(printf '%s\n' \
 
 # Ask the selected engine; empty stdout on any failure so we fall back.
 ask_engine() {
-	command -v "$engine" >/dev/null 2>&1 || return 1
 	case "$engine" in
 		opencode)
+			command -v opencode >/dev/null 2>&1 || return 1
 			timeout "$AI_TIMEOUT" opencode run "$PROMPT" --model "$(opencode_small_model)" 2>/dev/null
 			;;
 		claude)
+			command -v claude >/dev/null 2>&1 || return 1
 			timeout "$AI_TIMEOUT" claude -p "$PROMPT" --model claude-haiku-4-5 --output-format text 2>/dev/null
 			;;
 		codex)
+			command -v codex >/dev/null 2>&1 || return 1
 			timeout "$AI_TIMEOUT" codex exec "$PROMPT" 2>/dev/null
 			;;
 		kimi)
+			command -v kimi >/dev/null 2>&1 || return 1
 			timeout "$AI_TIMEOUT" kimi --model kimi-code/kimi-for-coding -p "$PROMPT" 2>/dev/null
 			;;
 		amp)
+			command -v amp >/dev/null 2>&1 || return 1
 			timeout "$AI_TIMEOUT" amp --no-notifications -m low -x "$PROMPT" 2>/dev/null
+			;;
+		antigravity|agy)
+			local bin="agy"
+			command -v agy >/dev/null 2>&1 || bin="antigravity"
+			command -v "$bin" >/dev/null 2>&1 || return 1
+			timeout "$AI_TIMEOUT" "$bin" --model gemini-3.6-flash-high -p "$PROMPT" 2>/dev/null
 			;;
 		*) return 1 ;;
 	esac

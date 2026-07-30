@@ -207,7 +207,7 @@ describe("Crew Amp execution", () => {
   });
 
   test("runs every tasked Herdr crewmate headlessly", () => {
-    for (const engine of ["amp", "opencode", "claude", "codex", "kimi", "commandcode"]) {
+    for (const engine of ["amp", "opencode", "claude", "codex", "kimi", "commandcode", "antigravity"]) {
       expect(callCrewFunction(`should_run_headless task && printf ${engine}`)).toBe(engine);
     }
   });
@@ -323,5 +323,33 @@ describe("CommandCode crew guard hook", () => {
 
   test("fails closed: malformed input under CREW_MANAGED is denied", () => {
     expect(denied(runHook("not json at all", { CREW_MANAGED: "1" }))).toBe(true);
+  });
+});
+
+describe("Crew Antigravity execution", () => {
+  const callCrewFunction = (body: string) => {
+    const result = Bun.spawnSync(["bash", "-c", `source "$1"; ${body}`, "test", resolve(repo, "scripts/.local/bin/crew")]);
+    expect(result.exitCode).toBe(0);
+    return result.stdout.toString();
+  };
+
+  test("maps Antigravity profiles to Gemini model tiers", () => {
+    expect(callCrewFunction("resolve_profile fast antigravity")).toBe("gemini-3.6-flash-low");
+    expect(callCrewFunction("resolve_profile standard antigravity")).toBe("gemini-3.6-flash-high");
+    expect(callCrewFunction("resolve_profile deep antigravity")).toBe("gemini-3.1-pro-high");
+  });
+
+  test("launches headless Antigravity bounded by CREW_MANAGED + --dangerously-skip-permissions", () => {
+    const command = callCrewFunction("antigravity_headless_command gemini-3.6-flash-high 'finish task'");
+    expect(command).toContain("CREW_MANAGED=1 agy -p");
+    expect(command).toContain("--model gemini-3.6-flash-high");
+    expect(command).toContain("--dangerously-skip-permissions");
+  });
+
+  test("launches interactive Antigravity without print or permission flags", () => {
+    const command = callCrewFunction("antigravity_interactive_command gemini-3.6-flash-high");
+    expect(command).toBe("agy --model gemini-3.6-flash-high");
+    expect(command).not.toContain("-p");
+    expect(command).not.toContain("--dangerously-skip-permissions");
   });
 });

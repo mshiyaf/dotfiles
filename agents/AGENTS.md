@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Shared by Claude Code, Codex, OpenCode, Kimi Code, Amp, and CommandCode.
+Shared by Claude Code, Codex, OpenCode, Kimi Code, Amp, CommandCode, and Google Antigravity.
 Keep this file short; it loads into every agent's context.
 Project-specific rules live in each repo's own `AGENTS.md`.
 
@@ -42,17 +42,17 @@ Project-specific rules live in each repo's own `AGENTS.md`.
 - Reviews: findings first, severity-tagged, one line of context each. Don't summarize a diff the user can read.
 - Prefer targeted `grep` / read over broad `find` / `cat`.
 
-## Kimi Code role routing
-When running under Kimi Code, compose shared skills with its native subagents:
-- Reviewer: `code-review` + read-only `explore`.
-- Security reviewer: `security-review` + read-only `explore`.
-- Architect: `autoplan` and `eng-review` as relevant + non-editing `plan`.
-- Refactor planner: `refactor-planner` + non-editing `plan`.
-- Researcher: `research` on the main agent; use `explore` only for local repository evidence.
+## Kimi Code & Antigravity role routing
+When running under Kimi Code or Google Antigravity, compose shared skills with native subagents:
+- Reviewer: `code-review` + read-only inspection.
+- Security reviewer: `security-review` + read-only inspection.
+- Architect: `autoplan` and `eng-review` as relevant + non-editing plan mode.
+- Refactor planner: `refactor-planner` + non-editing plan mode.
+- Researcher: `research` on the main agent; explore local repository evidence before web search.
 - Critic: `critique` on the main agent; do not edit.
-- Debugger: `systematic-debugging`, then `coder` only after reproducing and confirming the root cause.
-- Tester: `test-writer` or `test-driven-development` + `coder`; limit edits to tests unless explicitly asked otherwise.
-- Documentation writer: `documentation` + `coder`; limit edits to documentation.
+- Debugger: `systematic-debugging`, then code edits only after reproducing and confirming the root cause.
+- Tester: `test-writer` or `test-driven-development`; limit edits to tests unless explicitly asked otherwise.
+- Documentation writer: `documentation`; limit edits to documentation.
 - PR writer: `pull-request` on the main agent; do not edit or create a PR unless explicitly asked.
 
 ## More context

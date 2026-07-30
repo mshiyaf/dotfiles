@@ -45,6 +45,7 @@ for (const file of [
   "agents/.claude/settings.json",
   "opencode/.config/opencode/opencode.json",
   "amp/.config/amp/settings.json",
+  "antigravity/.gemini/antigravity-cli/settings.json",
   "scripts/.local/share/agentic/amp-settings.json",
 ]) {
   try {

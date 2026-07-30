@@ -2,7 +2,7 @@
 #
 # gate - our own AI ship-gate. Validates a branch in a disposable worktree, then
 # pushes and opens a PR only after the gate passes. Our own take on no-mistakes;
-# no external binary, built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp`/`commandcode` + `gh`.
+# no external binary, built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp`/`commandcode`/`antigravity` + `gh`.
 #
 # Pipeline (per `gate run`):
 #   1. Copy the current branch's HEAD into a disposable worktree (your work stays put).
@@ -20,7 +20,7 @@
 #   8. Tear down the disposable worktree.
 #
 # Usage:
-#   gate init [--engine opencode|claude|codex|kimi|amp|commandcode]
+#   gate init [--engine opencode|claude|codex|kimi|amp|commandcode|antigravity]
 #                      Seed optional .gate.sh overrides in the current repo.
 #   gate run [branch]  Run the gate for <branch> (default: current branch).
 #   gate status        Show the resolved config.
@@ -126,6 +126,10 @@ cmd_init() {
 		commandcode)
 			review_cmd='gate_review_commandcode'
 			fix_cmd='gate_fix_commandcode'
+			;;
+		antigravity|agy)
+			review_cmd='gate_review_antigravity'
+			fix_cmd='gate_fix_antigravity'
 			;;
 		*) die "unknown engine: $engine" ;;
 	esac
@@ -389,6 +393,22 @@ gate_fix_commandcode() {
 Work only in the current disposable worktree. Do not push, open or modify pull requests,
 use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions." \
 		--model deepseek/deepseek-v4-pro --yolo --skip-onboarding -t
+}
+
+gate_review_antigravity() {
+	local bin="agy"
+	command -v agy >/dev/null 2>&1 || bin="antigravity"
+	"$bin" -p "$(gate_review_prompt)" --model gemini-3.1-pro-high --dangerously-skip-permissions 2>/dev/null
+}
+
+gate_fix_antigravity() {
+	local bin="agy"
+	command -v agy >/dev/null 2>&1 || bin="antigravity"
+	CREW_MANAGED=1 "$bin" -p "$GATE_PROMPT
+
+Work only in the current disposable worktree. Do not push, open or modify pull requests,
+use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions." \
+		--model gemini-3.6-flash-high --dangerously-skip-permissions
 }
 
 run_review() {

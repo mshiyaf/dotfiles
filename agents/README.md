@@ -5,7 +5,7 @@
 
 GNU Stow package for the **shared, cross-agent layer**: the global instruction file
 **and** the skills/subagent definitions, symlinked into every AI agent's config so Claude Code,
-Codex, OpenCode, Kimi Code, Amp, and CommandCode all read the same instructions and portable `SKILL.md` set.
+Codex, OpenCode, Kimi Code, Amp, CommandCode, and Google Antigravity all read the same instructions and portable `SKILL.md` set.
 
 Amp-specific settings, checks, plugins, and routing guidance live in the separate `amp/` Stow package.
 Its workflow plugin reports Amp lifecycle state to Herdr and asks before risky shell commands in interactive sessions.
@@ -22,14 +22,16 @@ agents/AGENTS.md                       <- the real file
   ~/.codex/AGENTS.md    -> ~/AGENTS.md (Codex)
   ~/.config/opencode/AGENTS.md -> ~/AGENTS.md (OpenCode)
   ~/.kimi-code/AGENTS.md -> ~/AGENTS.md (Kimi Code)
+  ~/.commandcode/AGENTS.md -> ~/AGENTS.md (CommandCode)
+  ~/.gemini/antigravity-cli/AGENTS.md -> ~/AGENTS.md (Google Antigravity)
   Amp reads ~/AGENTS.md directly
 ```
 
 ## Shared Skills
 
-Skills use the portable format all six tools support (`SKILL.md` = `name` + `description` +
+Skills use the portable format all seven tools support (`SKILL.md` = `name` + `description` +
 markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude, Codex,
-Kimi Code, and CommandCode symlink their whole skills dir to it, while Amp discovers the Claude path:
+Kimi Code, CommandCode, and Google Antigravity symlink their whole skills dir to it, while Amp discovers the Claude path:
 
 ```text
 agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
@@ -37,6 +39,8 @@ agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
   ~/.claude/skills  -> ~/.config/opencode/skills  (Claude Code)
   ~/.codex/skills   -> ~/.config/opencode/skills  (Codex)
   ~/.kimi-code/skills -> ~/.config/opencode/skills (Kimi Code)
+  ~/.commandcode/skills -> ~/.config/opencode/skills (CommandCode)
+  ~/.gemini/antigravity-cli/skills -> ~/.config/opencode/skills (Google Antigravity)
   Amp discovers ~/.claude/skills
 ```
 
