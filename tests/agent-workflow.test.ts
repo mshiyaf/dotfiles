@@ -333,6 +333,20 @@ describe("Crew Antigravity execution", () => {
     return result.stdout.toString();
   };
 
+  test("accepts the installed agy binary without an antigravity alias", () => {
+    const result = Bun.spawnSync(
+      [
+        "bash",
+        "-c",
+        'source "$1"; bin=$(mktemp -d); trap \'rm -rf "$bin"\' EXIT; printf "#!/usr/bin/env bash\\n" > "$bin/agy"; chmod +x "$bin/agy"; PATH="$bin:/usr/bin:/bin" require_engine_command antigravity',
+        "test",
+        resolve(repo, "scripts/.local/bin/crew"),
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    expect(result.exitCode).toBe(0);
+  });
+
   test("maps Antigravity profiles to Gemini model tiers", () => {
     expect(callCrewFunction("resolve_profile fast antigravity")).toBe("gemini-3.6-flash-low");
     expect(callCrewFunction("resolve_profile standard antigravity")).toBe("gemini-3.6-flash-high");

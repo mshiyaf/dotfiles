@@ -33,3 +33,6 @@ command = "~/.config/zsh/herdr-sessionizer.sh"
 description = "fuzzy jump: projects, workspaces, agents"
 width = "85%"
 height = "75%"
+
+[ui]
+agent_panel_sort = "priority"

@@ -313,6 +313,7 @@ function agyPorts(): number[] {
 async function antigravityRows(): Promise<Row[]> {
   const body = JSON.stringify({ metadata: { ideName: "antigravity", extensionName: "antigravity", locale: "en" } });
   let data: any = null;
+  let quotaSummary: any = null;
   for (const port of agyPorts()) {
     for (const scheme of ["http", "https"]) {
       try {
@@ -323,7 +324,17 @@ async function antigravityRows(): Promise<Row[]> {
           signal: AbortSignal.timeout(1_500),
           ...(scheme === "https" ? { tls: { rejectUnauthorized: false } } as any : {}),
         } as any);
-        if (response.ok) data = await response.json();
+        if (response.ok) {
+          data = await response.json();
+          const quotaResponse = await fetch(`${scheme}://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Connect-Protocol-Version": "1" },
+            body: JSON.stringify({ forceRefresh: true }),
+            signal: AbortSignal.timeout(5_000),
+            ...(scheme === "https" ? { tls: { rejectUnauthorized: false } } as any : {}),
+          } as any);
+          if (quotaResponse.ok) quotaSummary = await quotaResponse.json();
+        }
       } catch {}
       if (data) break;
     }
@@ -332,6 +343,23 @@ async function antigravityRows(): Promise<Row[]> {
   if (!data) return [{ agent: "Antigravity", account: "default", limit: "models", used: null, resetAt: null, note: "open agy, then rerun" }];
 
   const status = data.userStatus ?? {};
+  const groups = quotaSummary?.response?.groups ?? [];
+  if (groups.length) {
+    return groups.flatMap((group: any) => {
+      const groupName = String(group.displayName ?? "models")
+        .replace(/ models$/i, "")
+        .replace(/ and /gi, " + ");
+      return (group.buckets ?? []).map((bucket: any) => ({
+        agent: "Antigravity",
+        account: status.email ?? "default",
+        limit: `${groupName} ${bucket.window === "weekly" ? "7d" : bucket.window ?? "quota"}`,
+        used: typeof bucket.remainingFraction === "number" ? percent((1 - bucket.remainingFraction) * 100) : null,
+        resetAt: epoch(bucket.resetTime),
+        note: status.planStatus?.planInfo?.planName,
+      }));
+    });
+  }
+
   const configs = status.cascadeModelConfigData?.clientModelConfigs ?? [];
   const grouped = new Map<string, { labels: string[]; left: number; resetAt: number | null }>();
   for (const config of configs) {
@@ -372,9 +400,39 @@ function table(rows: Row[]): string {
     row.note ?? "",
   ]);
   const widths = headers.map((header, index) => Math.max(header.length, ...values.map((row) => row[index]!.length)));
-  const line = (left: string, middle: string, right: string) => left + widths.map((width) => "─".repeat(width + 2)).join(middle) + right;
-  const row = (cells: string[]) => "│ " + cells.map((cell, index) => cell.padEnd(widths[index]!)).join(" │ ") + " │";
-  return [line("┌", "┬", "┐"), row(headers), line("├", "┼", "┤"), ...values.map(row), line("└", "┴", "┘")].join("\n");
+  const colors = !("NO_COLOR" in process.env)
+    && (process.stdout.isTTY || ("FORCE_COLOR" in process.env && process.env.FORCE_COLOR !== "0"));
+  const paint = (code: number | string, value: string) => colors ? `\x1b[${code}m${value}\x1b[0m` : value;
+  const border = (value: string) => paint(2, value);
+  const quotaColor = (used: number | null) => used === null ? 2 : used >= 80 ? 31 : used >= 50 ? 33 : 32;
+  const resetColor = (resetAt: number | null) => {
+    if (!resetAt) return 2;
+    const remaining = resetAt - Date.now();
+    if (remaining <= 6 * 60 * 60 * 1000) return 32;
+    if (remaining <= 24 * 60 * 60 * 1000) return 33;
+    return 31;
+  };
+  const line = (left: string, middle: string, right: string) => border(left + widths.map((width) => "─".repeat(width + 2)).join(middle) + right);
+  const displayRow = (cells: string[], source?: Row) => {
+    const styled = cells.map((cell, index) => {
+      const padded = cell.padEnd(widths[index]!);
+      if (!source) return paint("1;36", padded);
+      if (index === 0) return paint(1, padded);
+      if (index === 1) return paint(2, padded);
+      if (index === 3 || index === 4) return paint(quotaColor(source.used), padded);
+      if (index === 5) return paint(resetColor(source.resetAt), padded);
+      if (index === 6 && /(?:HTTP \d+|not logged in|no .* returned|open .* rerun)/i.test(source.note ?? "")) return paint(31, padded);
+      return padded;
+    });
+    return border("│") + " " + styled.join(` ${border("│")} `) + " " + border("│");
+  };
+  return [
+    line("┌", "┬", "┐"),
+    displayRow(headers),
+    line("├", "┼", "┤"),
+    ...values.map((value, index) => displayRow(value, rows[index])),
+    line("└", "┴", "┘"),
+  ].join("\n");
 }
 
 async function main() {
