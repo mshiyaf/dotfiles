@@ -1,12 +1,11 @@
 [env]
-TERM = "xterm-256color"
-WINIT_X11_SCALE_FACTOR = "1"
+TERM = "alacritty"
 
 [window]
 dynamic_padding = true
-decorations = "full"
+decorations = "none"
 title = "Alacritty@CachyOS"
-opacity = 0.8
+opacity = 1.0
 decorations_theme_variant = "Dark"
 
 [window.dimensions]
@@ -51,7 +50,7 @@ semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
 save_to_clipboard = true
 
 [cursor]
-style = "Underline"
+style = { shape = "Underline", blinking = "Never" }
 vi_mode_style = "None"
 unfocused_hollow = true
 thickness = 0.15

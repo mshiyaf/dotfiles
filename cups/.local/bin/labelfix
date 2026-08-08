@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""CUPS filter: render any PDF to a fixed label size and emit TSPL.
+
+Browsers normalise paper to portrait and rotate the content to match,
+which prints sideways and overruns the label. This re-renders every job
+at the true label geometry, rotating portrait pages back to landscape.
+
+argv: job user title copies options [filename]
+"""
+import os, re, subprocess, sys, tempfile
+
+DOTS_W, DOTS_H = 599, 400          # 75 x 50 mm at 203 dpi
+DPI = 203
+LABEL_W_MM, LABEL_H_MM = 75, 50
+GAP_MM = 2
+DENSITY, SPEED = 15, 2
+
+
+def log(msg):
+    print("DEBUG: labelfix: %s" % msg, file=sys.stderr, flush=True)
+
+
+def page_is_portrait(pdf):
+    """True when the page, after applying its /Rotate, is taller than wide."""
+    try:
+        out = subprocess.run(["pdfinfo", pdf], capture_output=True,
+                             text=True, timeout=20).stdout
+        w, h = (float(x) for x in
+                re.search(r"Page size:\s*([\d.]+) x ([\d.]+)", out).groups())
+        rot = int(re.search(r"Page rot:\s*(-?\d+)", out).group(1)) % 360
+        if rot in (90, 270):
+            w, h = h, w
+        log("page %.1f x %.1f pt (rot %d)" % (w, h, rot))
+        return h > w
+    except Exception as e:
+        log("orientation probe failed (%s), assuming landscape" % e)
+        return False
+
+
+def to_tspl(pbm):
+    if not pbm.startswith(b"P4"):
+        raise ValueError("expected P4 PBM")
+    fields, idx = [], 2
+    while len(fields) < 2:
+        while idx < len(pbm) and pbm[idx:idx + 1].isspace():
+            idx += 1
+        if pbm[idx:idx + 1] == b"#":
+            while pbm[idx:idx + 1] not in (b"\n", b""):
+                idx += 1
+            continue
+        start = idx
+        while idx < len(pbm) and not pbm[idx:idx + 1].isspace():
+            idx += 1
+        fields.append(int(pbm[start:idx]))
+    w, h = fields
+    data = pbm[idx + 1:]
+    row_bytes = (w + 7) // 8
+    # PBM sets 1 for black; TSPL BITMAP sets 0 for black. Invert.
+    inverted = bytes(b ^ 0xFF for b in data[:row_bytes * h])
+    log("bitmap %dx%d, %d bytes/row" % (w, h, row_bytes))
+    head = ("SIZE %d mm,%d mm\r\nGAP %d mm,0 mm\r\n"
+            "DENSITY %d\r\nSPEED %d\r\nDIRECTION 1\r\nCLS\r\n"
+            "BITMAP 0,0,%d,%d,0," % (LABEL_W_MM, LABEL_H_MM, GAP_MM,
+                                     DENSITY, SPEED, row_bytes, h)).encode()
+    return head + inverted + b"\r\nPRINT 1,1\r\n"
+
+
+def main():
+    src = sys.argv[6] if len(sys.argv) > 6 else None
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = os.path.join(tmp, "in.pdf")
+        with open(pdf, "wb") as o:
+            o.write(open(src, "rb").read() if src else sys.stdin.buffer.read())
+
+        if page_is_portrait(pdf):
+            rot = os.path.join(tmp, "rot.pdf")
+            subprocess.run(["qpdf", "--rotate=-90", pdf, rot], check=True)
+            pdf = rot
+            log("rotated +90 to landscape")
+
+        pbm = subprocess.run(
+            ["gs", "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=pbmraw",
+             "-r%d" % DPI, "-dFIXEDMEDIA", "-g%dx%d" % (DOTS_W, DOTS_H),
+             "-dPDFFitPage", "-sOutputFile=-", pdf],
+            capture_output=True, check=True).stdout
+        sys.stdout.buffer.write(to_tspl(pbm))
+        sys.stdout.buffer.flush()
+        log("done")
+
+
+if __name__ == "__main__":
+    main()

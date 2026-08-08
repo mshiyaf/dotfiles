@@ -50,3 +50,4 @@ opencode/.opencode/bun.lock*
 .opencode/node_modules/
 .opencode/package-lock.json
 .opencode/bun.lock*
+/.commandcode/taste
