@@ -25,3 +25,14 @@ customCommands:
     command: opencode run "/commit" --auto
     output: terminal
     loadingText: Generating AI commit...
+  - key: <c-g>
+    context: global
+    description: Show GitHub Actions runs
+    command: "gh run list --limit 10"
+    output: popup
+    loadingText: Fetching GitHub Actions runs...
+  - key: <c-w>
+    context: global
+    description: Watch latest GitHub Actions run
+    command: "gh run watch $(gh run list --limit 1 --json databaseId --jq '.[0].databaseId')"
+    output: popup
