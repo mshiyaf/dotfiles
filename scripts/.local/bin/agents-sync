@@ -3,7 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-type ModelMap = Record<string, { opencode: string; claude: string; codex: string; antigravity?: string }>;
+type CodexModel = string | { model: string; reasoning_effort?: string };
+type ModelMap = Record<string, { opencode: string; claude: string; codex: CodexModel; antigravity?: string }>;
 
 const EDIT_CAPABLE = new Set(["debugger", "tester", "docs-writer", "pr-writer"]);
 const EDIT_DENY = new Set([
@@ -90,7 +91,13 @@ for (const role of Object.keys(models).sort()) {
   const claude = `${generated}\n---\nname: ${role}\ndescription: ${yamlQuote(description)}\nmodel: ${models[role].claude}\ntools: ${readOnly ? CLAUDE_READ_ONLY_TOOLS : CLAUDE_EDIT_TOOLS}\n---\n${claudeBody}`;
   ok = writeOrCheck(path.join(claudeDir, `${role}.md`), claude) && ok;
 
-  const codex = `${generated}\nname = ${tomlString(role)}\ndescription = ${tomlString(description)}\ndeveloper_instructions = ${tomlMultiline(body)}\nmodel = ${tomlString(models[role].codex)}\nsandbox_mode = ${tomlString(readOnly ? "read-only" : "workspace-write")}\n`;
+  const codexConfig = models[role].codex;
+  const codexModel = typeof codexConfig === "string" ? codexConfig : codexConfig.model;
+  const codexReasoningEffort = typeof codexConfig === "string" ? undefined : codexConfig.reasoning_effort;
+  const codexEffortLine = codexReasoningEffort
+    ? `model_reasoning_effort = ${tomlString(codexReasoningEffort)}\n`
+    : "";
+  const codex = `${generated}\nname = ${tomlString(role)}\ndescription = ${tomlString(description)}\ndeveloper_instructions = ${tomlMultiline(body)}\nmodel = ${tomlString(codexModel)}\n${codexEffortLine}sandbox_mode = ${tomlString(readOnly ? "read-only" : "workspace-write")}\n`;
   ok = writeOrCheck(path.join(codexDir, `${role}.toml`), codex) && ok;
 }
 

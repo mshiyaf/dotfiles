@@ -117,6 +117,23 @@ OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
 CODEX_CREW_FLAGS="--sandbox workspace-write"
 
+codex_reasoning_flag() {
+	[ "$1" = fast ] || return 0
+	printf '%s' '-c model_reasoning_effort=low'
+}
+
+codex_headless_command() {
+	local model="$1" profile="$2" task="$3" reasoning
+	reasoning=$(codex_reasoning_flag "$profile")
+	printf 'codex exec --model %q %s %s %q' "$model" "$reasoning" "$CODEX_CREW_FLAGS" "$task"
+}
+
+codex_interactive_command() {
+	local model="$1" profile="$2" reasoning
+	reasoning=$(codex_reasoning_flag "$profile")
+	printf 'codex --model %q %s' "$model" "$reasoning"
+}
+
 opencode_headless_command() {
 	local settings
 	settings=$(cat "$OPENCODE_CREW_SETTINGS") || die "could not read OpenCode Crew settings: $OPENCODE_CREW_SETTINGS"
@@ -253,7 +270,7 @@ resolve_profile() {
 		fast:claude)     printf '%s' 'haiku' ;;
 		standard:claude) printf '%s' 'sonnet' ;;
 		deep:claude)     printf '%s' 'opus' ;;
-		fast:codex)      printf '%s' 'gpt-5.6-luna-low' ;;
+		fast:codex)      printf '%s' 'gpt-5.6-luna' ;;
 		standard:codex)  printf '%s' 'gpt-5.6-terra' ;;
 		deep:codex)      printf '%s' 'gpt-5.6-sol' ;;
 		fast:kimi)       printf '%s' 'kimi-code/kimi-for-coding' ;;
@@ -358,7 +375,7 @@ herdr_spawn() {
 		full=$(task_with_guardrails "$engine" "$task")
 		case "$engine" in
 			claude)   launch=$(claude_headless_command "$model" "$full") ;;
-			codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
+			codex)    launch=$(codex_headless_command "$model" "$profile" "$full") ;;
 			opencode) launch=$(opencode_headless_command "$model" "$full") ;;
 			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			amp)      launch=$(amp_headless_command "$model" "$full") ;;
@@ -384,6 +401,7 @@ herdr_spawn() {
 			amp)  herdr pane run "$pane" "$(amp_interactive_command "$model")" >/dev/null ;;
 			commandcode) herdr pane run "$pane" "$(commandcode_interactive_command "$model")" >/dev/null ;;
 			antigravity|agy) herdr pane run "$pane" "$(antigravity_interactive_command "$model")" >/dev/null ;;
+			codex) herdr pane run "$pane" "$(codex_interactive_command "$model" "$profile")" >/dev/null ;;
 			*)    herdr pane run "$pane" "$engine" >/dev/null ;;
 		esac
 	fi
@@ -480,7 +498,7 @@ cmd_new() {
 				local full; full=$(task_with_guardrails "$engine" "$task")
 				case "$engine" in
 					claude)   launch=$(claude_headless_command "$model" "$full") ;;
-					codex)    launch=$(printf 'codex exec --model %q %s %q' "$model" "$CODEX_CREW_FLAGS" "$full") ;;
+					codex)    launch=$(codex_headless_command "$model" "$profile" "$full") ;;
 					opencode) launch=$(opencode_headless_command "$model" "$full") ;;
 					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					amp)      launch=$(amp_headless_command "$model" "$full") ;;
@@ -500,6 +518,7 @@ cmd_new() {
 					amp)  tmux send-keys -t "$name" "$(amp_interactive_command "$model")" C-m ;;
 					commandcode) tmux send-keys -t "$name" "$(commandcode_interactive_command "$model")" C-m ;;
 					antigravity|agy) tmux send-keys -t "$name" "$(antigravity_interactive_command "$model")" C-m ;;
+					codex) tmux send-keys -t "$name" "$(codex_interactive_command "$model" "$profile")" C-m ;;
 					*)    tmux send-keys -t "$name" "$engine" C-m ;;
 				esac
 			fi

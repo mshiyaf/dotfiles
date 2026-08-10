@@ -568,10 +568,10 @@ OpenCode reads `~/.config/opencode/agents/*.md` unchanged.
 | `tester` | gpt-5.6-terra | Test plans / QA, no code changes | no |
 | `reviewer` | gpt-5.6-terra | Code/UI/ship review, findings-first | no (deny) |
 | `security-reviewer` | gpt-5.6-sol-pro | Security review | no |
-| `docs-writer` | gpt-5.6-luna-low | Docs / README | docs only |
-| `pr-writer` | gpt-5.6-luna-low | Commits, PR bodies, changelogs | commit-scope |
+| `docs-writer` | gpt-5.6-luna (low effort) | Docs / README | docs only |
+| `pr-writer` | gpt-5.6-luna (low effort) | Commits, PR bodies, changelogs | commit-scope |
 | `refactor-planner` | gpt-5.6-sol | Refactor planning | no |
-| `researcher` | gpt-5.6-sol-low | Live web research | no |
+| `researcher` | gpt-5.6-sol (low effort) | Live web research | no |
 | `critic` | gpt-5.6-sol-pro | Founder/critique/second-opinion | no |
 
 OpenCode built-ins `build` and `plan` still live in `opencode.json`.

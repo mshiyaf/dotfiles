@@ -58,7 +58,7 @@ OpenCode remains the canonical source for role prompts:
 
 ```text
 opencode/.config/opencode/agents/*.md      <- canonical prompts and descriptions
-agents/models.json                         <- role -> model map
+agents/models.json                         <- role -> model and reasoning-effort map
 agents/.claude/agents/*.md                 <- generated Claude Code subagents
 agents/.codex/agents/*.toml                <- generated Codex subagents
 ```

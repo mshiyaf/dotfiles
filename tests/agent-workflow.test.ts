@@ -223,6 +223,23 @@ describe("Crew Amp execution", () => {
     expect(callCrewFunction("resolve_profile deep amp")).toBe("high");
   });
 
+  test("keeps the Codex fast model and reasoning effort separate", () => {
+    expect(callCrewFunction("resolve_profile fast codex")).toBe("gpt-5.6-luna");
+    const headless = callCrewFunction("codex_headless_command gpt-5.6-luna fast 'finish task'");
+    const interactive = callCrewFunction("codex_interactive_command gpt-5.6-luna fast");
+    expect(headless).toContain("codex exec --model gpt-5.6-luna");
+    expect(headless).toContain("model_reasoning_effort=low");
+    expect(interactive).toContain("codex --model gpt-5.6-luna");
+    expect(interactive).toContain("model_reasoning_effort=low");
+    expect(headless).not.toContain("luna-low");
+  });
+
+  test("does not override Codex reasoning effort outside the fast profile", () => {
+    expect(callCrewFunction("codex_headless_command gpt-5.6-terra standard 'finish task'")).not.toContain(
+      "model_reasoning_effort",
+    );
+  });
+
   test("does not apply unattended settings to interactive Amp", () => {
     const command = callCrewFunction("amp_interactive_command medium");
     expect(command).toBe("amp -m medium");

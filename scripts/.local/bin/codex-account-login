@@ -1,0 +1,65 @@
+#!/usr/bin/env bun
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "auth.json");
+const OPENCODE_ACCOUNTS = path.join(os.homedir(), ".local", "share", "opencode", "openai-accounts");
+
+function decodeJwt(token: string): Record<string, any> | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function accountIdFromToken(token: string): string | undefined {
+  const claims = decodeJwt(token);
+  const id = claims?.["https://api.openai.com/auth"]?.chatgpt_account_id;
+  return typeof id === "string" && id ? id : undefined;
+}
+
+function writeJsonAtomic(file: string, value: unknown) {
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
+async function main() {
+  const name = process.argv[2];
+  if (!name || name.startsWith("-")) {
+    console.error("Usage: codex-account-login <profile-name>");
+    console.error("Logs in to a ChatGPT/Codex account via opencode, then saves the fresh tokens");
+    console.error(`as ${path.join(OPENCODE_ACCOUNTS, "<profile-name>.json")} so aiu / codex-status pick it up.`);
+    process.exit(1);
+  }
+
+  console.log(`Opening opencode's OpenAI login flow — complete it as the "${name}" account...`);
+  const proc = Bun.spawnSync(["opencode", "auth", "login", "-p", "openai"], { stdio: ["inherit", "inherit", "inherit"] });
+  if (proc.exitCode !== 0) {
+    console.error("opencode auth login failed or was cancelled; nothing was saved.");
+    process.exit(proc.exitCode ?? 1);
+  }
+
+  const store = JSON.parse(fs.readFileSync(OPENCODE_AUTH, "utf8"));
+  const profile = store?.openai;
+  if (!profile || profile.type !== "oauth" || !profile.access || !profile.refresh) {
+    console.error(`No usable OpenAI oauth credential found in ${OPENCODE_AUTH} after login.`);
+    process.exit(1);
+  }
+
+  fs.mkdirSync(OPENCODE_ACCOUNTS, { recursive: true });
+  const target = path.join(OPENCODE_ACCOUNTS, `${name}.json`);
+  writeJsonAtomic(target, profile);
+
+  const accountId = accountIdFromToken(profile.access) ?? profile.accountId ?? "unknown";
+  console.log(`Saved fresh credentials to ${target} (account ${accountId}).`);
+  console.log(`Note: "${name}" is now the active OpenAI account in opencode.`);
+  console.log(`If you use a different one day-to-day, switch back via the opencode command palette ("OpenAI: switch to <name>").`);
+}
+
+main();

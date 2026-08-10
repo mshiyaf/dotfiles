@@ -71,7 +71,9 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    (`crew-guard.sh`), which denies push/sudo/hard-reset/clean/rm. Crew refuses to launch a
    CommandCode crewmate if that hook is missing. Antigravity uses `gemini-3.6-flash-low` for `fast`,
    `gemini-3.6-flash-high` for `standard`, and `gemini-3.1-pro-high` for `deep` under bounded
-   `--dangerously-skip-permissions`.
+   `--dangerously-skip-permissions`. Codex uses `gpt-5.6-luna` with reasoning effort `low` for
+   `fast`, `gpt-5.6-terra` for `standard`, and `gpt-5.6-sol` for `deep`; reasoning effort is a
+   separate Codex setting and must not be appended to the model slug.
 4. **Report and stop.** After dispatching, tell the user what you launched and how to check in
    (`crew status`, `crew logs <branch>`, and `crew watch` in a separate pane for push alerts when a
    crewmate is ready or blocked), then **end your turn and hand control back**. There is no live
