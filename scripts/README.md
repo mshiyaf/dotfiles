@@ -21,6 +21,8 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 - `git-wt` - sibling git worktree manager (see below).
 - `crew` - tmux/herdr multi-agent orchestrator built on `git-wt` (see below).
 - `gate` - local AI ship gate: validate in a disposable worktree, then push + PR (see below).
+- `check-app-updates` / `update-apps` - version check + interactive updater for apps installed
+  outside pacman (see below).
 
 ## git-wt - parallel worktrees for agentic development
 
@@ -242,3 +244,57 @@ them), so an LLM verdict is never trusted as an exit code. Commit your work befo
 gate validates commits, and it refuses to run on the default branch. Requires `jq` and `gh`.
 `gate` inherits the shell environment you run it from. Put worktree-specific bootstrap in
 `.worktrees-setup`, for example copying `.env` from `$GIT_WT_MAIN` and installing dependencies.
+
+## check-app-updates / update-apps - non-pacman app version tracking + updates
+
+Some desktop apps here were installed by hand instead of through pacman/AUR - AppImages dropped
+under `/opt`, or a `.deb` extracted directly onto the filesystem because its packaging tool choked
+(`debtap`/`namcap` crashing on modern Electron binaries, notably). `pacman -Syu` has no idea these
+exist (or, for `command-code`, actively points at the wrong thing - see below). Two scripts share
+per-app logic from `scripts/.local/share/manual-apps.sh`:
+
+- **`check-app-updates`** - read-only. Compares each installed version against its real upstream
+  source and reports what's stale.
+- **`update-apps`** - actually updates them, the same way they were installed originally (AppImage
+  replaced in place, `.deb` extracted by hand and merged onto `/` - never via `debtap`/pacman/paru).
+
+```bash
+check-app-updates              # check all known apps
+check-app-updates cursor       # check just one: cursor | t3code | chatgpt | command-code
+
+update-apps                    # interactive fzf picker (Tab = multi-select, Enter = update)
+update-apps cursor t3code      # update specific apps directly, no picker
+update-apps --all              # update everything that's currently outdated
+```
+
+`update-apps` prompts for sudo per app as needed (installs live under `/opt` and `/usr`). Requires
+`fzf`, `curl`, `python3`, and `ar`/`tar` (binutils).
+
+Currently covers:
+
+- `cursor` - installed version read from the AppImage's embedded `product.json` (via
+  `--appimage-extract`, no launch); latest + download URL from `cursor.com`'s own update-check API.
+- `t3code` - installed version from the `X-AppImage-Version` field in
+  `~/.local/share/applications/t3code.desktop` (which `update-apps` rewrites after updating); latest
+  + AppImage asset from the `pingdotgg/t3code` GitHub releases API.
+- `chatgpt` - installed version from `~/.local/share/chatgpt-installed-version` (a marker file,
+  written by `update-apps` and updated on every reinstall, since the app's own
+  `/usr/lib/chatgpt/version` uses an internal build number, not the package version); latest from
+  OpenAI's own apt repo index at `persistent.oaistatic.com`.
+- `command-code` (the desktop GUI app, `@commandcode/desktop` from `commandcode.ai`/
+  `CommandCodeAI/desktop`) - installed version from its `resources/app/package.json`; latest + `.deb`
+  asset from the `CommandCodeAI/desktop` GitHub releases API. **Important:** this app happens to be
+  installed as a pacman package literally named `command-code` (from a manual `debtap` build), but
+  AUR also has an unrelated npm-CLI tool under that exact same name from a different author. Pacman
+  matches by name only - running `paru -S command-code` would delete this GUI app's files and
+  replace them with the unrelated CLI tool. `update-apps command-code` extracts the real `.deb` by
+  hand instead, same as `chatgpt`; this leaves pacman's local db reporting the old version, which is
+  cosmetic only (pacman just doesn't know about the manual reinstall - nothing depends on this
+  package, so it's harmless).
+
+It's read-only - it reports, it doesn't reinstall. When it flags something outdated, redo whatever
+manual install step was used originally (re-download the `.deb`/AppImage, repeat the extraction).
+**If you reinstall `chatgpt`, update the marker file** (`echo <new-version> >
+~/.local/share/chatgpt-installed-version`) or every future check will report a false positive.
+
+Exits `0` if everything's current, `1` if anything is outdated or unreachable.

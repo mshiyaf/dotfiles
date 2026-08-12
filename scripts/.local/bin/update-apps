@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+#
+# update-apps - interactive updater for the apps check-app-updates tracks (installed
+# outside pacman, or command-code which pacman can never legitimately own - see
+# manual-apps.sh). Downloads the real upstream artifact and installs it the same
+# way it was installed originally: AppImages replaced in place, .deb packages
+# extracted by hand and copied onto the filesystem (never via debtap/pacman/paru -
+# that's the whole reason these need this script).
+#
+# Usage:
+#   update-apps                 Interactive picker (fzf, multi-select with Tab)
+#   update-apps cursor t3code   Update specific apps directly, no picker
+#   update-apps --all           Update everything that's outdated, no picker
+#
+# Installs under /opt and /usr need root; you'll be prompted for sudo per app as
+# needed. Requires: fzf, curl, python3, ar (binutils), tar.
+
+set -euo pipefail
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+# shellcheck source=../share/manual-apps.sh
+source "$SCRIPT_DIR/../share/manual-apps.sh"
+
+info() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
+ok()   { printf '\033[1;32m✓ %s\033[0m\n' "$*"; }
+warn() { printf '\033[1;33m⚠ %s\033[0m\n' "$*"; }
+err()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; }
+
+# --- shared install helpers -------------------------------------------------
+
+# Downloads an AppImage and installs it in place of an existing one (always sudo:
+# both cursor's and t3code's /opt dirs are root-owned).
+install_appimage() {
+  local url="$1" dest="$2"
+  local tmp
+  tmp=$(mktemp)
+  info "Downloading $(basename "$dest")..."
+  curl -fL --progress-bar -o "$tmp" "$url"
+  chmod +x "$tmp"
+  sudo install -Dm755 "$tmp" "$dest"
+  rm -f "$tmp"
+}
+
+# Downloads a .deb and merges its data tree directly onto /, matching how these
+# were installed originally (debtap/namcap crashes on their large Electron
+# binaries - see the check-app-updates README section for why).
+install_deb() {
+  local url="$1"
+  local tmp
+  tmp=$(mktemp -d)
+  info "Downloading $(basename "$url")..."
+  curl -fL --progress-bar -o "$tmp/pkg.deb" "$url"
+  (cd "$tmp" && ar x pkg.deb)
+  info "Installing (sudo)..."
+  # .deb data tarballs record root:root ownership and real permissions (setuid
+  # bits like chrome-sandbox's 4755 included) - extracting as root instead of
+  # the invoking user is what actually applies that metadata, rather than
+  # silently dropping it to the current user. `-C /` merges it straight onto
+  # the filesystem, same as dpkg itself would.
+  sudo tar --same-owner -xpf "$tmp"/data.tar.* -C /
+  sudo update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+  sudo gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+  rm -rf "$tmp"
+}
+
+# --- per-app update ----------------------------------------------------------
+
+update_cursor() {
+  local info_line ver url
+  info_line=$(cursor_remote_info) || { err "cursor: couldn't reach cursor.com"; return 1; }
+  ver=$(cut -f1 <<<"$info_line"); url=$(cut -f2 <<<"$info_line")
+  install_appimage "$url" "/opt/cursor/Cursor.AppImage"
+  ok "cursor updated to $ver"
+}
+
+update_t3code() {
+  local info_line ver url
+  info_line=$(t3code_remote_info) || { err "t3code: couldn't reach GitHub"; return 1; }
+  ver=$(cut -f1 <<<"$info_line"); url=$(cut -f2 <<<"$info_line")
+  install_appimage "$url" "/opt/t3code/T3Code.AppImage"
+  sudo sed -i "s/X-AppImage-Version=.*/X-AppImage-Version=$ver/" \
+    "$HOME/.local/share/applications/t3code.desktop"
+  ok "t3code updated to $ver"
+}
+
+update_chatgpt() {
+  local ver
+  ver=$(chatgpt_remote) || { err "chatgpt: couldn't reach OpenAI's repo index"; return 1; }
+  [ -n "$ver" ] || { err "chatgpt: couldn't determine latest version"; return 1; }
+  install_deb "$CHATGPT_DEB_URL"
+  mkdir -p "$(dirname "$CHATGPT_VERSION_MARKER")"
+  echo "$ver" > "$CHATGPT_VERSION_MARKER"
+  ok "chatgpt updated to $ver"
+}
+
+update_command_code() {
+  local info_line ver url
+  info_line=$(command_code_remote_info) || { err "command-code: couldn't reach GitHub"; return 1; }
+  ver=$(cut -f1 <<<"$info_line"); url=$(cut -f2 <<<"$info_line")
+  install_deb "$url"
+  ok "command-code updated to $ver"
+  warn "note: pacman's local db still shows the old version (see manual-apps.sh) - cosmetic only, harmless."
+}
+
+update_claude_desktop() {
+  local info_line ver url
+  info_line=$(claude_desktop_remote_info) || { err "claude-desktop: couldn't reach downloads.claude.ai"; return 1; }
+  ver=$(cut -f1 <<<"$info_line"); url=$(cut -f2 <<<"$info_line")
+  install_deb "$url"
+  # Electron/Chromium's password-store backend detection keys off
+  # XDG_CURRENT_DESKTOP and doesn't recognize niri (or most tiling WMs), so it
+  # skips a real, working Secret Service and falls back to "won't be saved."
+  # install_deb re-copies this .desktop from the .deb's own contents on every
+  # update, so this patch has to be reapplied every time, not just once.
+  sudo sed -i 's/^Exec=claude-desktop/Exec=claude-desktop --password-store=gnome-libsecret/' \
+    /usr/share/applications/com.anthropic.Claude.desktop
+  mkdir -p "$(dirname "$CLAUDE_DESKTOP_VERSION_MARKER")"
+  echo "$ver" > "$CLAUDE_DESKTOP_VERSION_MARKER"
+  ok "claude-desktop updated to $ver"
+}
+
+# --- driver ------------------------------------------------------------------
+
+declare -A LABEL=(
+  [cursor]="Cursor"
+  [t3code]="T3 Code"
+  [chatgpt]="ChatGPT"
+  [command-code]="Command Code"
+  [claude-desktop]="Claude Desktop"
+)
+declare -A LOCAL_FN=(
+  [cursor]=cursor_local [t3code]=t3code_local
+  [chatgpt]=chatgpt_local [command-code]=command_code_local
+  [claude-desktop]=claude_desktop_local
+)
+declare -A REMOTE_FN=(
+  [cursor]=cursor_remote [t3code]=t3code_remote
+  [chatgpt]=chatgpt_remote [command-code]=command_code_remote
+  [claude-desktop]=claude_desktop_remote
+)
+declare -A UPDATE_FN=(
+  [cursor]=update_cursor [t3code]=update_t3code
+  [chatgpt]=update_chatgpt [command-code]=update_command_code
+  [claude-desktop]=update_claude_desktop
+)
+ORDER=(cursor t3code chatgpt command-code claude-desktop)
+
+menu_line() {
+  local key="$1" installed latest
+  installed=$("${LOCAL_FN[$key]}" 2>/dev/null || echo "?")
+  latest=$("${REMOTE_FN[$key]}" 2>/dev/null || echo "?")
+  if [ "$installed" = "$latest" ]; then
+    printf '%s\t%s  (%s, up to date)\n' "$key" "${LABEL[$key]}" "$installed"
+  else
+    printf '%s\t%s  (%s -> %s)\n' "$key" "${LABEL[$key]}" "$installed" "$latest"
+  fi
+}
+
+run_update() {
+  local key="$1"
+  if [ -z "${UPDATE_FN[$key]+x}" ]; then
+    err "unknown app: $key (expected: ${ORDER[*]})"
+    return 2
+  fi
+  info "Updating ${LABEL[$key]}..."
+  "${UPDATE_FN[$key]}"
+}
+
+selected=()
+
+if [ "${1:-}" = "--all" ]; then
+  for key in "${ORDER[@]}"; do
+    installed=$("${LOCAL_FN[$key]}" 2>/dev/null || echo "")
+    latest=$("${REMOTE_FN[$key]}" 2>/dev/null || echo "")
+    [ -n "$installed" ] && [ -n "$latest" ] && [ "$installed" != "$latest" ] && selected+=("$key")
+  done
+  if [ "${#selected[@]}" -eq 0 ]; then
+    ok "everything is already up to date"
+    exit 0
+  fi
+elif [ "$#" -gt 0 ]; then
+  selected=("$@")
+else
+  command -v fzf >/dev/null 2>&1 || { err "fzf not found - required for the interactive picker"; exit 1; }
+  info "Checking current versions..."
+  mapfile -t chosen < <(
+    for key in "${ORDER[@]}"; do menu_line "$key"; done |
+      fzf --multi --delimiter='\t' --with-nth=2.. \
+          --header='Tab: select multiple | Enter: update selected | Esc: cancel' |
+      cut -f1
+  )
+  selected=("${chosen[@]}")
+  if [ "${#selected[@]}" -eq 0 ]; then
+    info "nothing selected"
+    exit 0
+  fi
+fi
+
+FAILED=0
+for key in "${selected[@]}"; do
+  run_update "$key" || FAILED=1
+done
+
+exit $FAILED
