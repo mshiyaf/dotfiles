@@ -14,7 +14,7 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 
 ## Contents
 
-- `ai-usage` (`aiu` alias) - show usage limits and reset times for all installed coding agents.
+- `ai-usage` (`aiu` alias) - show usage limits and reset times for all installed coding agents, ranked by what to use first, with a "Use first" suggestion.
 - `codex-status` - print ChatGPT/Codex usage and rate-limit status.
 - `codex-resets` - show available reset credits for every saved OpenCode account.
 - `ai-branch-name` - turn a free-text task into one git branch name (AI, with a slug fallback); used by `crew` and `wt`.
