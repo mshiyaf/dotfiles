@@ -12,7 +12,7 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -270,28 +270,43 @@ def add_hyperlink(paragraph, text: str, url: str) -> None:
     paragraph._p.append(hyperlink)
 
 
-def add_runs_from_inline(paragraph, text: str) -> None:
-    token_re = re.compile(r"(\[[^\]]+\]\((?:https?://|mailto:)[^)]+\)|<(?:(?:https?://|mailto:)[^>\s]+)>|\*\*[^*]+\*\*|\*[^*]+\*)")
-    pos = 0
-    for match in token_re.finditer(text):
-        if match.start() > pos:
-            paragraph.add_run(text[pos : match.start()])
-        token = match.group(0)
-        markdown_link = re.fullmatch(r"\[([^\]]+)\]\(((?:https?://|mailto:)[^)]+)\)", token)
-        if markdown_link:
-            add_hyperlink(paragraph, markdown_link.group(1), markdown_link.group(2))
-        elif token.startswith("<"):
-            url = token[1:-1]
-            add_hyperlink(paragraph, url, url)
-        elif token.startswith("**"):
-            run = paragraph.add_run(token[2:-2])
-            run.bold = True
-        else:
-            run = paragraph.add_run(token[1:-1])
-            run.italic = True
-        pos = match.end()
-    if pos < len(text):
-        paragraph.add_run(text[pos:])
+def add_runs_from_inline(paragraph, text: str, highlight: bool = False) -> None:
+    parts = text.split("<br>")
+    for p_idx, part in enumerate(parts):
+        if p_idx > 0:
+            paragraph.add_run().add_break()
+        token_re = re.compile(r"(\==[^\=]+\==|\[[^\]]+\]\((?:https?://|mailto:)[^)]+\)|<(?:(?:https?://|mailto:)[^>\s]+)>|\*\*[^*]+\*\*|\*[^*]+\*)")
+        pos = 0
+        for match in token_re.finditer(part):
+            if match.start() > pos:
+                run = paragraph.add_run(part[pos : match.start()])
+                if highlight:
+                    run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+            token = match.group(0)
+            markdown_link = re.fullmatch(r"\[([^\]]+)\]\(((?:https?://|mailto:)[^)]+)\)", token)
+            if markdown_link:
+                add_hyperlink(paragraph, markdown_link.group(1), markdown_link.group(2))
+            elif token.startswith("<") and token.endswith(">"):
+                url = token[1:-1]
+                add_hyperlink(paragraph, url, url)
+            elif token.startswith("==") and token.endswith("=="):
+                inner = token[2:-2]
+                add_runs_from_inline(paragraph, inner, highlight=True)
+            elif token.startswith("**"):
+                run = paragraph.add_run(token[2:-2])
+                run.bold = True
+                if highlight:
+                    run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+            else:
+                run = paragraph.add_run(token[1:-1])
+                run.italic = True
+                if highlight:
+                    run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+            pos = match.end()
+        if pos < len(part):
+            run = paragraph.add_run(part[pos:])
+            if highlight:
+                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
 
 
 def set_body_paragraph_spacing(paragraph, before: float = 0, after: float = 8, line: float | None = 1.15) -> None:
@@ -319,7 +334,7 @@ def set_paragraph_outline_level(paragraph, level: int) -> None:
     outline_level.set(qn("w:val"), str(level - 1))
 
 
-def add_styled_heading(document: Document, text: str, level: int) -> None:
+def add_styled_heading(document: Document, text: str, level: int, highlight: bool = False) -> None:
     paragraph = document.add_paragraph()
     set_body_paragraph_spacing(
         paragraph,
@@ -333,6 +348,8 @@ def add_styled_heading(document: Document, text: str, level: int) -> None:
     run.font.name = "Montserrat"
     run.font.color.rgb = RGBColor(55, 96, 146)
     run.font.size = Pt(15 if level == 1 else 13)
+    if highlight:
+        run.font.highlight_color = WD_COLOR_INDEX.YELLOW
 
 
 def add_page_field(paragraph) -> None:
@@ -580,7 +597,10 @@ def normalize_heading_text(text: str) -> str:
 def body_lines_without_cover_preamble(markdown: str) -> list[str]:
     lines = markdown.splitlines()
     for index, line in enumerate(lines):
-        if re.match(r"^##\s+", line.strip()):
+        line_clean = line.strip()
+        if line_clean.startswith("==") and line_clean.endswith("=="):
+            line_clean = line_clean[2:-2].strip()
+        if re.match(r"^##\s+", line_clean):
             return lines[index:]
     return lines
 
@@ -600,13 +620,20 @@ def add_markdown_body(document: Document, markdown: str, cover_title: str) -> No
             index += 1
             continue
 
-        if "|" in stripped and index + 1 < len(lines) and is_table_separator(lines[index + 1]):
+        heading_line = stripped
+        highlight_heading = False
+        if heading_line.startswith("==") and heading_line.endswith("=="):
+            heading_line = heading_line[2:-2].strip()
+            highlight_heading = True
+
+        if "|" in heading_line and index + 1 < len(lines) and is_table_separator(lines[index + 1]):
             rows, index = parse_table(lines, index)
             add_markdown_table(document, rows)
             current_paragraph = None
+            index += 1
             continue
 
-        heading = re.match(r"^(#{1,6})\s+(.*)$", stripped)
+        heading = re.match(r"^(#{1,6})\s+(.*)$", heading_line)
         if heading:
             level = len(heading.group(1))
             text = normalize_heading_text(heading.group(2).strip())
@@ -614,10 +641,10 @@ def add_markdown_body(document: Document, markdown: str, cover_title: str) -> No
                 if level <= 2:
                     heading_counter += 1
                     subheading_counter = 0
-                    add_styled_heading(document, f"{heading_counter}.  {text}", 1)
+                    add_styled_heading(document, f"{heading_counter}.  {text}", 1, highlight=highlight_heading)
                 else:
                     subheading_counter += 1
-                    add_styled_heading(document, f"{heading_counter}.{subheading_counter}.  {text}", 2)
+                    add_styled_heading(document, f"{heading_counter}.{subheading_counter}.  {text}", 2, highlight=highlight_heading)
             current_paragraph = None
             index += 1
             continue
