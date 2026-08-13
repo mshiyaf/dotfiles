@@ -424,7 +424,8 @@ function render(pools: Pool[]): string {
       ? rows[0]!.note
       : undefined;
     const effective = pool.left === null ? "" : paint(quotaColor(100 - pool.left), `${Math.round(pool.left)}% usable`);
-    const header = [paint(1, poolLabel(pool)), sharedNote ? paint(2, sharedNote) : "", effective]
+    const incomplete = pool.usageIncomplete ? paint(33, "usage incomplete") : "";
+    const header = [paint(1, poolLabel(pool)), sharedNote ? paint(2, sharedNote) : "", effective, incomplete]
       .filter(Boolean).join(paint(2, " · "));
     const width = Math.max(...rows.map((row) => row.limit.length));
     const lines = rows.map((row) => {
@@ -438,18 +439,29 @@ function render(pools: Pool[]): string {
   return blocks.join("\n\n");
 }
 
+type PoolStatus = "usable" | "blocked" | "unknown";
+
 type Pool = {
   agent: string;
   account: string;
   pool: string;
   rows: Row[];
   // Effective remaining quota: usage draws from every window in the pool,
-  // so the binding constraint is the *least* remaining window.
+  // so the binding constraint is the *least* remaining known window.
   left: number | null;
+  // True when some quota window reports no usage percentage. `left` then only
+  // reflects the known windows; do not treat it as the full picture.
+  usageIncomplete: boolean;
+  // Earliest known future reset across the pool's windows (the deadline).
   nextResetAt: number | null;
-  // Burn pressure: effectiveLeft / hours until next reset. Higher = spend sooner.
-  score: number;
+  status: PoolStatus;
 };
+
+// Resets within this tolerance are treated as the same deadline group, so a
+// few minutes of API timing difference does not reorder pools.
+const RESET_GROUP_TOLERANCE_MS = 15 * 60_000;
+
+const resetGroup = (resetAt: number) => Math.round(resetAt / RESET_GROUP_TOLERANCE_MS);
 
 function buildPools(rows: Row[]): Pool[] {
   const groups = new Map<string, Row[]>();
@@ -462,20 +474,46 @@ function buildPools(rows: Row[]): Pool[] {
     const [{ agent, account, pool }] = group;
     const lefts = group.filter((row) => row.used !== null).map((row) => 100 - row.used!);
     const left = lefts.length ? Math.min(...lefts) : null;
-    const resets = group.map((row) => row.resetAt).filter((reset): reset is number => reset !== null && reset > now);
+    const usageIncomplete = left !== null && group.some((row) => row.used === null);
+    const status: PoolStatus = left === null ? "unknown" : left <= 0 ? "blocked" : "usable";
+    const futureResets = (window: Row[]) =>
+      window.map((row) => row.resetAt).filter((reset): reset is number => reset !== null && reset > now);
+    // For blocked pools the deadline that matters is the binding window's
+    // reset (that is when the pool frees), not any earlier non-binding reset.
+    const binding = status === "blocked" ? group.filter((row) => row.used !== null && 100 - row.used === left) : [];
+    const resets = futureResets(binding.length ? binding : group);
     const nextResetAt = resets.length ? Math.min(...resets) : null;
-    let score = -Infinity;
-    if (left !== null && left > 0) {
-      const hours = nextResetAt ? Math.max((nextResetAt - now) / 3_600_000, 0.25) : 168;
-      score = left / hours;
+    return { agent, account, pool, rows: group, left, usageIncomplete, nextResetAt, status };
+  });
+  return pools.sort(comparePools);
+}
+
+const statusRank = (pool: Pool) => pool.status === "usable" ? 0 : pool.status === "blocked" ? 1 : 2;
+
+// Ranking: use quota most at risk of expiring unused first.
+// 1. usable before blocked before unknown-usage pools
+// 2. usable pools with a known reset before those without
+// 3. earliest deadline group (resets within RESET_GROUP_TOLERANCE_MS are one group)
+// 4. within a deadline group, least remaining usable quota first; prefer
+//    pools with complete usage data when leftovers tie
+// 5. deterministic fallback
+function comparePools(a: Pool, b: Pool): number {
+  if (statusRank(a) !== statusRank(b)) return statusRank(a) - statusRank(b);
+  if (a.status === "usable") {
+    if ((a.nextResetAt === null) !== (b.nextResetAt === null)) return a.nextResetAt === null ? 1 : -1;
+    if (a.nextResetAt !== null && b.nextResetAt !== null) {
+      const groupA = resetGroup(a.nextResetAt);
+      const groupB = resetGroup(b.nextResetAt);
+      if (groupA !== groupB) return groupA - groupB;
     }
-    return { agent, account, pool, rows: group, left, nextResetAt, score };
-  });
-  return pools.sort((a, b) => {
-    if (a.score !== b.score) return b.score - a.score;
-    // Both blocked: whichever frees up soonest comes first.
-    return (a.nextResetAt ?? Infinity) - (b.nextResetAt ?? Infinity);
-  });
+    const leftA = a.left ?? Infinity;
+    const leftB = b.left ?? Infinity;
+    if (leftA !== leftB) return leftA - leftB;
+    if (a.usageIncomplete !== b.usageIncomplete) return a.usageIncomplete ? 1 : -1;
+  }
+  // Blocked pools (and final fallback): whichever frees soonest comes first.
+  if (a.nextResetAt !== b.nextResetAt) return (a.nextResetAt ?? Infinity) - (b.nextResetAt ?? Infinity);
+  return poolLabel(a).localeCompare(poolLabel(b));
 }
 
 function poolLabel(pool: Pool): string {
@@ -486,20 +524,19 @@ function poolLabel(pool: Pool): string {
 }
 
 function suggestion(pools: Pool[]): string {
-  const usable = pools.filter((pool) => pool.score > 0);
-  const blocked = pools.filter((pool) => pool.score === -Infinity && pool.left !== null);
+  const usable = pools.filter((pool) => pool.status === "usable");
+  const blocked = pools.filter((pool) => pool.status === "blocked");
   const lines: string[] = [];
   const top = usable[0];
   if (top) {
-    const reasons = [`${Math.round(top.left!)}% usable`];
-    const binding = top.rows.find((row) => row.used !== null && 100 - row.used === top.left);
+    const reasons = [`${Math.round(top.left!)}% left`];
+    if (top.usageIncomplete) reasons.push("usage incomplete");
     const resetting = top.rows.find((row) => row.resetAt === top.nextResetAt);
-    if (resetting) reasons.push(`${resetting.limit} resets ${resetText(top.nextResetAt)}`);
-    else reasons.push("reset time unknown");
-    for (const row of top.rows) {
-      if (row !== binding && row.used !== null && 100 - row.used > top.left!) {
-        reasons.push(`${row.limit} healthy (${Math.round(100 - row.used)}% left)`);
-      }
+    if (top.nextResetAt) {
+      reasons.push(`${resetting ? `${resetting.limit} ` : ""}resets ${resetText(top.nextResetAt)}`);
+      reasons.push(top.left! < 100 ? "use before reset" : "most urgent usable window");
+    } else {
+      reasons.push("reset unknown");
     }
     lines.push(paint(32, `→ Use first: ${poolLabel(top)}`));
     lines.push(paint(2, `  ${reasons.join(" · ")}`));
@@ -508,7 +545,8 @@ function suggestion(pools: Pool[]): string {
       lines.push(paint(2, "\nNext up:"));
       rest.forEach((pool, index) => {
         const reset = pool.nextResetAt ? `resets ${resetText(pool.nextResetAt)}` : "reset unknown";
-        lines.push(`  ${paint("1;36", `${index + 2}.`)} ${poolLabel(pool)}${paint(2, `  ·  ${Math.round(pool.left!)}% usable · ${reset}`)}`);
+        const incomplete = pool.usageIncomplete ? " · usage incomplete" : "";
+        lines.push(`  ${paint("1;36", `${index + 2}.`)} ${poolLabel(pool)}${paint(2, `  ·  ${Math.round(pool.left!)}% usable${incomplete} · ${reset}`)}`);
       });
     }
   }
