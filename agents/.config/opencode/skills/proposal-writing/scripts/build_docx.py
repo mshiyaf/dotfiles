@@ -75,7 +75,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+ESCAPE_RE = re.compile(r"\\([.\-+\[\]()!#_~|>])")
+
+
+def unescape_markdown(text: str) -> str:
+    return ESCAPE_RE.sub(r"\1", text)
+
+
 def clean_markdown_text(text: str) -> str:
+    text = unescape_markdown(text)
     text = re.sub(r"<([^>]+)>", r"\1", text)
     text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
     text = re.sub(r"\*([^*]+)\*", r"\1", text)
@@ -271,6 +279,7 @@ def add_hyperlink(paragraph, text: str, url: str) -> None:
 
 
 def add_runs_from_inline(paragraph, text: str, highlight: bool = False) -> None:
+    text = unescape_markdown(text)
     parts = text.split("<br>")
     for p_idx, part in enumerate(parts):
         if p_idx > 0:
@@ -620,6 +629,11 @@ def add_markdown_body(document: Document, markdown: str, cover_title: str) -> No
             index += 1
             continue
 
+        if re.fullmatch(r"(-{3,}|\*{3,}|_{3,})", stripped.replace(" ", "")):
+            current_paragraph = None
+            index += 1
+            continue
+
         heading_line = stripped
         highlight_heading = False
         if heading_line.startswith("==") and heading_line.endswith("=="):
@@ -636,7 +650,10 @@ def add_markdown_body(document: Document, markdown: str, cover_title: str) -> No
         heading = re.match(r"^(#{1,6})\s+(.*)$", heading_line)
         if heading:
             level = len(heading.group(1))
-            text = normalize_heading_text(heading.group(2).strip())
+            raw_heading_text = unescape_markdown(heading.group(2).strip())
+            raw_heading_text = re.sub(r"\*\*([^*]+)\*\*", r"\1", raw_heading_text)
+            raw_heading_text = re.sub(r"\*([^*]+)\*", r"\1", raw_heading_text)
+            text = normalize_heading_text(raw_heading_text)
             if not (level == 1 and text == cover_title):
                 if level <= 2:
                     heading_counter += 1
