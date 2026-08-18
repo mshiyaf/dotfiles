@@ -2,7 +2,7 @@
 name: find-skills
 description: Use when searching for public agent skills, evaluating whether a skill is safe to install, or deciding between existing and custom skills.
 ---
-Vendored from `vercel-labs/skills/find-skills` and trimmed for this global OpenCode setup.
+Vendored from `vercel-labs/skills/find-skills` and adapted for shared agent use.
 
 ## When to use
 - The user asks whether an existing skill exists for a task.
@@ -25,6 +25,11 @@ Vendored from `vercel-labs/skills/find-skills` and trimmed for this global OpenC
 - Instructions are procedural, not vague personality prompts.
 - No suspicious shell commands, credential handling, or broad automation.
 - No stack-specific assumptions unless intentionally local.
+- No undeclared dependency on local daemons, multiplexers, browser downloads, credentials, or host-specific configuration.
+- Global Amp Skills contain only served text resources. Keep skills requiring binary templates or assets repository-local or machine-local.
 
 ## Install guidance
-Use the public install command only after review. For this dotfiles repo, prefer vendoring a reviewed `SKILL.md` into `opencode/.config/opencode/skills/<name>/SKILL.md` so Stow can manage it deterministically.
+Use the current harness's native skill installation workflow only after review.
+Use a global user skill for portable behavior needed across repositories and orbs.
+Use `.agents/skills/<name>/` for repository-specific behavior.
+When working in this dotfiles repository specifically, preserve its existing vendoring and symlink conventions.

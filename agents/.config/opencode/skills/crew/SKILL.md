@@ -1,6 +1,7 @@
 ---
 name: crew
 description: Use when orchestrating several agents in parallel - split a request into independent features, dispatch one crewmate per feature with the `crew` CLI, then stop and report status on request (not continuously) so ready branches can be reviewed and shipped.
+compatibility: Requires the local Crew, git-wt, Herdr or tmux, and agent CLI setup. In Amp orbs, use native Amp delegation or separate orb threads instead.
 ---
 ## What it is
 `crew` runs multiple agents in parallel, each in its own `git wt` worktree and detached tmux
@@ -14,6 +15,10 @@ push; the user reviews and ships each ready branch.
 The user asks to build 2-3 (or more) independent features/fixes at once, or to fan a batch of
 similar changes across a codebase. If the work is a single change, do it directly instead - crew
 is overhead you only want for genuine parallelism.
+
+Before dispatching, verify that `crew`, `git-wt`, the selected agent CLI, and a supported Herdr or tmux backend are available.
+This is a local-runner workflow and must not be bootstrapped inside an Amp orb.
+In an orb, use the native delegation tools available to Amp for independent work, or create separate orb threads when each task needs its own checkout.
 
 ## Native subagents versus crew
 Use native subagents, including Kimi Code's `AgentSwarm` and Amp's `Task` tool, for parallel
@@ -96,5 +101,5 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
 - Choose independent features. If a plan needs shared-file coordination, say so and sequence it
   rather than dispatching colliding crewmates.
 - One crewmate per branch. Re-running `crew new` on an existing branch reuses its session.
-- Tear down finished crewmates with `crew stop <branch>` (add `-D` to also drop the worktree +
-  branch once its work is merged).
+- Tear down finished processes with `crew stop <branch>`.
+- Use `crew stop -D <branch>` only after verifying that the work is merged or disposable and obtaining approval to delete the worktree and branch.

@@ -1,0 +1,226 @@
+#!/usr/bin/env bun
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+type RepositoryKind = "skills" | "plugins";
+
+const LOCAL_ONLY_SKILLS = new Set(["crew", "ship-gate"]);
+const SKILLS_MANIFEST = ".dotfiles-managed-skills";
+const PLUGINS_MANIFEST = ".dotfiles-managed-plugins";
+
+function findRepoRoot(start: string): string {
+  let directory = path.resolve(start);
+  while (true) {
+    if (fs.existsSync(path.join(directory, "agents")) && fs.existsSync(path.join(directory, "amp"))) return directory;
+    const parent = path.dirname(directory);
+    if (parent === directory) throw new Error("Could not find the dotfiles repository root");
+    directory = parent;
+  }
+}
+
+const repo = findRepoRoot(import.meta.dir);
+
+function spawn(command: string[], cwd = repo, inherit = false) {
+  const result = Bun.spawnSync(command, {
+    cwd,
+    stdout: inherit ? "inherit" : "pipe",
+    stderr: inherit ? "inherit" : "pipe",
+  });
+  return {
+    ok: result.exitCode === 0,
+    stdout: result.stdout?.toString() || "",
+    stderr: result.stderr?.toString() || "",
+    exitCode: result.exitCode,
+  };
+}
+
+function run(command: string[], cwd = repo, inherit = false) {
+  const result = spawn(command, cwd, inherit);
+  if (!result.ok) {
+    const detail = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
+    throw new Error(`${command.join(" ")} exited ${result.exitCode}${detail ? `\n${detail}` : ""}`);
+  }
+  return result.stdout.trim();
+}
+
+function repositoryInfo(kind: RepositoryKind) {
+  const command = kind === "skills" ? ["amp", "skill", "repositories"] : ["amp", "plugins", "repositories"];
+  const output = run(command);
+  const url = output.match(new RegExp(`https://\\S+/-/${kind}`))?.[0];
+  if (!url) throw new Error(`Amp did not report a writable User ${kind} repository`);
+  return { url, empty: output.toLowerCase().includes(`no ${kind} yet`) };
+}
+
+function defaultCheckout(url: string, kind: RepositoryKind) {
+  const host = new URL(url).host.replace(/[^A-Za-z0-9.-]/g, "-");
+  return path.join(os.homedir(), ".cache", "amp", "repositories", `${host}-user-${kind}`);
+}
+
+function hasGitHead(directory: string) {
+  return spawn(["git", "rev-parse", "--verify", "HEAD"], directory).ok;
+}
+
+function updateCleanCheckout(directory: string) {
+  const status = run(["git", "status", "--porcelain"], directory);
+  if (status) {
+    throw new Error(`Refusing to overwrite pending changes in ${directory}:\n${status}`);
+  }
+
+  if (!spawn(["git", "remote", "get-url", "origin"], directory).ok) return;
+  run(["git", "fetch", "origin"], directory, true);
+
+  const upstream = spawn(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], directory);
+  if (upstream.ok) {
+    run(["git", "merge", "--ff-only", upstream.stdout.trim()], directory, true);
+    return;
+  }
+
+  if (!spawn(["git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main"], directory).ok) return;
+  if (hasGitHead(directory)) run(["git", "merge", "--ff-only", "origin/main"], directory, true);
+  else run(["git", "checkout", "-B", "main", "origin/main"], directory, true);
+}
+
+function ensureCheckout(kind: RepositoryKind, url: string, empty: boolean, override?: string) {
+  const directory = path.resolve(override || defaultCheckout(url, kind));
+  if (fs.existsSync(directory)) {
+    if (!fs.existsSync(path.join(directory, ".git"))) {
+      throw new Error(`Expected a Git checkout at ${directory}`);
+    }
+    updateCleanCheckout(directory);
+    return directory;
+  }
+
+  fs.mkdirSync(path.dirname(directory), { recursive: true });
+  if (!empty) {
+    run(["amp", "clone", `user-${kind}`, directory], repo, true);
+    return directory;
+  }
+
+  fs.mkdirSync(directory, { recursive: true });
+  run(["git", "init", "-b", "main"], directory, true);
+  run(["git", "config", "credential.helper", "!amp git-credential-helper"], directory);
+  run(["git", "remote", "add", "origin", url], directory);
+  return directory;
+}
+
+function assertTextFile(file: string) {
+  const bytes = fs.readFileSync(file);
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error(`Global Amp repositories cannot serve binary skill resources: ${file}`);
+  }
+  if (bytes.includes(0)) throw new Error(`Global Amp repositories cannot serve binary skill resources: ${file}`);
+}
+
+function copyTextFile(source: string, destination: string) {
+  assertTextFile(source);
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.copyFileSync(source, destination);
+  fs.chmodSync(destination, fs.statSync(source).mode & 0o777);
+}
+
+function copyTextTree(source: string, destination: string) {
+  fs.mkdirSync(destination, { recursive: true });
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    const sourcePath = path.join(source, entry.name);
+    const destinationPath = path.join(destination, entry.name);
+    if (entry.isDirectory()) copyTextTree(sourcePath, destinationPath);
+    else if (entry.isFile()) copyTextFile(sourcePath, destinationPath);
+    else throw new Error(`Unsupported skill resource type: ${sourcePath}`);
+  }
+}
+
+function readManifest(file: string) {
+  if (!fs.existsSync(file)) return new Set<string>();
+  return new Set(
+    fs.readFileSync(file, "utf8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#")),
+  );
+}
+
+function resetManagedEntries(directory: string, manifestName: string, current: string[]) {
+  const manifest = path.join(directory, manifestName);
+  const previous = readManifest(manifest);
+  for (const name of current) {
+    const destination = path.join(directory, name);
+    if (fs.existsSync(destination) && !previous.has(name)) {
+      throw new Error(`Refusing to replace unmanaged global entry: ${destination}`);
+    }
+  }
+  for (const name of previous) fs.rmSync(path.join(directory, name), { recursive: true, force: true });
+  fs.writeFileSync(manifest, `# Managed by amp-global-sync. Do not edit in this checkout.\n${current.join("\n")}\n`);
+}
+
+function syncSkills(directory: string) {
+  const sourceRoot = path.join(repo, "agents", ".config", "opencode", "skills");
+  const names = fs.readdirSync(sourceRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && !LOCAL_ONLY_SKILLS.has(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+
+  resetManagedEntries(directory, SKILLS_MANIFEST, names);
+  for (const name of names) {
+    const source = path.join(sourceRoot, name);
+    const destination = path.join(directory, name);
+    if (name === "proposal-writing") {
+      fs.mkdirSync(destination, { recursive: true });
+      copyTextFile(path.join(source, "SKILL.md"), path.join(destination, "SKILL.md"));
+    } else copyTextTree(source, destination);
+
+    const skill = fs.readFileSync(path.join(destination, "SKILL.md"), "utf8");
+    const declaredName = skill.match(/^---\n[\s\S]*?^name:\s*(.+)$/m)?.[1].trim();
+    if (declaredName !== name) throw new Error(`${destination}/SKILL.md declares ${declaredName || "no name"}`);
+  }
+  return names;
+}
+
+function syncPlugins(directory: string) {
+  const names = ["workflow-guardrails.ts"];
+  resetManagedEntries(directory, PLUGINS_MANIFEST, names);
+  copyTextFile(
+    path.join(repo, "amp", ".config", "amp", "plugins", names[0]),
+    path.join(directory, names[0]),
+  );
+  return names;
+}
+
+function showPending(directory: string, label: string) {
+  run(["git", "diff", "--check"], directory);
+  console.log(`\n${label}: ${directory}`);
+  const status = run(["git", "status", "--short"], directory);
+  console.log(status || "  no changes");
+  const diff = run(["git", "diff", "--stat"], directory);
+  if (diff) console.log(diff);
+}
+
+if (!Bun.which("amp")) throw new Error("amp is required");
+if (!Bun.which("git")) throw new Error("git is required");
+
+run([path.join(repo, "scripts", ".local", "bin", "verify-agent-workflow")], repo, true);
+
+const skillsRepository = repositoryInfo("skills");
+const pluginsRepository = repositoryInfo("plugins");
+const skillsCheckout = ensureCheckout("skills", skillsRepository.url, skillsRepository.empty, process.env.AMP_GLOBAL_SKILLS_DIR);
+const pluginsCheckout = ensureCheckout("plugins", pluginsRepository.url, pluginsRepository.empty, process.env.AMP_GLOBAL_PLUGINS_DIR);
+
+const skills = syncSkills(skillsCheckout);
+const plugins = syncPlugins(pluginsCheckout);
+
+run([
+  "amp",
+  "plugins",
+  "exec",
+  path.join(pluginsCheckout, "workflow-guardrails.ts"),
+  "tool.call",
+  "--data",
+  '{"toolUseID":"tool-test","tool":"shell_command","input":{"command":"git status --short"},"thread":{"id":"T-00000000-0000-0000-0000-000000000000"}}',
+], repo, true);
+
+showPending(skillsCheckout, `Personal Skills (${skills.length} managed)`);
+showPending(pluginsCheckout, `Personal Plugins (${plugins.length} managed)`);
+console.log("\nSync complete. Nothing was committed or pushed.");

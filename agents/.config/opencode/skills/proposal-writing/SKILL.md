@@ -1,6 +1,7 @@
 ---
 name: proposal-writing
 description: Use when drafting, reviewing, or commercially checking client proposals, SOWs, implementation proposals, AMC/support terms, payment milestones, assumptions, exclusions, and deliverables.
+compatibility: Drafting and review work everywhere. DOCX generation requires the bundled binary template/assets and uv, so keep the complete package machine-local or repository-local.
 ---
 
 # Proposal Writing
@@ -10,8 +11,9 @@ Follow the user's proposal style: polished, specific, business-focused, scope-sa
 
 ## Required Context
 
-- Read `~/OPINIONS.md` for business, pricing, scope, AMC, and delivery preferences when available.
-- Read `~/VOICE.md` when drafting or rewriting proposal text in the user's voice.
+- Read business, pricing, scope, AMC, and delivery preferences supplied by the harness or `~/OPINIONS.md` when available.
+- Read voice guidance supplied by the harness or `~/VOICE.md` when available when drafting or rewriting proposal text in the user's voice.
+- Continue without optional personal files when they are unavailable in an orb, and state that limitation when it materially affects the result.
 - Inspect any provided sample proposal, requirement note, existing proposal, or client document before making strong claims.
 - Inspect the latest approved effort estimate, estimate document, or estimate details in the current conversation when available.
 - If inputs are incomplete, make practical assumptions and list them clearly.
@@ -51,11 +53,13 @@ Do not create DOCX files unless the user explicitly requests DOCX output.
 When DOCX output is requested, use the committed builder instead of improvising a converter.
 The builder reuses the sanitized proposal Word template derived from the accepted sample layout.
 It keeps the same proposal structure, header, footer, heading styles, numbering, and commercial table treatment while replacing the proposal content.
+Global Amp Skills do not serve the binary template and logo assets required by this builder.
+If the complete skill package or `uv` is unavailable, produce polished Markdown and explain that DOCX generation requires the local or repository-scoped package.
 
-Run it through `uv` so dependencies are not installed globally:
+When the complete package is available, resolve the builder relative to the skill base directory reported by the current harness and run it through `uv` so dependencies are not installed globally:
 
 ```bash
-uv run --with python-docx ~/.config/opencode/skills/proposal-writing/scripts/build_docx.py draft.md --company sprdh -o proposal.docx
+uv run --with python-docx <skill-base-directory>/scripts/build_docx.py draft.md --company sprdh -o proposal.docx
 ```
 
 Use `--company texol` for Texol proposals.
@@ -78,7 +82,10 @@ version: "1.0"
 CLI flags override frontmatter.
 Useful flags are `--title`, `--client`, `--date`, `--document-id`, `--version`, `--author`, `--approver`, and `--client-logo`.
 The Markdown body may contain headings, paragraphs, bullet lists, numbered lists, inline bold/italic, and pipe tables.
-Run the script by absolute skill path because the agent's working directory is usually the client/project folder, not the skill directory.
+Run the script by its resolved absolute skill path because the agent's working directory is usually the client/project folder, not the skill directory.
+
+Drafting or generating a requested local document needs no additional approval.
+Require explicit approval before emailing, uploading, publishing, or sending it to a client unless the current request already authorized that exact action.
 
 ## Proposal Draft Structure
 

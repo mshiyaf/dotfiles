@@ -24,18 +24,19 @@ Steps:
 6. Include build, test, and lint commands from the manifests.
 7. Include conventions such as naming, structure, and commit style.
 8. Include common pitfalls or gotchas specific to this repo.
-9. Create `CLAUDE.md` as a symlink to `AGENTS.md` with `ln -s AGENTS.md CLAUDE.md`, skipping if it exists.
+9. Create `CLAUDE.md` as a symlink to `AGENTS.md` with `ln -s AGENTS.md CLAUDE.md`, skipping if it exists. If the filesystem does not support symlinks, follow the repository's existing cross-agent convention rather than silently copying a second source of truth.
 10. Print both paths and remind the user to review and commit.
 
 After the core files are ready, offer only the project-specific lifecycle files that the repository needs:
 
 - `.agents/setup` for fresh Amp orb dependency installation and generation. Keep it short and executable.
-- `.agents/resume` for fast, idempotent reconnect repair only. It must not install dependencies.
+- `.agents/resume` for fast, idempotent Amp orb reconnect repair only. It must not install dependencies.
+- `.amp/services.yaml` for Amp orb supervised development services and portals. Never embed credentials; use Amp secrets and environment settings.
 - `.worktrees-setup` for local Crew worktree bootstrap.
-- `.gate.sh` for deterministic project test, docs, and lint overrides.
-- `.amp/services.yaml` for supervised development services and authenticated portals.
+- `.gate.sh` for the local ship gate's deterministic test, docs, and lint overrides.
 
 Do not create these optional files blindly.
+Require explicit user intent before configuring a portal or service that exposes or writes to an external/shared system.
 Prefer calling one project-owned bootstrap command from orb and worktree setup instead of duplicating dependency logic.
 
 Keep it short because this file loads into every agent's context for the project.

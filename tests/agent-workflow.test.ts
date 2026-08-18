@@ -6,6 +6,7 @@ import workflowGuardrails, {
   blockedCommandReason,
   createLifecycleReporter,
   herdrReportingEnabled,
+  orbSandboxEnabled,
 } from "../amp/.config/amp/plugins/workflow-guardrails";
 
 const repo = resolve(import.meta.dir, "..");
@@ -63,6 +64,20 @@ describe("Amp workflow guardrails", () => {
     "bun test",
   ])("allows %s", (command) => {
     expect(blockedCommandReason(command)).toBeNull();
+  });
+
+  test("allows sandbox-local elevation in Amp orbs without weakening shared-state guards", () => {
+    const orbPolicy = { allowSandboxElevation: true };
+    expect(blockedCommandReason("sudo apt-get install -y docker", orbPolicy)).toBeNull();
+    expect(blockedCommandReason("bash -c 'sudo apt-get update'", orbPolicy)).toBeNull();
+    expect(blockedCommandReason("git push origin main", orbPolicy)).not.toBeNull();
+    expect(blockedCommandReason("git reset --hard HEAD~1", orbPolicy)).not.toBeNull();
+    expect(blockedCommandReason("rm -rf $HOME", orbPolicy)).not.toBeNull();
+  });
+
+  test("detects Amp's documented orb environment", () => {
+    expect(orbSandboxEnabled({ AMP_ORB: "1" })).toBe(true);
+    expect(orbSandboxEnabled({})).toBe(false);
   });
 });
 

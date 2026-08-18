@@ -21,8 +21,22 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 - `git-wt` - sibling git worktree manager (see below).
 - `crew` - tmux/herdr multi-agent orchestrator built on `git-wt` (see below).
 - `gate` - local AI ship gate: validate in a disposable worktree, then push + PR (see below).
+- `amp-global-sync` - sync the orb-safe skill/plugin subset into local Amp Personal repository checkouts without committing or pushing.
 - `check-app-updates` / `update-apps` - version check + interactive updater for apps installed
   outside pacman (see below).
+
+## amp-global-sync - prepare Amp Personal Skills and Plugins
+
+Keep the shared dotfiles skill directory as the canonical source while making portable behavior available in Amp orbs:
+
+```bash
+make amp-global-sync
+```
+
+The command clones or updates the Amp Personal Skills and Plugins repositories under `~/.cache/amp/repositories/`, validates the source configuration, and copies the managed subset.
+It excludes the local-runner-only `crew` and `ship-gate` skills, excludes `.system`, copies only `proposal-writing/SKILL.md` because global Amp Skills do not serve its binary DOCX assets, and installs only the custom `workflow-guardrails.ts` plugin.
+It refuses to overwrite dirty checkouts or unmanaged entries with the same name, then prints the pending Git status and diff summary.
+It never commits or pushes.
 
 ## git-wt - parallel worktrees for agentic development
 

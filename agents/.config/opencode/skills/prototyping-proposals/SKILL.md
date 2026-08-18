@@ -20,8 +20,9 @@ The goal is to help an early client conversation feel concrete without accidenta
 
 - The current proposal draft, SOW, client notes, or requirement document.
 - Any brand assets, website links, screenshots, product references, or sample proposals supplied by the user.
-- `~/OPINIONS.md` for business and proposal preferences when available.
-- `~/VOICE.md` if writing client-facing explanation text.
+- Business and proposal preferences supplied by the harness or `~/OPINIONS.md` when available.
+- Voice guidance supplied by the harness or `~/VOICE.md` when available if writing client-facing explanation text.
+- Continue without optional personal context when it is unavailable in an orb, and state that limitation when it materially affects the result.
 
 ## Recommended Flow
 
@@ -71,8 +72,8 @@ Return image prompts with:
 - Text to include or avoid.
 - Negative instructions to avoid generic stock visuals, fake logos, unreadable UI text, or overpromising features.
 
-When running in Codex and the user explicitly wants generated raster images, use Codex `imagegen` for bitmap assets.
-For other agents or when image generation is not available, produce precise prompts that can be used in the available image tool.
+When the user explicitly wants generated raster images, use an image-generation tool available in the current harness.
+If image generation is unavailable, produce precise prompts instead.
 For Amp specifically, only call the painter tool if the user explicitly asks to use the painter tool.
 
 ### Review Mode
@@ -100,4 +101,7 @@ After a proposal draft and review, recommend one of these packages:
 - Small website or app: 3 to 5 HTML screens covering the main user journey, admin view, and one empty/error state.
 - ERP, CRM, or operations system: dashboard, master-data screen, transaction workflow, approval/report view, and role-specific navigation.
 - Marketing or brand-heavy project: cover image, landing hero, 2 screen mockups, and 1 workflow/process visual.
-- Early pre-sales conversation: prototype plan plus image prompts first, then generate files only after the user confirms direction.
+- Early pre-sales conversation: prototype plan plus image prompts first unless the user already requested generated files.
+
+Creating requested prototype files inside the current sandbox or repository is reversible and needs no additional approval.
+Require explicit approval before publishing, externally sharing, or sending the generated material unless the current request already authorized that exact action.

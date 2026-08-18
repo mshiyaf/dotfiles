@@ -1,11 +1,15 @@
 ---
 name: ship-gate
 description: Use when shipping a branch through the local AI ship gate - validate in a disposable worktree, auto-fix, then push and open a PR. Covers the `gate` CLI, optional .gate.sh overrides, and .worktrees-setup bootstrap.
+compatibility: Local-runner-only. Requires gate, git-wt, authenticated gh, local guard hooks, and the configured agent CLIs. Do not bootstrap or run it inside an Amp orb.
 ---
 ## What it is
 `gate` is a local ship gate (our own, no external binary). It validates a branch's
 committed work in a **disposable worktree** and only pushes + opens a PR once the gate
 passes. Built on `git-wt` + your coding agent + `gh`.
+
+Before use, verify `gate`, `git-wt`, `gh auth status`, the selected agent CLI, and required guard hooks.
+In an Amp orb, run repository-native review and validation instead, then use the project's configured changes workflow when the user explicitly asks to ship.
 
 ## Pipeline
 1. Copy the current branch HEAD into a disposable worktree (your working tree is untouched).
@@ -43,10 +47,12 @@ Leave `GATE_DOCS` empty to skip docs by default.
 `gate` inherits the shell environment it is run from.
 Put worktree-specific setup in an executable `.worktrees-setup` at the main repo root.
 `git wt new` runs it inside new worktrees with `$GIT_WT_MAIN` pointing at the main repo.
+Do not copy `.env` or other credential files into retained worktrees.
+Use the project's secret injection mechanism or copy only an explicitly approved non-secret test environment file.
 
 ```bash
 #!/usr/bin/env bash
-cp "$GIT_WT_MAIN/.env" . 2>/dev/null || true
+cp "$GIT_WT_MAIN/.env.example" .env.local 2>/dev/null || true
 pnpm install --frozen-lockfile
 ```
 
@@ -60,6 +66,8 @@ gate run [branch]  # validate → push → PR (default: current branch)
 
 ## Rules
 - Commit your work first; the gate validates commits, not the dirty tree.
+- `gate run` pushes and opens a PR. Run it only when the user has explicitly requested those external actions; otherwise run review and validation without shipping.
+- In headless mode, unresolved `ask_user` findings must fail closed before any push or PR creation. Do not downgrade them to informational in a shipping run.
 - Never bypass the gate to push a failing branch. If it escalates, fix the reported
   failures (or the kept worktree) and re-run. No yolo.
 - `gate` refuses to run on the default branch.

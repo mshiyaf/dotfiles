@@ -33,7 +33,7 @@ DEFAULT_PACKAGES := agents alacritty amp antigravity commandcode fastfetch git h
 #   make stow PKG="opencode nvim tmux"
 PKG ?= $(DEFAULT_PACKAGES)
 
-.PHONY: help list stow restow unstow agents-sync verify-agent-workflow
+.PHONY: help list stow restow unstow agents-sync amp-global-sync verify-agent-workflow
 
 help:
 	@echo "Targets:"
@@ -42,6 +42,7 @@ help:
 	@echo "  make restow [PKG=\"a b c\"]       Refresh default packages, or only PKG"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
 	@echo "  make agents-sync                Regenerate Claude/Codex subagents"
+	@echo "  make amp-global-sync            Sync orb-safe skills/plugins to local Personal repo checkouts"
 	@echo "  make verify-agent-workflow      Validate agent config, scripts, and safety tests"
 	@echo "  make stow-<pkg>                Stow a single package (e.g. stow-opencode)"
 	@echo "  make unstow-<pkg>              Unstow a single package"
@@ -73,6 +74,9 @@ unstow:
 
 agents-sync:
 	./scripts/.local/bin/agents-sync
+
+amp-global-sync:
+	./scripts/.local/bin/amp-global-sync
 
 verify-agent-workflow:
 	./scripts/.local/bin/verify-agent-workflow

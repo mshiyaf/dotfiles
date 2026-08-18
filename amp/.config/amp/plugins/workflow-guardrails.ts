@@ -74,18 +74,22 @@ function hasShortFlag(args: string[], flag: string) {
   return args.some((arg) => arg.startsWith("-") && !arg.startsWith("--") && arg.slice(1).includes(flag));
 }
 
-function directCommandReason(tokens: string[]): string | null {
+type CommandPolicy = {
+  allowSandboxElevation?: boolean;
+};
+
+function directCommandReason(tokens: string[], policy: CommandPolicy): string | null {
   const executable = executableTokens(tokens);
   if (!executable.length) return null;
 
   const [programPath, ...args] = executable;
   const program = programPath.split("/").at(-1) || programPath;
   executable[0] = program;
-  if (program === "sudo") return "runs with elevated privileges";
+  if (program === "sudo" && !policy.allowSandboxElevation) return "runs with elevated privileges";
 
   if (["bash", "sh", "zsh"].includes(program)) {
     const commandIndex = args.findIndex((arg) => arg === "-c" || arg === "--command");
-    if (commandIndex >= 0 && args[commandIndex + 1]) return blockedCommandReason(args[commandIndex + 1]);
+    if (commandIndex >= 0 && args[commandIndex + 1]) return blockedCommandReason(args[commandIndex + 1], policy);
   }
 
   const git = gitSubcommand(executable);
@@ -116,12 +120,16 @@ function directCommandReason(tokens: string[]): string | null {
   return null;
 }
 
-export function blockedCommandReason(command: string): string | null {
+export function blockedCommandReason(command: string, policy: CommandPolicy = {}): string | null {
   for (const segment of commandSegments(command)) {
-    const reason = directCommandReason(segment);
+    const reason = directCommandReason(segment, policy);
     if (reason) return reason;
   }
   return null;
+}
+
+export function orbSandboxEnabled(env: Record<string, string | undefined> = process.env) {
+  return Boolean(env.AMP_ORB);
 }
 
 async function reportHerdr(state: "idle" | "working" | "blocked") {
@@ -179,6 +187,7 @@ export function createLifecycleReporter(report: (state: HerdrState) => Promise<v
 
 export default function workflowGuardrails(amp: PluginAPI) {
   const lifecycle = createLifecycleReporter();
+  const commandPolicy = { allowSandboxElevation: orbSandboxEnabled() };
 
   amp.on("agent.start", async (event) => {
     await lifecycle.start(event.thread.id, event.id);
@@ -192,7 +201,7 @@ export default function workflowGuardrails(amp: PluginAPI) {
     const shell = amp.helpers.shellCommandFromToolCall(event);
     if (!shell?.command) return { action: "allow" };
 
-    const reason = blockedCommandReason(shell.command);
+    const reason = blockedCommandReason(shell.command, commandPolicy);
     if (!reason) return { action: "allow" };
 
     const active = amp.activeThread.current?.id === event.thread.id;
