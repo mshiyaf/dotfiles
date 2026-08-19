@@ -15,8 +15,9 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 ## Contents
 
 - `ai-usage` (`aiu` alias) - show usage limits and reset times for all installed coding agents, ranked by what to use first, with a "Use first" suggestion.
-- `codex-status` - print ChatGPT/Codex usage and rate-limit status.
-- `codex-resets` - show available reset credits for every saved OpenCode account.
+- `ai-account` - save and switch Claude Code and native Codex CLI logins without changing their shared settings or session history.
+- `codex-status` - focused status for the active native Codex account, with JSON and watch modes.
+- `codex-resets` - show earned rate-limit reset credits, which are separate from normal quota usage.
 - `ai-branch-name` - turn a free-text task into one git branch name (AI, with a slug fallback); used by `crew` and `wt`.
 - `git-wt` - sibling git worktree manager (see below).
 - `crew` - tmux/herdr multi-agent orchestrator built on `git-wt` (see below).
@@ -24,6 +25,36 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 - `amp-global-sync` - sync the orb-safe skill/plugin subset into local Amp Personal repository checkouts without committing or pushing.
 - `check-app-updates` / `update-apps` - version check + interactive updater for apps installed
   outside pacman (see below).
+
+## ai-account - Claude and Codex login profiles
+
+Import the account that is currently logged in, then log in to a second account:
+
+```bash
+ai-account save claude personal
+ai-account login claude work
+
+ai-account save codex personal
+ai-account login codex work
+```
+
+Switch by name, or omit the name to choose with `fzf`:
+
+```bash
+claude-account personal
+claude-account                 # interactive picker
+codex-account work
+ai-account list
+```
+
+`aiu` shows every saved Claude and native Codex profile by name alongside the existing OpenCode profiles.
+Claude's custom status line also shows the active profile as `acct:<name>`.
+Codex does not support a custom status-line account field, so use `ai-account current codex`; `codex-status` also labels its active-account output.
+
+The profile files live under `~/.local/share/ai-accounts/` with mode `0600`.
+Only `~/.claude/.credentials.json` or `~/.codex/auth.json` is swapped, so the normal settings and sessions remain shared.
+The active credential is saved before every switch to retain refreshed tokens.
+Switch only after existing sessions for that provider have exited, then start a new session.
 
 ## amp-global-sync - prepare Amp Personal Skills and Plugins
 

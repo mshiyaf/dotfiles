@@ -6,6 +6,9 @@ input=$(cat)
 model=$(jq -r '.model.display_name // .model.name // .model // "model"' <<<"$input" 2>/dev/null || printf 'model')
 cwd=$(jq -r '.workspace.current_dir // .cwd // env.PWD' <<<"$input" 2>/dev/null || pwd)
 base=$(basename "$cwd")
+account_file="${AI_ACCOUNT_HOME:-$HOME/.local/share/ai-accounts}/claude/.active"
+account=""
+[ ! -r "$account_file" ] || read -r account < "$account_file"
 
 branch="-"
 if git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -58,7 +61,9 @@ context=$(percent '.context_window.used_percentage')
 five_hour=$(percent '.rate_limits.five_hour.used_percentage')
 seven_day=$(percent '.rate_limits.seven_day.used_percentage')
 
-line="${cyan}${model}${reset} | ${base} | ${branch} | ctx $(bar "$context")"
+line="${cyan}${model}${reset}"
+[ -z "$account" ] || line="$line | acct:${account}"
+line="$line | ${base} | ${branch} | ctx $(bar "$context")"
 [ -n "$five_hour" ] && line="$line | 5h $(bar "$five_hour")"
 [ -n "$seven_day" ] && line="$line | 7d $(bar "$seven_day")"
 

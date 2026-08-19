@@ -1,0 +1,193 @@
+#!/usr/bin/env bun
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+type ProviderName = "claude" | "codex";
+
+type Provider = {
+  credentialFile: string;
+  loginCommand: string[];
+  validCredential: (value: any) => boolean;
+};
+
+const home = os.homedir();
+const accountHome = process.env.AI_ACCOUNT_HOME ?? path.join(home, ".local", "share", "ai-accounts");
+const providers: Record<ProviderName, Provider> = {
+  claude: {
+    credentialFile: path.join(home, ".claude", ".credentials.json"),
+    loginCommand: ["claude", "auth", "login"],
+    validCredential: (value) =>
+      typeof value?.claudeAiOauth?.accessToken === "string" &&
+      typeof value?.claudeAiOauth?.refreshToken === "string",
+  },
+  codex: {
+    credentialFile: path.join(home, ".codex", "auth.json"),
+    loginCommand: ["codex", "login"],
+    validCredential: (value) =>
+      (typeof value?.tokens?.access_token === "string" && typeof value?.tokens?.refresh_token === "string") ||
+      typeof value?.OPENAI_API_KEY === "string",
+  },
+};
+
+function usage(): never {
+  console.error(`Usage:
+  ai-account list [claude|codex]
+  ai-account current <claude|codex>
+  ai-account save <claude|codex> <profile>
+  ai-account login <claude|codex> <profile>
+  ai-account switch <claude|codex> [profile]
+
+Omit the profile from switch to choose one with fzf.`);
+  process.exit(1);
+}
+
+function providerNamed(value: string | undefined): [ProviderName, Provider] {
+  if (value !== "claude" && value !== "codex") usage();
+  return [value, providers[value]];
+}
+
+function profileNamed(value: string | undefined): string {
+  if (!value || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)) {
+    throw new Error("Profile names must start with a letter or number and contain only letters, numbers, '.', '_' or '-'.");
+  }
+  return value;
+}
+
+function providerDirectory(name: ProviderName): string {
+  return path.join(accountHome, name);
+}
+
+function profileFile(provider: ProviderName, profile: string): string {
+  return path.join(providerDirectory(provider), `${profile}.json`);
+}
+
+function activeFile(provider: ProviderName): string {
+  return path.join(providerDirectory(provider), ".active");
+}
+
+function readCredential(file: string, provider: Provider): Buffer {
+  let raw: Buffer;
+  let value: unknown;
+  try {
+    raw = fs.readFileSync(file);
+    value = JSON.parse(raw.toString("utf8"));
+  } catch {
+    throw new Error(`No readable credentials found at ${file}. Log in first.`);
+  }
+  if (!provider.validCredential(value)) throw new Error(`Credentials at ${file} are not valid for this provider.`);
+  return raw;
+}
+
+function writePrivate(file: string, contents: Buffer | string) {
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  const temporary = `${file}.tmp-${process.pid}`;
+  fs.writeFileSync(temporary, contents, { mode: 0o600 });
+  fs.renameSync(temporary, file);
+  fs.chmodSync(file, 0o600);
+}
+
+function activeProfile(provider: ProviderName): string | null {
+  try {
+    return fs.readFileSync(activeFile(provider), "utf8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function profilesFor(provider: ProviderName): string[] {
+  try {
+    return fs
+      .readdirSync(providerDirectory(provider))
+      .filter((entry) => entry.endsWith(".json"))
+      .map((entry) => entry.slice(0, -5))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function persistActive(providerName: ProviderName, provider: Provider) {
+  const active = activeProfile(providerName);
+  if (!active || !fs.existsSync(provider.credentialFile)) return;
+  writePrivate(profileFile(providerName, active), readCredential(provider.credentialFile, provider));
+}
+
+function save(providerName: ProviderName, provider: Provider, profile: string) {
+  writePrivate(profileFile(providerName, profile), readCredential(provider.credentialFile, provider));
+  writePrivate(activeFile(providerName), `${profile}\n`);
+  console.log(`Saved current ${providerName} login as "${profile}".`);
+}
+
+function chooseProfile(provider: ProviderName): string {
+  const profiles = profilesFor(provider);
+  if (profiles.length === 0) throw new Error(`No saved ${provider} profiles. Run: ai-account save ${provider} <profile>`);
+  if (!Bun.which("fzf")) throw new Error("fzf is required when no profile name is supplied.");
+  const result = Bun.spawnSync(["fzf", "--prompt", `${provider} account> `], {
+    stdin: new Blob([`${profiles.join("\n")}\n`]),
+    stdout: "pipe",
+    stderr: "inherit",
+  });
+  const selected = result.stdout.toString().trim();
+  if (result.exitCode !== 0 || !selected) process.exit(result.exitCode ?? 1);
+  return selected;
+}
+
+function switchProfile(providerName: ProviderName, provider: Provider, requested: string | undefined) {
+  const profile = requested ? profileNamed(requested) : chooseProfile(providerName);
+  const source = profileFile(providerName, profile);
+  const credential = readCredential(source, provider);
+
+  persistActive(providerName, provider);
+  writePrivate(provider.credentialFile, credential);
+  writePrivate(activeFile(providerName), `${profile}\n`);
+  console.log(`Switched ${providerName} to "${profile}". Start a new ${providerName} session to use it.`);
+}
+
+async function main() {
+  const [command, providerArgument, profileArgument, ...extra] = process.argv.slice(2);
+  if (extra.length > 0) usage();
+
+  if (command === "list") {
+    const names: ProviderName[] = providerArgument ? [providerNamed(providerArgument)[0]] : ["claude", "codex"];
+    for (const name of names) {
+      const active = activeProfile(name);
+      console.log(`${name}:`);
+      const profiles = profilesFor(name);
+      if (profiles.length === 0) console.log("  (none)");
+      for (const profile of profiles) console.log(`  ${profile === active ? "*" : " "} ${profile}`);
+    }
+    return;
+  }
+
+  const [providerName, provider] = providerNamed(providerArgument);
+  if (command === "current") {
+    if (profileArgument) usage();
+    console.log(activeProfile(providerName) ?? "unmanaged");
+    return;
+  }
+  if (command === "save") {
+    save(providerName, provider, profileNamed(profileArgument));
+    return;
+  }
+  if (command === "switch") {
+    switchProfile(providerName, provider, profileArgument);
+    return;
+  }
+  if (command === "login") {
+    const profile = profileNamed(profileArgument);
+    persistActive(providerName, provider);
+    console.log(`Opening the ${providerName} login flow for "${profile}"...`);
+    const result = Bun.spawnSync(provider.loginCommand, { stdin: "inherit", stdout: "inherit", stderr: "inherit" });
+    if (result.exitCode !== 0) throw new Error(`${provider.loginCommand.join(" ")} failed or was cancelled.`);
+    save(providerName, provider, profile);
+    return;
+  }
+  usage();
+}
+
+main().catch((error) => {
+  console.error(`ai-account: ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+});

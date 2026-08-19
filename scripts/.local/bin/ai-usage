@@ -18,6 +18,14 @@ type Row = {
 const home = os.homedir();
 const timeoutMs = 10_000;
 
+function activeAccount(provider: "claude" | "codex"): string | null {
+  try {
+    return fs.readFileSync(path.join(home, ".local/share/ai-accounts", provider, ".active"), "utf8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function readJson(file: string): any | null {
   try {
     return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -32,14 +40,18 @@ function writeJson(file: string, value: unknown) {
   fs.renameSync(temporary, file);
 }
 
-function jwtExpiresSoon(token: string, expiresAt = 0): boolean {
-  if (expiresAt) return expiresAt <= Date.now() + 60_000;
+function jwtExpiry(token: string): number {
   try {
     const payload = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString("utf8"));
-    return typeof payload.exp !== "number" || payload.exp * 1000 <= Date.now() + 60_000;
+    return typeof payload.exp === "number" ? payload.exp * 1000 : 0;
   } catch {
-    return true;
+    return 0;
   }
+}
+
+function jwtExpiresSoon(token: string, expiresAt = 0): boolean {
+  const expiry = expiresAt || jwtExpiry(token);
+  return !expiry || expiry <= Date.now() + 60_000;
 }
 
 async function getJson(url: string, headers: Record<string, string>): Promise<any> {
@@ -85,22 +97,60 @@ function windowLabel(seconds: unknown, fallback: string): string {
 }
 
 async function codexRows(): Promise<Row[]> {
-  const profilesDir = path.join(home, ".local/share/opencode/openai-accounts");
-  const files = fs.existsSync(profilesDir)
-    ? fs.readdirSync(profilesDir).filter((name) => name.endsWith(".json")).sort()
+  const nativeProfilesDir = path.join(home, ".local/share/ai-accounts/codex");
+  const opencodeProfilesDir = path.join(home, ".local/share/opencode/openai-accounts");
+  const nativeFiles = fs.existsSync(nativeProfilesDir)
+    ? fs.readdirSync(nativeProfilesDir).filter((name) => name.endsWith(".json")).sort()
+    : [];
+  const opencodeFiles = fs.existsSync(opencodeProfilesDir)
+    ? fs.readdirSync(opencodeProfilesDir).filter((name) => name.endsWith(".json")).sort()
     : [];
   const fallback = path.join(home, ".codex/auth.json");
-  const profiles = files.map((name) => ({
+  const active = activeAccount("codex");
+  const profiles: Array<{ name: string; file: string; auth: any; kind: "codex" | "opencode" }> = nativeFiles.map((name) => {
+    const profileName = path.basename(name, ".json");
+    const file = profileName === active && fs.existsSync(fallback) ? fallback : path.join(nativeProfilesDir, name);
+    return { name: profileName, file, auth: readJson(file), kind: "codex" };
+  });
+  profiles.push(...opencodeFiles.map((name) => ({
     name: path.basename(name, ".json"),
-    file: path.join(profilesDir, name),
-    auth: readJson(path.join(profilesDir, name)),
-    kind: "opencode",
-  }));
+    file: path.join(opencodeProfilesDir, name),
+    auth: readJson(path.join(opencodeProfilesDir, name)),
+    kind: "opencode" as const,
+  })));
   if (!profiles.length && fs.existsSync(fallback)) {
-    profiles.push({ name: "default", file: fallback, auth: readJson(fallback), kind: "codex" });
+    profiles.push({ name: active ?? "default", file: fallback, auth: readJson(fallback), kind: "codex" });
   }
 
-  const results = await Promise.all(profiles.map(async ({ name, file, auth, kind }) => {
+  const uniqueProfiles: typeof profiles = [];
+  const profileByAccount = new Map<string, (typeof profiles)[number]>();
+  for (const profile of profiles) {
+    const id = profile.kind === "codex" ? profile.auth?.tokens?.account_id : profile.auth?.accountId;
+    if (!id) {
+      uniqueProfiles.push(profile);
+      continue;
+    }
+    const existing = profileByAccount.get(id);
+    const token = profile.kind === "codex" ? profile.auth?.tokens?.access_token : profile.auth?.access;
+    const existingToken = existing?.kind === "codex" ? existing.auth?.tokens?.access_token : existing?.auth?.access;
+    const expiry = profile.kind === "opencode" && typeof profile.auth?.expires === "number"
+      ? profile.auth.expires
+      : jwtExpiry(token ?? "");
+    const existingExpiry = existing?.kind === "opencode" && typeof existing.auth?.expires === "number"
+      ? existing.auth.expires
+      : jwtExpiry(existingToken ?? "");
+    if (!existing) {
+      profileByAccount.set(id, profile);
+      uniqueProfiles.push(profile);
+    } else if (expiry > existingExpiry) {
+      const replacement = { ...profile, name: existing.name };
+      profileByAccount.set(id, replacement);
+      uniqueProfiles[uniqueProfiles.indexOf(existing)] = replacement;
+    }
+  }
+
+  const results = await Promise.all(uniqueProfiles.map(async ({ name, file, auth: initialAuth, kind }) => {
+    let auth = initialAuth;
     let token = kind === "codex" ? auth?.tokens?.access_token : auth?.access;
     let refreshToken = kind === "codex" ? auth?.tokens?.refresh_token : auth?.refresh;
     const accountId = kind === "codex" ? auth?.tokens?.account_id : auth?.accountId;
@@ -155,32 +205,47 @@ async function codexRows(): Promise<Row[]> {
 }
 
 async function claudeRows(): Promise<Row[]> {
-  const auth = readJson(path.join(home, ".claude/.credentials.json"))?.claudeAiOauth;
-  if (!auth?.accessToken) return [{ agent: "Claude", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: "not logged in" }];
-  try {
-    const data = await getJson("https://api.anthropic.com/api/oauth/usage", {
-      Authorization: `Bearer ${auth.accessToken}`,
-      "anthropic-beta": "oauth-2025-04-20",
-      accept: "application/json",
-    });
-    const limits: Array<[string, any]> = [
-      ["5h", data.five_hour],
-      ["7d", data.seven_day],
-      ["7d Opus", data.seven_day_opus],
-      ["7d Sonnet", data.seven_day_sonnet],
-    ];
-    return limits.filter(([, value]) => value).map(([label, value]) => ({
-      agent: "Claude",
-      account: "default",
-      pool: label.startsWith("7d ") ? label.slice(3) : "default",
-      limit: label,
-      used: percent(value.utilization),
-      resetAt: epoch(value.resets_at),
-      note: auth.subscriptionType,
-    }));
-  } catch (error) {
-    return [{ agent: "Claude", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: `${(error as Error).message}; run claude /login` }];
-  }
+  const profilesDir = path.join(home, ".local/share/ai-accounts/claude");
+  const live = path.join(home, ".claude/.credentials.json");
+  const active = activeAccount("claude");
+  const files = fs.existsSync(profilesDir)
+    ? fs.readdirSync(profilesDir).filter((name) => name.endsWith(".json")).sort()
+    : [];
+  const profiles = files.map((name) => {
+    const profileName = path.basename(name, ".json");
+    const file = profileName === active && fs.existsSync(live) ? live : path.join(profilesDir, name);
+    return { name: profileName, auth: readJson(file)?.claudeAiOauth };
+  });
+  if (!profiles.length) profiles.push({ name: active ?? "default", auth: readJson(live)?.claudeAiOauth });
+
+  const results = await Promise.all(profiles.map(async ({ name, auth }) => {
+    if (!auth?.accessToken) return [{ agent: "Claude", account: name, pool: "default", limit: "-", used: null, resetAt: null, note: "not logged in" }];
+    try {
+      const data = await getJson("https://api.anthropic.com/api/oauth/usage", {
+        Authorization: `Bearer ${auth.accessToken}`,
+        "anthropic-beta": "oauth-2025-04-20",
+        accept: "application/json",
+      });
+      const limits: Array<[string, any]> = [
+        ["5h", data.five_hour],
+        ["7d", data.seven_day],
+        ["7d Opus", data.seven_day_opus],
+        ["7d Sonnet", data.seven_day_sonnet],
+      ];
+      return limits.filter(([, value]) => value).map(([label, value]) => ({
+        agent: "Claude",
+        account: name,
+        pool: label.startsWith("7d ") ? label.slice(3) : "default",
+        limit: label,
+        used: percent(value.utilization),
+        resetAt: epoch(value.resets_at),
+        note: auth.subscriptionType,
+      }));
+    } catch (error) {
+      return [{ agent: "Claude", account: name, pool: "default", limit: "-", used: null, resetAt: null, note: `${(error as Error).message}; run claude /login` }];
+    }
+  }));
+  return results.flat();
 }
 
 async function kimiRows(): Promise<Row[]> {

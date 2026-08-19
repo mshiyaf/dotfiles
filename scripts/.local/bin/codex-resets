@@ -16,6 +16,8 @@ const OPENCODE_ACCOUNTS = path.join(
   "openai-accounts",
 );
 const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
+const CODEX_ACCOUNTS = path.join(os.homedir(), ".local", "share", "ai-accounts", "codex");
+const CODEX_ACTIVE = path.join(CODEX_ACCOUNTS, ".active");
 
 type OAuthProfile = {
   type: "oauth";
@@ -99,15 +101,81 @@ function accountFromProfile(file: string): Account | null {
   };
 }
 
+function accountFromCodex(file: string, name: string): Account | null {
+  const auth = readJson(file);
+  if (!auth?.tokens?.access_token || !auth?.tokens?.refresh_token) return null;
+  return {
+    name,
+    accessToken: auth.tokens.access_token,
+    refreshToken: auth.tokens.refresh_token,
+    expiresMs: 0,
+    accountId: auth.tokens.account_id,
+    save(tokens) {
+      const current = readJson(file);
+      if (!current?.tokens) throw new Error("profile changed while refreshing");
+      current.tokens = {
+        ...current.tokens,
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        id_token: tokens.idToken ?? current.tokens.id_token,
+      };
+      current.last_refresh = new Date().toISOString();
+      writeJson(file, current);
+    },
+  };
+}
+
 function loadAccounts(): Account[] {
+  let active = "";
+  try {
+    active = fs.readFileSync(CODEX_ACTIVE, "utf8").trim();
+  } catch {}
+
+  const accounts: Account[] = [];
+  if (fs.existsSync(CODEX_ACCOUNTS)) {
+    accounts.push(...fs
+      .readdirSync(CODEX_ACCOUNTS)
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .map((name) => {
+        const profileName = path.basename(name, ".json");
+        const file = profileName === active && fs.existsSync(CODEX_AUTH)
+          ? CODEX_AUTH
+          : path.join(CODEX_ACCOUNTS, name);
+        return accountFromCodex(file, profileName);
+      })
+      .filter((account): account is Account => account !== null));
+  }
+
   if (fs.existsSync(OPENCODE_ACCOUNTS)) {
-    const accounts = fs
+    accounts.push(...fs
       .readdirSync(OPENCODE_ACCOUNTS)
       .filter((name) => name.endsWith(".json"))
       .sort()
       .map((name) => accountFromProfile(path.join(OPENCODE_ACCOUNTS, name)))
-      .filter((account): account is Account => account !== null);
-    if (accounts.length) return accounts;
+      .filter((account): account is Account => account !== null));
+  }
+
+  if (accounts.length) {
+    const unique: Account[] = [];
+    const byId = new Map<string, Account>();
+    for (const account of accounts) {
+      const id = accountId(account);
+      if (!id) {
+        unique.push(account);
+        continue;
+      }
+      const existing = byId.get(id);
+      if (!existing) {
+        byId.set(id, account);
+        unique.push(account);
+      } else if (accountExpiry(account) > accountExpiry(existing)) {
+        const replacement = { ...account, name: existing.name };
+        byId.set(id, replacement);
+        unique[unique.indexOf(existing)] = replacement;
+      }
+    }
+    return unique;
   }
 
   const opencode = readJson(OPENCODE_AUTH);
@@ -138,27 +206,7 @@ function loadAccounts(): Account[] {
 
   const codex = readJson(CODEX_AUTH);
   if (codex?.tokens?.access_token && codex?.tokens?.refresh_token) {
-    return [
-      {
-        name: "codex",
-        accessToken: codex.tokens.access_token,
-        refreshToken: codex.tokens.refresh_token,
-        expiresMs: 0,
-        accountId: codex.tokens.account_id,
-        save(tokens) {
-          const current = readJson(CODEX_AUTH);
-          if (!current?.tokens) throw new Error("auth changed while refreshing");
-          current.tokens = {
-            ...current.tokens,
-            access_token: tokens.accessToken,
-            refresh_token: tokens.refreshToken,
-            id_token: tokens.idToken ?? current.tokens.id_token,
-          };
-          current.last_refresh = new Date().toISOString();
-          writeJson(CODEX_AUTH, current);
-        },
-      },
-    ];
+    return [accountFromCodex(CODEX_AUTH, active || "codex")!];
   }
 
   throw new Error(
@@ -182,10 +230,13 @@ function accountId(account: Account): string | undefined {
   return typeof id === "string" && id ? id : account.accountId;
 }
 
-function tokenExpiresSoon(account: Account): boolean {
+function accountExpiry(account: Account): number {
   const claims = decodeJwt(account.accessToken);
-  const jwtExpiry = typeof claims?.exp === "number" ? claims.exp * 1000 : 0;
-  const expiry = account.expiresMs || jwtExpiry;
+  return account.expiresMs || (typeof claims?.exp === "number" ? claims.exp * 1000 : 0);
+}
+
+function tokenExpiresSoon(account: Account): boolean {
+  const expiry = accountExpiry(account);
   return !expiry || expiry <= Date.now() + 60_000;
 }
 
@@ -283,7 +334,7 @@ function printTable(rows: Row[]) {
 
 async function main() {
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
-    console.log("Usage: codex-resets\n\nShow available reset credits for all saved OpenCode accounts.");
+    console.log("Usage: codex-resets\n\nShow available reset credits for saved native Codex and OpenCode accounts.");
     return;
   }
   const rows: Row[] = [];

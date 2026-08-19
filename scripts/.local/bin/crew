@@ -99,6 +99,10 @@ AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-setting
 OPENCODE_CREW_SETTINGS="${CREW_OPENCODE_SETTINGS:-$SCRIPT_DIR/../share/agentic/opencode-crew-settings.json}"
 AMP_GUARD_PLUGIN="$HOME/.config/amp/plugins/workflow-guardrails.ts"
 COMMANDCODE_GUARD_HOOK="$HOME/.commandcode/hooks/crew-guard.sh"
+# agy's -p mode gives up after --print-timeout, which defaults to 5m. A crew task routinely
+# runs longer than that and dies with "Error: timeout waiting for response" having committed
+# nothing, so raise it well past any realistic task.
+ANTIGRAVITY_PRINT_TIMEOUT="${CREW_AGY_PRINT_TIMEOUT:-4h}"
 
 # Per-engine bounded-autonomy flags so a headless crewmate can edit + run tests + commit
 # but never push - auto-approve everything EXCEPT an explicit deny-list, not a full yolo mode.
@@ -221,7 +225,8 @@ commandcode_interactive_command() {
 antigravity_headless_command() {
 	local bin="agy"
 	command -v agy >/dev/null 2>&1 || bin="antigravity"
-	printf 'CREW_MANAGED=1 %s -p %q --model %q --dangerously-skip-permissions' "$bin" "$2" "$1"
+	printf 'CREW_MANAGED=1 %s -p %q --model %q --print-timeout %q --dangerously-skip-permissions' \
+		"$bin" "$2" "$1" "$ANTIGRAVITY_PRINT_TIMEOUT"
 }
 
 antigravity_interactive_command() {

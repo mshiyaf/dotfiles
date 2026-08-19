@@ -21,6 +21,7 @@ const TOKEN_URL = "https://auth.openai.com/oauth/token";
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const OPENCODE_AUTH = path.join(os.homedir(), ".local", "share", "opencode", "auth.json");
 const CODEX_AUTH = path.join(os.homedir(), ".codex", "auth.json");
+const CODEX_ACTIVE_ACCOUNT = path.join(os.homedir(), ".local", "share", "ai-accounts", "codex", ".active");
 
 type Creds = {
   accessToken: string;
@@ -271,7 +272,12 @@ function renderWindow(label: string, w: UsageWindow): string {
 
 function renderSummary(payload: UsagePayload): string {
   const lines: string[] = [];
-  lines.push(`${C.cyan}${C.bold}Codex usage${C.reset}${payload.plan_type ? `  ${C.dim}plan: ${payload.plan_type}${C.reset}` : ""}`);
+  let account = "";
+  try {
+    account = fs.readFileSync(CODEX_ACTIVE_ACCOUNT, "utf8").trim();
+  } catch {}
+  const accountText = account ? `  ${C.dim}account: ${account}${C.reset}` : "";
+  lines.push(`${C.cyan}${C.bold}Codex usage${C.reset}${accountText}${payload.plan_type ? `  ${C.dim}plan: ${payload.plan_type}${C.reset}` : ""}`);
   lines.push(renderWindow("Primary", payload.rate_limit?.primary_window ?? null));
   lines.push(renderWindow("Secondary", payload.rate_limit?.secondary_window ?? null));
 

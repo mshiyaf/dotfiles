@@ -82,6 +82,12 @@ alias pn=pnpm
 # Unified quota table for installed coding agents.
 alias aiu="ai-usage"
 
+# Switch between saved Claude and native Codex logins. With no profile, opens fzf.
+alias claude-account="ai-account switch claude"
+alias codex-account="ai-account switch codex"
+alias claude-account-login="ai-account login claude"
+alias codex-account-login-native="ai-account login codex"
+
 # Ollama (local LLM)
 alias ai-start="sudo systemctl start ollama.service"
 alias ai-stop="sudo systemctl stop ollama.service"
