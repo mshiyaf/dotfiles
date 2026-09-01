@@ -109,7 +109,8 @@ ANTIGRAVITY_PRINT_TIMEOUT="${CREW_AGY_PRINT_TIMEOUT:-4h}"
 #   opencode: --agent build --auto plus a global Crew-only policy inherited by delegated
 #             subagents; both retain explicit denies for push / sudo / destructive commands.
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
-#   codex   : workspace-write sandbox (can edit + commit; network off, so push is blocked).
+#   codex   : workspace-write sandbox plus --add-dir on the repo's common git dir, so a
+#             crewmate in a linked worktree can commit (network off, so push is blocked).
 #   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
 #   amp     : execute mode loads minimal commit settings; the required workflow-guardrails
 #             plugin rejects push / sudo / hard-reset / git clean / dangerous rm commands.
@@ -119,7 +120,21 @@ ANTIGRAVITY_PRINT_TIMEOUT="${CREW_AGY_PRINT_TIMEOUT:-4h}"
 #             rm. The hook is a no-op outside CREW_MANAGED, so interactive use is unaffected.
 OPENCODE_CREW_FLAGS="--agent build --auto"
 CLAUDE_CREW_FLAGS="--permission-mode acceptEdits --allowedTools Bash Edit Write --disallowedTools 'Bash(git push:*)' 'Bash(sudo:*)' 'Bash(git reset --hard origin:*)'"
-CODEX_CREW_FLAGS="--sandbox workspace-write"
+# network_access lets tests bind loopback listeners (Go httptest, dev servers).
+# Without it a crewmate cannot run most integration suites and will report them skipped.
+CODEX_CREW_FLAGS="${CREW_CODEX_FLAGS:---sandbox workspace-write -c sandbox_workspace_write.network_access=true}"
+
+# A linked worktree keeps its git metadata in the MAIN repo at .git/worktrees/<name>,
+# which lies OUTSIDE the codex workspace-write sandbox. Without this, every codex
+# crewmate fails to commit with an index.lock permission error while looking like a
+# filesystem permissions problem. Resolved at run time, inside the worktree.
+CODEX_GIT_ADD_DIR='--add-dir "$(git rev-parse --git-common-dir 2>/dev/null || echo .git)"'
+
+# Toolchain caches live in $HOME, outside the workspace sandbox. Without write access a
+# crewmate cannot compile or resolve dependencies at all, and reports it as a permissions
+# error rather than a missing flag. Each entry is emitted only if the directory exists, so
+# this stays a no-op for languages the repo does not use.
+CODEX_CACHE_ADD_DIRS='$(for d in "$(go env GOCACHE 2>/dev/null)" "$(go env GOMODCACHE 2>/dev/null)" "$HOME/.cache/go-build" "$HOME/.npm" "$HOME/.cargo" "$HOME/.cache/uv"; do [ -n "$d" ] && [ -d "$d" ] && printf -- "--add-dir %s " "$d"; done)'
 
 codex_reasoning_flag() {
 	[ "$1" = fast ] || return 0
@@ -129,13 +144,13 @@ codex_reasoning_flag() {
 codex_headless_command() {
 	local model="$1" profile="$2" task="$3" reasoning
 	reasoning=$(codex_reasoning_flag "$profile")
-	printf 'codex exec --model %q %s %s %q' "$model" "$reasoning" "$CODEX_CREW_FLAGS" "$task"
+	printf 'codex exec --model %q %s %s %s %s %q' "$model" "$reasoning" "$CODEX_CREW_FLAGS" "$CODEX_GIT_ADD_DIR" "$CODEX_CACHE_ADD_DIRS" "$task"
 }
 
 codex_interactive_command() {
 	local model="$1" profile="$2" reasoning
 	reasoning=$(codex_reasoning_flag "$profile")
-	printf 'codex --model %q %s' "$model" "$reasoning"
+	printf 'codex --model %q %s %s %s' "$model" "$reasoning" "$CODEX_GIT_ADD_DIR" "$CODEX_CACHE_ADD_DIRS"
 }
 
 opencode_headless_command() {
@@ -287,8 +302,8 @@ resolve_profile() {
 		fast:commandcode)     printf '%s' 'deepseek/deepseek-v4-flash' ;;
 		standard:commandcode) printf '%s' 'deepseek/deepseek-v4-pro' ;;
 		deep:commandcode)     printf '%s' 'Qwen/Qwen3.7-Max' ;;
-		fast:antigravity|fast:agy)         printf '%s' 'gemini-3.6-flash-low' ;;
-		standard:antigravity|standard:agy) printf '%s' 'gemini-3.6-flash-high' ;;
+		fast:antigravity|fast:agy)         printf '%s' 'gemini-3.7-flash-low' ;;
+		standard:antigravity|standard:agy) printf '%s' 'gemini-3.7-flash-high' ;;
 		deep:antigravity|deep:agy)         printf '%s' 'gemini-3.1-pro-high' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac

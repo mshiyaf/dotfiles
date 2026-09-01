@@ -16,6 +16,7 @@
       "Bash(git push*)"
     ]
   },
+  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -106,5 +107,38 @@
   },
   "effortLevel": "high",
   "tui": "fullscreen",
-  "agentPushNotifEnabled": true
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "autoMode": {
+    "soft_deny": [
+      "$defaults",
+      "Bash(rm:.env.zinvos-prod-backup-iam)",
+      "Bash(cat:admin/.env.production)"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: private (sprdh-repo/zinvos, verified via gh)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: backend/pkg/secrets/secrets.go and secrets_test.go hold app secret-handling code; CI references AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DEV_SSH_KEY, PROD_KNOWN_HOSTS, PROD_SSH_KEY (names only, no values)",
+      "**Default / protected branches**: main (default); no classic branch protection listed, rulesets not queryable here — treat main as protected pending confirmation",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Source control**: sprdh-repo/zinvos (origin) — the trusted repo and its remote only; kasicon-mobile, mco-zinvos, and mes-mobile remotes are configured but unverified as part of this trust boundary",
+      "**Trusted internal domains**: api.zinvos.com (contacted repeatedly in this project's transcripts)",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: .env.zinvos-prod-backup-iam, admin/.env.local, admin/.env.production, docs/.env.example, backend/pkg/secrets/secrets.go, backend/pkg/secrets/secrets_test.go — share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container carrying `prod`/`production` as a whole segment — e.g. .env.zinvos-prod-backup-iam, admin/.env.production, PROD_SSH_KEY / PROD_KNOWN_HOSTS deploy targets",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment (e.g. .env.zinvos-prod-backup-iam)",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development (Go/TypeScript/Flutter monorepo at sprdh-repo/zinvos)",
+      "**Trusted repo**: /home/mshiyaf/dev/github.com/sprdh-repo/zinvos and its origin remote (github.com:sprdh-repo/zinvos.git), private — confidential material is fine here but secrets are never cleared by visibility; the kasicon-mobile, mco-zinvos, and mes-mobile remotes are separate repos under different owners and not covered by this trust",
+      "**Org-specific CLIs**: crew, herdr, ai-usage, agy, commandcode, mise (seen repeatedly in this project's usage but not documented — treat as routine tooling, not verified org infra)"
+    ]
+  }
 }
