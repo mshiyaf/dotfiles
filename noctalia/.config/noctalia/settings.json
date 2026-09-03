@@ -180,7 +180,8 @@
                     "hidePassive": false,
                     "id": "Tray",
                     "pinned": [
-                        "KDE Connect"
+                        "KDE Connect",
+                        "OBS Studio"
                     ]
                 },
                 {
