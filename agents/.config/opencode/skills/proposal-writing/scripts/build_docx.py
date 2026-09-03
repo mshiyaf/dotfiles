@@ -259,6 +259,20 @@ def set_cell_width(cell, width_in: float) -> None:
     tc_w.set(qn("w:type"), "dxa")
 
 
+def set_table_grid(table, widths_in: list[float]) -> None:
+    """Align w:tblGrid with the cell widths.
+
+    Under a fixed table layout the grid wins over per-cell w:tcW, so the grid has
+    to be rewritten or every column renders at the same default width.
+    """
+    grid = table._tbl.find(qn("w:tblGrid"))
+    if grid is None:
+        return
+    columns = grid.findall(qn("w:gridCol"))
+    for column, width_in in zip(columns, widths_in):
+        column.set(qn("w:w"), str(int(width_in * 1440)))
+
+
 def add_hyperlink(paragraph, text: str, url: str) -> None:
     relationship_id = paragraph.part.relate_to(url, RT.HYPERLINK, is_external=True)
     hyperlink = OxmlElement("w:hyperlink")
@@ -492,7 +506,9 @@ def add_cover(document: Document, metadata: dict[str, str], company_key: str, co
     document.add_paragraph("")
     details = document.add_table(rows=1, cols=4)
     style_table(details)
-    for cell, width in zip(details.rows[0].cells, [1.2, 3.1, 1.0, 0.6]):
+    detail_widths = [1.2, 3.1, 1.0, 0.6]
+    set_table_grid(details, detail_widths)
+    for cell, width in zip(details.rows[0].cells, detail_widths):
         set_cell_width(cell, width)
     set_cell_text(details.cell(0, 0), "Document ID:", bold=True)
     set_cell_text(details.cell(0, 1), document_id, font_size_pt=7)
@@ -509,7 +525,8 @@ def add_cover(document: Document, metadata: dict[str, str], company_key: str, co
     set_cell_text(approvals.cell(1, 1), args.author)
     set_cell_text(approvals.cell(2, 0), "Approver", bold=True)
     set_cell_text(approvals.cell(2, 1), args.approver)
-    set_cell_text(approvals.cell(2, 3), proposal_date)
+    if args.approver.strip():
+        set_cell_text(approvals.cell(2, 3), proposal_date)
 
     document.add_paragraph("")
     document.add_paragraph("")
@@ -572,6 +589,7 @@ def add_markdown_table(document: Document, rows: list[list[str]]) -> None:
     table = document.add_table(rows=len(rows), cols=width)
     style_table(table)
     column_widths = markdown_table_column_widths(width)
+    set_table_grid(table, column_widths)
     repeat_table_header(table.rows[0])
     for row_idx, row in enumerate(rows):
         table_row = table.rows[row_idx]
