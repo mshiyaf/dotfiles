@@ -41,7 +41,7 @@ help:
 	@echo "  make stow   [PKG=\"a b c\"]       Install default packages, or only PKG"
 	@echo "  make restow [PKG=\"a b c\"]       Refresh default packages, or only PKG"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
-	@echo "  make agents-sync                Regenerate Claude/Codex subagents"
+	@echo "  make agents-sync                Regenerate Claude/Codex subagents and Codex skill links"
 	@echo "  make amp-global-sync            Sync orb-safe skills/plugins to local Personal repo checkouts"
 	@echo "  make verify-agent-workflow      Validate agent config, scripts, and safety tests"
 	@echo "  make stow-<pkg>                Stow a single package (e.g. stow-opencode)"

@@ -56,6 +56,26 @@ function ensureDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function isEmptyDirectoryTree(dir: string): boolean {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .every((entry) => entry.isDirectory() && isEmptyDirectoryTree(path.join(dir, entry.name)));
+}
+
+function removeLegacyCodexSkillLinks(dir: string, legacySource: string, root = dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (dir === root && entry.name === ".system") continue;
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) removeLegacyCodexSkillLinks(file, legacySource, root);
+    else if (entry.isSymbolicLink()) {
+      const resolvedTarget = path.resolve(dir, fs.readlinkSync(file));
+      if (resolvedTarget.startsWith(`${legacySource}${path.sep}`)) fs.unlinkSync(file);
+    }
+  }
+  if (dir !== root && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
+}
+
 function writeOrCheck(file: string, content: string): boolean {
   if (check) {
     const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
@@ -69,11 +89,54 @@ function writeOrCheck(file: string, content: string): boolean {
   return true;
 }
 
+function syncCodexSkillLinks(sourceDir: string, targetDir: string) {
+  ensureDir(targetDir);
+  const expected = new Map(
+    fs
+      .readdirSync(sourceDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+      .map((entry) => [entry.name, path.relative(targetDir, path.join(sourceDir, entry.name))]),
+  );
+
+  for (const entry of fs.readdirSync(targetDir, { withFileTypes: true })) {
+    if (!entry.isSymbolicLink() || expected.has(entry.name)) continue;
+    const file = path.join(targetDir, entry.name);
+    const resolvedTarget = path.resolve(targetDir, fs.readlinkSync(file));
+    if (path.dirname(resolvedTarget) === sourceDir) fs.unlinkSync(file);
+  }
+
+  for (const [name, linkTarget] of expected) {
+    const file = path.join(targetDir, name);
+    let currentTarget: string | undefined;
+    try {
+      currentTarget = fs.readlinkSync(file);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT" && (error as NodeJS.ErrnoException).code !== "EINVAL") {
+        throw error;
+      }
+    }
+
+    if (currentTarget !== undefined && path.resolve(targetDir, currentTarget) === path.resolve(targetDir, linkTarget)) {
+      continue;
+    }
+    if (currentTarget !== undefined) {
+      throw new Error(`Refusing to replace existing Codex skill: ${file}`);
+    }
+    if (fs.existsSync(file)) {
+      const entry = fs.lstatSync(file);
+      if (entry.isDirectory() && isEmptyDirectoryTree(file)) fs.rmSync(file, { recursive: true });
+      else throw new Error(`Refusing to replace existing Codex skill: ${file}`);
+    }
+    fs.symlinkSync(linkTarget, file, "dir");
+  }
+}
+
 const modelsPath = path.join(repo, "agents", "models.json");
 const models = JSON.parse(fs.readFileSync(modelsPath, "utf8")) as ModelMap;
 const sourceDir = path.join(repo, "opencode", ".config", "opencode", "agents");
 const claudeDir = path.join(repo, "agents", ".claude", "agents");
 const codexDir = path.join(repo, "agents", ".codex", "agents");
+const sharedSkillsDir = path.join(repo, "agents", ".config", "opencode", "skills");
 
 ensureDir(claudeDir);
 ensureDir(codexDir);
@@ -99,6 +162,16 @@ for (const role of Object.keys(models).sort()) {
     : "";
   const codex = `${generated}\nname = ${tomlString(role)}\ndescription = ${tomlString(description)}\ndeveloper_instructions = ${tomlMultiline(body)}\nmodel = ${tomlString(codexModel)}\n${codexEffortLine}sandbox_mode = ${tomlString(readOnly ? "read-only" : "workspace-write")}\n`;
   ok = writeOrCheck(path.join(codexDir, `${role}.toml`), codex) && ok;
+}
+
+if (!check) {
+  const home = process.env.HOME;
+  if (!home) throw new Error("HOME is not set");
+  removeLegacyCodexSkillLinks(
+    path.join(home, ".codex", "skills"),
+    path.join(repo, "agents", ".codex", "skills"),
+  );
+  syncCodexSkillLinks(sharedSkillsDir, path.join(home, ".agents", "skills"));
 }
 
 process.exit(ok ? 0 : 1);

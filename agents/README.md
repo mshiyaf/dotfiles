@@ -30,14 +30,14 @@ agents/AGENTS.md                       <- the real file
 ## Shared Skills
 
 Skills use the portable format all seven tools support (`SKILL.md` = `name` + `description` +
-markdown). The canonical set lives at `agents/.config/opencode/skills/`; Claude, Codex,
-Kimi Code, CommandCode, and Google Antigravity symlink their whole skills dir to it, while Amp discovers the Claude path:
+markdown). The canonical set lives at `agents/.config/opencode/skills/`.
+Claude, Kimi Code, CommandCode, and Google Antigravity symlink their whole skills dir to it, Codex gets per-skill directory links under its shared user directory, and Amp discovers the Claude path:
 
 ```text
 agents/.config/opencode/skills/        <- canonical SKILL.md set (real files)
   ~/.config/opencode/skills/           (OpenCode - real dir of per-file symlinks)
   ~/.claude/skills  -> ~/.config/opencode/skills  (Claude Code)
-  ~/.codex/skills   -> ~/.config/opencode/skills  (Codex)
+  ~/.agents/skills/<name> -> canonical skill dirs (Codex - alongside third-party skills)
   ~/.kimi-code/skills -> ~/.config/opencode/skills (Kimi Code)
   ~/.commandcode/skills -> ~/.config/opencode/skills (CommandCode)
   ~/.gemini/antigravity-cli/skills -> ~/.config/opencode/skills (Google Antigravity)
@@ -68,8 +68,10 @@ role agents.
 It uses the shared skills and the native `coder`, `explore`, and `plan` subagents instead;
 workflows that require explicit K2.7 or K3 routing launch that model through `crew` or `gate`.
 
-Run `make agents-sync` after editing an OpenCode agent or `agents/models.json`.
+Run `make agents-sync` after editing an OpenCode agent, `agents/models.json`, or the canonical skill set.
 Run `agents-sync --check` in verification to fail if generated files are stale.
+The sync also creates one directory symlink per shared user skill under `~/.agents/skills/` because Codex follows symlinked skill folders but not Stow's per-file links.
+It excludes `.system`, which Codex supplies separately as bundled skills.
 
 Read-only roles (`reviewer`, `security-reviewer`, `critic`, `architect`, `refactor-planner`, `researcher`) get Claude `Read, Grep, Glob, Bash` tools and Codex `sandbox_mode = "read-only"`.
 Edit-capable roles (`debugger`, `tester`, `docs-writer`, `pr-writer`) also get Claude `Edit, Write` and Codex `sandbox_mode = "workspace-write"`.
@@ -111,8 +113,9 @@ Codex recreates trust entries when you explicitly trust each project.
 
 The package includes `agents/.codex/rules/default.rules` using Codex `prefix_rule()` syntax.
 It allows git status/diff/log and common test runners, forbids `git push`, and leaves everything else to the approval policy.
-Keep `~/.codex/skills` as the only repo-managed Codex skills symlink.
-Do not stow `~/.agents/skills`; that path is intentionally left as a real directory for third-party skills.
+Codex discovers user skills from `~/.agents/skills`.
+Keep that path as a real directory so `agents-sync` can link the shared skills alongside third-party skills without replacing them.
+The legacy `~/.codex/skills` path is not managed by this package.
 
 ## Install / update
 
@@ -123,10 +126,10 @@ Stow refuses to overwrite real files/dirs, so clear conflicting paths first:
 [ -e "$HOME/.claude/CLAUDE.md" ] && [ ! -L "$HOME/.claude/CLAUDE.md" ] && \
   mv "$HOME/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md.bak"
 
-# 2. Claude can use the shared skills symlink. Keep Codex skills as a real
-# directory so Codex owns .system and Stow links only the shared user skills.
+# 2. Claude can use the shared skills symlink. Keep Codex's user skills as a
+# real directory so Stow links shared skills alongside third-party skills.
 rmdir "$HOME/.claude/skills" 2>/dev/null || true
-mkdir -p "$HOME/.codex/skills"
+mkdir -p "$HOME/.agents/skills"
 
 # 3. Back up a real Claude settings file before stowing this package
 [ -e "$HOME/.claude/settings.json" ] && [ ! -L "$HOME/.claude/settings.json" ] && \
@@ -144,9 +147,9 @@ make agents-sync && make restow
 Both use the same default package set: `agents`, `alacritty`, `fastfetch`, `git`, `herdr`, `kitty`, `niri`, `noctalia`, `nvim`, `opencode`, `scripts`, `tmux`, `zprofile`, `zsh`, and `zshenv`.
 Use `make restow-agents`, `make restow-opencode`, or `make restow-scripts` only when updating that package alone.
 
-Codex installs its bundled skills as real files under `~/.codex/skills/.system`.
-The Stow package ignores that host-owned path when `~/.codex/skills` already exists, while continuing to manage the other shared skills.
-If `~/.codex/skills` is already a symlink from an older setup, preserve `.system`, replace that symlink with a real directory, restore `.system`, and then restow.
+Codex provides its bundled system skills separately from user-authored skills.
+`agents-sync` excludes the canonical set's `.system` directory from `~/.agents/skills`, avoiding duplicate built-ins while continuing to share user skills.
+On an older setup, `agents-sync` removes only the legacy links managed by this repository under `~/.codex/skills` and preserves Codex's `.system` directory.
 
 `~/AGENTS.md` and `~/.codex/AGENTS.md` do not usually exist yet, so they stow cleanly.
 
@@ -155,7 +158,8 @@ If `~/.codex/skills` is already a symlink from an older setup, preserve `.system
 ```bash
 make verify-agent-workflow
 readlink -f ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.kimi-code/AGENTS.md   # -> agents/AGENTS.md
-readlink -f ~/.claude/skills ~/.codex/skills ~/.kimi-code/skills                                       # -> the shared skills dir
+readlink -f ~/.claude/skills ~/.kimi-code/skills                                                        # -> the shared skills dir
+readlink -f ~/.agents/skills/code-review/SKILL.md                                                       # -> the canonical shared skill
 readlink -f ~/.claude/settings.json ~/.claude/agents/reviewer.md ~/.codex/agents/reviewer.toml
 agents-sync --check
 ls ~/.claude/skills ~/.config/opencode/skills | sort -u | head                     # same skill set

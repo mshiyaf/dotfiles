@@ -1,5 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import workflowGuardrails, {
@@ -10,6 +21,39 @@ import workflowGuardrails, {
 } from "../amp/.config/amp/plugins/workflow-guardrails";
 
 const repo = resolve(import.meta.dir, "..");
+
+describe("shared skill installation", () => {
+  test("syncs shared skill directories into Codex's user scope without replacing third-party skills", () => {
+    const home = mkdtempSync(resolve(tmpdir(), "agents-sync-"));
+    const thirdParty = resolve(home, ".agents/skills/basecamp");
+    const legacySkill = resolve(home, ".codex/skills/code-review/SKILL.md");
+    const systemMarker = resolve(home, ".codex/skills/.system/marker");
+    mkdirSync(thirdParty, { recursive: true });
+    mkdirSync(resolve(legacySkill, ".."), { recursive: true });
+    mkdirSync(resolve(systemMarker, ".."), { recursive: true });
+    symlinkSync(resolve(repo, "agents/.codex/skills/code-review/SKILL.md"), legacySkill);
+    writeFileSync(systemMarker, "system");
+
+    try {
+      const result = Bun.spawnSync([resolve(repo, "scripts/.local/bin/agents-sync")], {
+        cwd: repo,
+        env: { ...process.env, HOME: home },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(result.exitCode, result.stderr.toString()).toBe(0);
+      expect(readlinkSync(resolve(home, ".agents/skills/code-review"))).toContain(
+        "agents/.config/opencode/skills/code-review",
+      );
+      expect(existsSync(thirdParty)).toBe(true);
+      expect(existsSync(resolve(home, ".agents/skills/.system"))).toBe(false);
+      expect(() => lstatSync(legacySkill)).toThrow();
+      expect(existsSync(systemMarker)).toBe(true);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("OpenCode subagent permissions", () => {
   const config = JSON.parse(readFileSync(resolve(repo, "opencode/.config/opencode/opencode.json"), "utf8"));

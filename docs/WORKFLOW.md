@@ -19,7 +19,7 @@ stow packages (`agents/`, `opencode/`, `scripts/`, `commandcode/`, `antigravity/
 | Layer | Shared across all 7? | Where it lives |
 |---|---|---|
 | **Instructions** (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md`) | ✅ identical | `agents/AGENTS.md` → linked into each tool; Amp reads `~/AGENTS.md` |
-| **Skills** (36) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills`; Antigravity discovers `~/.gemini/antigravity-cli/skills` |
+| **Skills** (36) | ✅ identical | `agents/.config/opencode/skills/` → linked into each tool; Codex discovers `~/.agents/skills`; Amp discovers `~/.claude/skills`; CommandCode discovers `~/.commandcode/skills`; Antigravity discovers `~/.gemini/antigravity-cli/skills` |
 | **Commands** (41 slash commands) | ❌ OpenCode only | `opencode/.config/opencode/commands/` |
 | **Subagents** (10 generated roles + native built-ins) | partly | OpenCode canonical prompts → generated Claude/Codex files; Kimi, Amp, CommandCode, and Antigravity compose skills with native agents/tools |
 | **Config** | ❌ per-tool | `opencode.json` / Claude `settings.json` / Codex `config.toml` / Kimi `config.toml` / Amp `settings.json` / CommandCode `settings.json` / Antigravity `settings.json` |
@@ -648,7 +648,8 @@ opencode debug skill | grep '"name"' | sort | uniq -d      # prints nothing = no
 
 # shared symlinks resolve to one canonical source
 readlink -f ~/AGENTS.md ~/.claude/CLAUDE.md ~/.codex/AGENTS.md ~/.config/opencode/AGENTS.md ~/.commandcode/AGENTS.md ~/.gemini/antigravity-cli/AGENTS.md | sort -u
-readlink -f ~/.claude/skills ~/.codex/skills ~/.commandcode/skills ~/.gemini/antigravity-cli/skills   # -> the shared skills dir
+readlink -f ~/.claude/skills ~/.commandcode/skills ~/.gemini/antigravity-cli/skills   # -> the shared skills dir
+readlink -f ~/.agents/skills/code-review/SKILL.md                                     # -> the canonical shared skill
 readlink -f ~/.claude/settings.json ~/.claude/agents/reviewer.md ~/.codex/agents/reviewer.toml
 test -L ~/.claude/settings.json
 
