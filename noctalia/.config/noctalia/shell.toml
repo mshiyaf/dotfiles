@@ -4,6 +4,9 @@ polkit_agent = true
 
 [shell.panel]
 control_center_placement = "floating"
+open_near_click_control_center = true
+polkit_placement = "attached"
+transparency_mode = "soft"
 
 [lockscreen]
 transition_duration = 1000

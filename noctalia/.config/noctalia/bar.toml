@@ -1,6 +1,7 @@
 [bar.default]
+start = ["launcher", "workspaces", "sysmon", "ram", "temp", "active_window"]
+center = ["clock", "media"]
 end = [
-  "media",
   "tray",
   "notifications",
   "clipboard",
@@ -13,3 +14,25 @@ end = [
   "control-center",
   "session",
 ]
+widget_spacing = 10
+
+[widget.clock]
+anchor = true
+format = "{:%-I:%M %p · %a, %b %-d}"
+
+[widget.media]
+hide_when_no_media = true
+show_progress = true
+
+[widget.network]
+show_label = false
+
+[widget.ram]
+label_show_units = false
+show_value = false
+
+[widget.sysmon]
+show_value = false
+
+[widget.temp]
+show_value = false
