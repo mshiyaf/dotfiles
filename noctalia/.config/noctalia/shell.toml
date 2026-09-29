@@ -1,0 +1,6 @@
+[shell]
+font_family = "Noto Sans"
+polkit_agent = true
+
+[lockscreen]
+transition_duration = 1000

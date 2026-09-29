@@ -5,15 +5,32 @@ git:
   branchLogCmd: "git log --graph --name-status --pretty=format:\"%C(red)%h %C(reset)(%cd) %C(green)%an %Creset%s %C(yellow)%d%Creset\" --date=relative"
 gui:
   theme:
-    lightTheme: false # For terminals with a light background
+    activeBorderColor:
+      - "#e6b450"
+      - bold
+    inactiveBorderColor:
+      - "#aad94c"
+    searchingActiveBorderColor:
+      - "#39bae6"
+      - bold
+    optionsTextColor:
+      - "#8e959e"
     selectedLineBgColor:
-      - reverse
-    selectedRangeBgColor:
-      - blue
-    cherryPickedCommitBgColor:
-      - blue
+      - "#272c36"
+    inactiveViewSelectedLineBgColor:
+      - bold
     cherryPickedCommitFgColor:
-      - cyan
+      - "#8e959e"
+    cherryPickedCommitBgColor:
+      - "#39bae6"
+    markedBaseCommitFgColor:
+      - "#39bae6"
+    markedBaseCommitBgColor:
+      - "#d95757"
+    unstagedChangesColor:
+      - "#d95757"
+    defaultFgColor:
+      - "#d1d1c7"
 refresher:
   refreshInterval: 3
 os:
