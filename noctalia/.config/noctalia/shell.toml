@@ -2,5 +2,8 @@
 font_family = "Noto Sans"
 polkit_agent = true
 
+[shell.panel]
+control_center_placement = "floating"
+
 [lockscreen]
 transition_duration = 1000
