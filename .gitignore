@@ -39,6 +39,10 @@ opencode/.config/opencode/*.local.*
 opencode/.config/opencode/providers*
 opencode/.config/opencode/secrets*
 
+# Synced third-party skills and deleted-skill archives are machine-local state.
+agents/.config/opencode/skills/synced/
+agents/.config/opencode/skills/.trash/
+
 # never store home-level opencode plugin/runtime/auth state
 opencode/.opencode/backups/
 opencode/.opencode/cache/
