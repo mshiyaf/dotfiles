@@ -9,6 +9,13 @@
 set -euo pipefail
 shopt -s nullglob
 
+# Popup commands inherit the server's minimal PATH. Herdr provides the client
+# binary path explicitly, so make it available to this script and fzf previews.
+if [[ -n "${HERDR_BIN_PATH:-}" ]]; then
+    PATH="$(dirname "$HERDR_BIN_PATH"):$PATH"
+    export PATH
+fi
+
 script_path="${BASH_SOURCE[0]}"
 base_dir="$HOME/dev/github.com"
 gh_search_repo_jq='.[] | [.fullName, (if .isPrivate then "private" else "public" end), (.description // "")] | @tsv'
