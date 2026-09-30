@@ -1,0 +1,48 @@
+{
+  "settings": {
+    "refresh_minutes": {
+      "label": "Refresh interval (minutes)",
+      "description": "How often usage limits and today's token counts are refreshed. The usage endpoints rate-limit aggressive polling."
+    },
+    "codex_home": {
+      "label": "Codex home",
+      "description": "Directory holding Codex auth.json and session logs."
+    },
+    "agent_command": {
+      "label": "Agent command",
+      "description": "Command the + button launches in a terminal."
+    },
+    "show_percent": {
+      "label": "Show percentage",
+      "description": "Icon style only: show the highest live session percentage."
+    },
+    "notify_thresholds": {
+      "label": "Usage alerts",
+      "description": "Notify when a live quota window reaches 75%, 90%, or its limit."
+    },
+    "notify_resets": {
+      "label": "Reset alerts",
+      "description": "Notify when a window you pushed past 75% resets."
+    },
+    "show_sessions": {
+      "label": "Show sessions",
+      "description": "List running agent sessions from herdr; click one to focus it."
+    },
+    "show_amp": {
+      "label": "Show Amp",
+      "description": "Show Amp plan usage and credits when the amp CLI is installed."
+    },
+    "show_commandcode": {
+      "label": "Show Command Code",
+      "description": "Show Command Code limits and credits when logged in."
+    },
+    "bar_style": {
+      "label": "Bar style",
+      "description": "Tiny session meters per agent, or a single robot icon.",
+      "options": {
+        "meters": "Session meters",
+        "icon": "Icon"
+      }
+    }
+  }
+}

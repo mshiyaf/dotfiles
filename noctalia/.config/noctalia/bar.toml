@@ -5,6 +5,7 @@ end = [
   "tray",
   "notifications",
   "clipboard",
+  "mshiyaf/agents:status",
   "network",
   "davemhammer/tailscale:status",
   "bluetooth",

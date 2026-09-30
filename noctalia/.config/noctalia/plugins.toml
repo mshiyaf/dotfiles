@@ -1,2 +1,8 @@
 [plugins]
-enabled = ["davemhammer/tailscale"]
+enabled = ["davemhammer/tailscale", "mshiyaf/agents"]
+
+# Plugins tracked in this repo (stowed into ~/.config/noctalia/local-plugins).
+[[plugins.source]]
+name = "local"
+kind = "path"
+location = "~/.config/noctalia/local-plugins"

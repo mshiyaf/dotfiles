@@ -1,0 +1,118 @@
+# Agents: Claude Code and Codex quota usage plus quick agent launchers.
+#
+# usage.py gathers everything (vendor usage endpoints, session logs for today's
+# tokens) and prints one JSON document. The headless service runs it on an
+# interval and publishes the result to shared state; the bar widget and the
+# panel only render that snapshot.
+
+id = "mshiyaf/agents"
+name = "Agents"
+version = "0.1.0"
+# require() of relative modules (22) and runAsync argv tables (24).
+plugin_api = 24
+author = "mshiyaf"
+license = "MIT"
+icon = "robot"
+description = "Claude Code, Codex, Amp, and Command Code limits, account switching, live sessions, and agent launchers."
+tags = ["ai", "development", "indicator", "bar", "panel", "service"]
+dependencies = ["python3"]
+
+[[setting]]
+key = "refresh_minutes"
+type = "int"
+label_key = "settings.refresh_minutes.label"
+description_key = "settings.refresh_minutes.description"
+default = 5
+min = 1
+max = 60
+
+[[setting]]
+key = "codex_home"
+type = "string"
+label_key = "settings.codex_home.label"
+description_key = "settings.codex_home.description"
+default = "~/.codex"
+advanced = true
+
+[[setting]]
+key = "agent_command"
+type = "string"
+label_key = "settings.agent_command.label"
+description_key = "settings.agent_command.description"
+default = "claude"
+
+[[setting]]
+key = "notify_thresholds"
+type = "bool"
+label_key = "settings.notify_thresholds.label"
+description_key = "settings.notify_thresholds.description"
+default = true
+
+[[setting]]
+key = "notify_resets"
+type = "bool"
+label_key = "settings.notify_resets.label"
+description_key = "settings.notify_resets.description"
+default = true
+
+[[setting]]
+key = "show_sessions"
+type = "bool"
+label_key = "settings.show_sessions.label"
+description_key = "settings.show_sessions.description"
+default = true
+
+[[setting]]
+key = "show_amp"
+type = "bool"
+label_key = "settings.show_amp.label"
+description_key = "settings.show_amp.description"
+default = true
+
+[[setting]]
+key = "show_commandcode"
+type = "bool"
+label_key = "settings.show_commandcode.label"
+description_key = "settings.show_commandcode.description"
+default = true
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[widget]]
+id = "status"
+entry = "widget.luau"
+
+  [widget.actions]
+  left = "panel-toggle mshiyaf/agents:panel"
+  right = "plugin mshiyaf/agents:service all refresh"
+
+  [[widget.setting]]
+  key = "bar_style"
+  type = "select"
+  label_key = "settings.bar_style.label"
+  description_key = "settings.bar_style.description"
+  default = "meters"
+  options = [
+    { value = "meters", label_key = "settings.bar_style.options.meters" },
+    { value = "icon", label_key = "settings.bar_style.options.icon" },
+  ]
+
+  [[widget.setting]]
+  key = "show_percent"
+  type = "bool"
+  label_key = "settings.show_percent.label"
+  description_key = "settings.show_percent.description"
+  default = false
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 400
+height = 780
+# Floating near the click, like the control center.
+placement = "floating"
+position = "auto"
+open_near_click = true
+dismiss_on_outside_click = true
