@@ -116,13 +116,15 @@ function M.windowView(w)
     if duration and duration > 0 then
       view.elapsed = math.clamp(1 - view.remaining / duration, 0, 1)
       view.pace = used - view.elapsed
-      -- Straight-line projection of the burn so far; only meaningful once some time has passed.
+      -- Straight-line projection of the burn so far. The first minutes of a window say
+      -- little about the rest, so wait until a tenth of it has passed (a limit already
+      -- hit is reported regardless).
       local spent = duration * view.elapsed
-      if used > 0 and spent > 300 then
+      if used >= 1 then
+        view.limitIn = 0
+      elseif used > 0 and view.elapsed >= 0.1 then
         local toFull = (1 - used) / (used / spent)
-        if used >= 1 then
-          view.limitIn = 0
-        elseif toFull < view.remaining then
+        if toFull < view.remaining then
           view.limitIn = toFull
         end
       end
@@ -164,32 +166,42 @@ end
 
 -- Usage bar with a pace tick at the elapsed fraction of the window, built from
 -- flex segments because ui.progress has no marker.
+-- The host reuses retained nodes and keeps props a render omits, so every piece
+-- has a stable key and sets width and flexGrow explicitly; otherwise the marker can
+-- inherit a segment's flexGrow when the segment count changes.
 function M.meter(view, height)
   height = height or 6
   local color = M.usageColor(view)
   local parts = {}
-  local function seg(len, fill)
+  local function seg(key, len, fill)
     if len > 0.002 then
-      table.insert(parts, ui.box({ flexGrow = math.floor(len * 1000 + 0.5), height = height, radius = height / 2, fill = fill }))
+      table.insert(parts, ui.box({
+        key = key,
+        width = 0,
+        flexGrow = math.floor(len * 1000 + 0.5),
+        height = height,
+        radius = height / 2,
+        fill = fill,
+      }))
     end
+  end
+  local function marker()
+    table.insert(parts, ui.box({ key = "marker", width = 2, flexGrow = 0, height = height + 8, radius = 1, fill = color }))
   end
   local used, elapsed = view.used, view.elapsed
   if elapsed == nil then
-    seg(used, color)
-    seg(1 - used, M.TRACK_COLOR)
+    seg("fill", used, color)
+    seg("track", 1 - used, M.TRACK_COLOR)
+  elseif used <= elapsed then
+    seg("fill", used, color)
+    seg("gap", elapsed - used, M.TRACK_COLOR)
+    marker()
+    seg("track", 1 - elapsed, M.TRACK_COLOR)
   else
-    local marker = ui.box({ width = 2, height = height + 8, radius = 1, fill = color })
-    if used <= elapsed then
-      seg(used, color)
-      seg(elapsed - used, M.TRACK_COLOR)
-      table.insert(parts, marker)
-      seg(1 - elapsed, M.TRACK_COLOR)
-    else
-      seg(elapsed, color)
-      table.insert(parts, marker)
-      seg(used - elapsed, color)
-      seg(1 - used, M.TRACK_COLOR)
-    end
+    seg("fill", elapsed, color)
+    marker()
+    seg("over", used - elapsed, color)
+    seg("track", 1 - used, M.TRACK_COLOR)
   end
   return ui.row({ flexGrow = 1, height = height + 8, align = "center", gap = 0 }, parts)
 end
@@ -207,6 +219,7 @@ function M.miniMeter(view, barIsVertical)
     else
       fill.width, fill.height = THICKNESS, math.max(size, THICKNESS)
     end
+    fill.key = "fill"
     children[1] = ui.box(fill)
   end
   if barIsVertical then
@@ -237,6 +250,34 @@ function M.sessionWindow(entry)
     end
   end
   return (entry.windows or {})[1]
+end
+
+-- Codex account behind an Amp ChatGPT subscription link, matched by login email.
+function M.linkedCodex(data, provider)
+  if type(data) ~= "table" or type(data.codex) ~= "table" or not provider or provider.email == "" then
+    return nil
+  end
+  for _, acct in ipairs(data.codex.accounts or {}) do
+    if acct.email and acct.email ~= "" and acct.email == provider.email then
+      return acct
+    end
+  end
+  return nil
+end
+
+-- When every used-up window of an account has reset; nil while it still has headroom.
+function M.exhaustedUntil(acct)
+  if type(acct) ~= "table" then
+    return nil
+  end
+  local untilTs = nil
+  for _, w in ipairs(acct.windows or {}) do
+    local view = M.windowView(w)
+    if view.used >= 1 and view.resetsAt then
+      untilTs = math.max(untilTs or 0, view.resetsAt)
+    end
+  end
+  return untilTs
 end
 
 -- The user's login PATH is not the shell's; prefix the usual tool locations.

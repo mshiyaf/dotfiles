@@ -70,6 +70,13 @@ description_key = "settings.show_amp.description"
 default = true
 
 [[setting]]
+key = "amp_auto_failover"
+type = "bool"
+label_key = "settings.amp_auto_failover.label"
+description_key = "settings.amp_auto_failover.description"
+default = true
+
+[[setting]]
 key = "show_commandcode"
 type = "bool"
 label_key = "settings.show_commandcode.label"

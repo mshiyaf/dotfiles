@@ -12,6 +12,8 @@ It shows quota usage for Claude Code, Codex, Amp, and Command Code, switches sav
 - Accounts from the `ai-account` store: the live one is marked ACTIVE, others offer Use (click twice to confirm) or Sign in.
 - Codex free reset credits and their next expiry.
 - Amp plan budget and credits, and Command Code windows, credits, and renewal.
+- Amp model routing: each linked ChatGPT subscription with its Codex usage, and buttons to hand GPT models to Amp's own plan or back.
+  With auto-failover on, a used-up link is deactivated and restored when its window resets; a manual choice pauses that until then.
 - Live sessions from herdr with their status; clicking one focuses the pane and raises its terminal window.
 - `+` opens the agent command in a terminal.
 - The panel floats near the bar icon, like the control center.

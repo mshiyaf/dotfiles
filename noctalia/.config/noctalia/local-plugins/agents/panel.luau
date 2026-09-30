@@ -218,6 +218,109 @@ local function ampNote(amp)
   return balance and `Credits {balance}` or nil
 end
 
+-- Linked subscriptions Amp routes models through, with the matching Codex usage.
+local function ampRouting(data, amp)
+  local providers = amp.providers or {}
+  if #providers == 0 then
+    return {}
+  end
+  local rows = {}
+  local servingOwn = true
+  for _, p in ipairs(providers) do
+    if p.active and p.type == "openai_chatgpt" then
+      servingOwn = false
+    end
+  end
+
+  local note
+  local auto = snapshot.ampFailover
+  if type(auto) == "table" then
+    note = muted(`Auto-switched to Amp's plan · back on {auto.label} {shared.formatClock(auto.untilTs)}`, {
+      key = "amp-route-note", color = "primary", fontSize = 11, maxLines = 2,
+    })
+  elseif servingOwn then
+    note = muted("GPT models use Amp's own plan.", { key = "amp-route-note", fontSize = 11 })
+  end
+  table.insert(rows, ui.row({ key = "amp-route-head", gap = 8, align = "center" }, {
+    muted("MODEL ROUTING", { fontWeight = "bold", fontSize = 11 }),
+  }))
+
+  for i, p in ipairs(providers) do
+    local acct = p.type == "openai_chatgpt" and shared.linkedCodex(data, p) or nil
+    local title = acct and `Codex {acct.label}` or (p.email ~= "" and p.email or p.name)
+    local summary
+    local summaryColor = "on_surface_variant"
+    local untilTs = shared.exhaustedUntil(acct)
+    if untilTs then
+      summary = `Used up · resets {shared.formatClock(untilTs)}`
+      summaryColor = "error"
+    elseif acct then
+      local parts = {}
+      for _, w in ipairs(acct.windows or {}) do
+        table.insert(parts, `{w.label} {math.floor(shared.windowView(w).used * 100 + 0.5)}%`)
+      end
+      summary = table.concat(parts, " · ")
+    else
+      summary = p.active and "Active" or "Inactive"
+    end
+
+    local busy = snapshot.ampBusy ~= nil
+    local action
+    if p.active then
+      action = ui.button({
+        text = snapshot.ampBusy == p.id and "Switching…" or "Use Amp plan",
+        variant = "outline",
+        controlSize = "sm",
+        enabled = not busy,
+        onClick = function()
+          noctalia.state.set(shared.COMMAND_KEY, { action = "amp_provider", providerId = p.id, active = false, id = noctalia.nowMs() })
+        end,
+      })
+    else
+      action = ui.button({
+        text = snapshot.ampBusy == p.id and "Switching…" or "Use",
+        variant = "outline",
+        controlSize = "sm",
+        enabled = not busy,
+        onClick = function()
+          noctalia.state.set(shared.COMMAND_KEY, { action = "amp_provider", providerId = p.id, active = true, id = noctalia.nowMs() })
+        end,
+      })
+    end
+
+    local titleRow = { ui.label({ text = title, fontWeight = "semibold", maxLines = 1 }) }
+    if p.active then
+      table.insert(titleRow, ui.label({ text = "SERVING", color = "primary", fontWeight = "bold", fontSize = 11 }))
+    end
+    table.insert(rows, ui.row({ key = `amp-route-{i}`, gap = 10, align = "center" }, {
+      shared.brandIcon(p.type == "openai_chatgpt" and "codex" or "amp", 16),
+      ui.column({ gap = 1, flexGrow = 1 }, {
+        ui.row({ gap = 8, align = "center" }, titleRow),
+        muted(summary, { fontSize = 11, color = summaryColor, maxLines = 1 }),
+      }),
+      action,
+    }))
+  end
+  if note then
+    table.insert(rows, note)
+  end
+  return rows
+end
+
+local function ampSection(data, amp)
+  local rows = { sectionHeader("amp", planOrStatus(amp)) }
+  addWindows(rows, "amp", amp, true)
+  local note = ampNote(amp)
+  if note then
+    table.insert(rows, muted(note, { key = "amp-note" }))
+  end
+  for _, row in ipairs(ampRouting(data, amp)) do
+    table.insert(rows, row)
+  end
+  return ui.column({ key = "amp", gap = 10, align = "stretch" }, rows)
+end
+
+
 local function commandCodeNote(cc)
   local parts = {}
   local balance = shared.money(cc.balance)
@@ -348,7 +451,7 @@ render = function()
       section("codex", accountSection("codex", data.codex))
     end
     if type(data.amp) == "table" and noctalia.getConfig("show_amp") ~= false then
-      section("amp", simpleSection("amp", data.amp, ampNote(data.amp)))
+      section("amp", ampSection(data, data.amp))
     end
     if type(data.commandcode) == "table" and noctalia.getConfig("show_commandcode") ~= false then
       section("commandcode", simpleSection("commandcode", data.commandcode, commandCodeNote(data.commandcode)))

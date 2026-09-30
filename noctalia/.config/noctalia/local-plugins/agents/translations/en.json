@@ -43,6 +43,10 @@
         "meters": "Session meters",
         "icon": "Icon"
       }
+    },
+    "amp_auto_failover": {
+      "label": "Amp auto-failover",
+      "description": "When the ChatGPT subscription linked to Amp is used up, deactivate it so Amp serves GPT models from its own plan, and turn it back on when the window resets."
     }
   }
 }

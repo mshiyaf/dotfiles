@@ -168,6 +168,7 @@ local function publish()
 end
 
 local refresh
+local checkAmpFailover
 
 local function finish()
   running = false
@@ -219,6 +220,10 @@ refresh = function(force)
       if not ok then
         noctalia.log(`agents: notifications failed: {err}`)
       end
+      ok, err = pcall(checkAmpFailover, data)
+      if not ok then
+        noctalia.log(`agents: amp failover failed: {err}`)
+      end
     else
       local err = result and noctalia.string.trim(result.stderr or "") or ""
       if result and result.timedOut then
@@ -268,6 +273,163 @@ local function switchAccount(provider, profile)
   end, 60000)
 end
 
+-- ── Amp model routing ────────────────────────────────────────────────────────
+-- Amp routes a model to the first active linked subscription that maps it. A used-up
+-- ChatGPT link keeps failing, so deactivating it hands GPT models to Amp's own plan.
+
+-- { auto = { id, label, untilTs } | nil, paused = { [id] = untilTs } }
+local failover = { auto = nil, paused = {} }
+local ampBusy = false
+
+local function failoverFile()
+  return `{dataDir()}/amp-failover.json`
+end
+
+local function loadFailover()
+  local raw = noctalia.readFile(failoverFile())
+  local decoded = raw and noctalia.json.decode(raw)
+  if type(decoded) == "table" then
+    failover.auto = type(decoded.auto) == "table" and decoded.auto or nil
+    failover.paused = type(decoded.paused) == "table" and decoded.paused or {}
+  end
+  snapshot.ampFailover = failover.auto
+end
+
+local function saveFailover()
+  snapshot.ampFailover = failover.auto
+  local encoded = noctalia.json.encode(failover)
+  if encoded then
+    noctalia.writeFile(failoverFile(), encoded)
+  end
+end
+
+local function linkLabel(provider)
+  local acct = shared.linkedCodex(snapshot.data, provider)
+  return acct and acct.label ~= "" and `Codex {acct.label}` or provider.email ~= "" and provider.email or "ChatGPT"
+end
+
+local function setAmpProvider(provider, active, onDone)
+  if ampBusy or type(provider) ~= "table" or not tostring(provider.id):match("^[%x-]+$") then
+    return
+  end
+  ampBusy = true
+  snapshot.ampBusy = provider.id
+  publish()
+  local verb = active and "activate" or "deactivate -y"
+  noctalia.runAsync(shared.userCommand(`amp config model-providers {verb} {provider.id}`), function(result)
+    ampBusy = false
+    snapshot.ampBusy = nil
+    local ok = result and result.exitCode == 0
+    if not ok then
+      local err = result and noctalia.string.trim(result.stderr ~= "" and result.stderr or result.stdout or "") or ""
+      noctalia.notifyError("Amp routing change failed", err ~= "" and err or "amp config model-providers failed")
+    end
+    if onDone then
+      onDone(ok)
+    end
+    publish()
+    refresh(true)
+  end, 60000)
+end
+
+local function findProvider(id)
+  local amp = type(snapshot.data) == "table" and snapshot.data.amp
+  for _, p in ipairs(type(amp) == "table" and amp.providers or {}) do
+    if p.id == id then
+      return p
+    end
+  end
+  return nil
+end
+
+-- Manual choice from the panel. It pauses auto-failover for that link until the
+-- linked account's used-up windows reset, so the user's decision sticks.
+local function manualAmpProvider(id, active)
+  local provider = findProvider(id)
+  if not provider then
+    return
+  end
+  local untilTs = shared.exhaustedUntil(shared.linkedCodex(snapshot.data, provider))
+  if untilTs then
+    failover.paused[id] = untilTs
+  end
+  if failover.auto and failover.auto.id == id then
+    failover.auto = nil
+  end
+  saveFailover()
+  setAmpProvider(provider, active, function(ok)
+    if ok then
+      local label = linkLabel(provider)
+      noctalia.notify("Amp routing changed", active and `GPT models now use {label}.` or "GPT models now use Amp's own plan.")
+    end
+  end)
+end
+
+checkAmpFailover = function(data)
+  local amp = data.amp
+  if ampBusy or noctalia.getConfig("amp_auto_failover") == false or type(amp) ~= "table" then
+    return
+  end
+  local now = shared.nowSec()
+  local changed = false
+  for id, untilTs in pairs(failover.paused) do
+    if now >= (tonumber(untilTs) or 0) then
+      failover.paused[id] = nil
+      changed = true
+    end
+  end
+
+  -- Restore the link we turned off once its windows have reset.
+  local auto = failover.auto
+  if auto then
+    if now >= (tonumber(auto.untilTs) or 0) then
+      local provider = findProvider(auto.id)
+      failover.auto = nil
+      saveFailover()
+      -- Leave it alone if the user picked another ChatGPT link in the meantime.
+      local otherActive = false
+      for _, p in ipairs(amp.providers or {}) do
+        if p.active and p.type == "openai_chatgpt" and p.id ~= auto.id then
+          otherActive = true
+        end
+      end
+      if provider and not provider.active and not otherActive then
+        setAmpProvider(provider, true, function(ok)
+          if ok then
+            noctalia.notify("Amp back on your ChatGPT plan", `{auto.label} has quota again; GPT models use it once more.`)
+          end
+        end)
+      end
+    elseif changed then
+      saveFailover()
+    end
+    return
+  end
+
+  for _, provider in ipairs(amp.providers or {}) do
+    if provider.active and provider.type == "openai_chatgpt" and not failover.paused[provider.id] then
+      local untilTs = shared.exhaustedUntil(shared.linkedCodex(data, provider))
+      if untilTs then
+        local label = linkLabel(provider)
+        failover.auto = { id = provider.id, label = label, untilTs = untilTs }
+        saveFailover()
+        setAmpProvider(provider, false, function(ok)
+          if ok then
+            noctalia.notify("Amp switched to its own plan", `{label} is out of quota; back on it {shared.formatClock(untilTs)}.`)
+          else
+            failover.auto = nil
+            saveFailover()
+          end
+        end)
+        return
+      end
+    end
+  end
+  if changed then
+    saveFailover()
+  end
+end
+
 noctalia.state.watch(shared.COMMAND_KEY, function(command)
   if type(command) ~= "table" then
     return
@@ -276,10 +438,13 @@ noctalia.state.watch(shared.COMMAND_KEY, function(command)
     refresh(command.force == true)
   elseif command.action == "switch" then
     switchAccount(command.provider, command.profile)
+  elseif command.action == "amp_provider" then
+    manualAmpProvider(command.providerId, command.active == true)
   end
 end)
 
 loadNotified()
+loadFailover()
 loadLastSnapshot()
 noctalia.setUpdateInterval(TICK_MS)
 publish()
@@ -292,6 +457,7 @@ function update()
     refresh(false)
   elseif snapshot.data then
     pcall(checkNotifications, snapshot.data)
+    pcall(checkAmpFailover, snapshot.data)
     publish()
   end
 end

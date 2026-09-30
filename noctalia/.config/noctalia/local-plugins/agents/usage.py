@@ -428,6 +428,15 @@ class CodexRefresher:
         return {**creds, "tokens": tokens, "last_refresh": datetime.now().astimezone().isoformat()}, ""
 
 
+def codex_email(tokens) -> str:
+    """Login email from the ID token; used to match Amp's linked ChatGPT subscriptions."""
+    if not isinstance(tokens, dict):
+        return ""
+    claims = jwt_claims(str(tokens.get("id_token") or ""))
+    email = claims.get("email") or claims.get("https://api.openai.com/profile", {}).get("email") or ""
+    return str(email).lower()
+
+
 def codex_window(wid: str, section) -> dict | None:
     if not isinstance(section, dict):
         return None
@@ -452,16 +461,18 @@ def codex_windows(rate_limit: dict) -> list:
 
 
 def codex_account(ctx, acct: dict, log_limits: dict | None) -> dict:
-    result = {"profile": acct["profile"], "label": acct["label"], "active": acct["active"], "plan": "",
+    result = {"profile": acct["profile"], "label": acct["label"], "active": acct["active"], "plan": "", "email": "",
               "status": "ok", "source": "api", "windows": [], "credits": None, "resets": None, "fetchedAt": None}
     cache_key = f"codex:{acct['profile'] or 'default'}"
     cached = ctx.cache.fresh(cache_key, ctx.min_age) if not ctx.force else None
     if isinstance(cached, dict):
         result.update(cached)
+        result["email"] = codex_email((read_json(acct["file"]) or {}).get("tokens"))
         return result
 
     creds = read_json(acct["file"])
     tokens = creds.get("tokens") if isinstance(creds, dict) else None
+    result["email"] = codex_email(tokens)
     status = "missing"
     if isinstance(tokens, dict) and tokens.get("access_token"):
         exp = jwt_claims(tokens["access_token"]).get("exp") or 0
@@ -567,7 +578,7 @@ def amp_usage(ctx) -> dict | None:
     cached = ctx.cache.fresh("amp", ctx.min_age) if not ctx.force else None
     if isinstance(cached, dict):
         return cached
-    result = {"status": "ok", "plan": "", "windows": [], "balance": None, "fetchedAt": None}
+    result = {"status": "ok", "plan": "", "windows": [], "balance": None, "providers": [], "fetchedAt": None}
     try:
         out = subprocess.run(["amp", "usage"], capture_output=True, text=True, timeout=25).stdout
     except (OSError, subprocess.TimeoutExpired):
@@ -590,9 +601,35 @@ def amp_usage(ctx) -> dict | None:
     if not agent and result["balance"] is None:
         result["status"] = "signin" if "log in" in out.lower() or "not signed" in out.lower() else "error"
         return ctx.cache.last("amp") or result
+    result["providers"] = amp_providers()
     result["fetchedAt"] = now()
     ctx.cache.put("amp", result)
     return result
+
+
+def amp_providers() -> list:
+    """Linked model providers (bring-your-own subscriptions and keys), in routing order."""
+    try:
+        out = subprocess.run(["amp", "config", "model-providers", "list", "--json"], capture_output=True, text=True, timeout=25).stdout
+        rows = json.loads(out)
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return []
+    providers = []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict) or not row.get("id"):
+            continue
+        config = row.get("config") if isinstance(row.get("config"), dict) else {}
+        providers.append({
+            "id": str(row["id"]),
+            "name": str(row.get("name") or ""),
+            "type": str(row.get("type") or "").removeprefix("model_provider_"),
+            "active": row.get("active") is True,
+            "priority": row.get("priority"),
+            # Older links lack accountEmail but are named "<email>'s subscription".
+            "email": str(config.get("accountEmail") or next(iter(re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", str(row.get("name") or ""))), "")).lower(),
+        })
+    providers.sort(key=lambda p: (p["priority"] if isinstance(p["priority"], int) else 99))
+    return providers
 
 
 # ── Command Code ─────────────────────────────────────────────────────────────
