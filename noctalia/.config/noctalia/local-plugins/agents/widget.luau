@@ -18,15 +18,15 @@ local function liveEntries(data)
   return out
 end
 
--- Compact value: percentage, then the forecast when it bites, else time to reset.
+-- Compact value that fits the tooltip column: ↻ time to reset, ⚠ projected time to the limit.
 local function shortValue(view)
   local text = `{math.floor(view.used * 100 + 0.5)}% used`
   if view.limitIn == 0 then
-    return text .. " · limit reached"
+    return text .. " ⚠ now"
   elseif view.limitIn then
-    return text .. ` · limit in {shared.formatDuration(view.limitIn)}`
+    return text .. ` ⚠ {shared.formatDuration(view.limitIn)}`
   elseif view.remaining then
-    return text .. ` · resets in {shared.formatDuration(view.remaining)}`
+    return text .. ` ↻ {shared.formatDuration(view.remaining)}`
   end
   return text
 end
