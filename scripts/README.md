@@ -26,6 +26,23 @@ make stow-scripts     # or: make restow-scripts to pick up new files
 - `check-app-updates` / `update-apps` - version check + interactive updater for apps installed
   outside pacman (see below).
 
+## Re-enable Kimi Code
+
+Kimi Code support is intentionally disabled because it is not currently used.
+The removed implementation remains recoverable from Git history, rather than being maintained as inactive executable code.
+
+If Kimi is used again, restore and update its integration in these places:
+
+- `scripts/.local/bin/ai-usage` - credentials, token refresh, usage request, and `Promise.all` entry.
+- `scripts/.local/bin/ai-branch-name` - engine help and the `ask_engine` case.
+- `scripts/.local/bin/crew` - `--kimi`, model profiles, headless and interactive launch paths, and guardrails.
+- `scripts/.local/bin/gate` - `gate init --engine kimi` and review/fix commands.
+- `opencode/.config/opencode/opencode.json`, `zsh/.config/zsh/.exports`, `zsh/.config/zsh/completions/_crew`, and `tmux/.local/bin/tmux-agents`.
+
+Use `git log -p -G 'kimi' -- <path>` to find the removed implementation for a particular file.
+Confirm the current Kimi CLI and API contracts before restoring it, then update the workflow documentation and tests.
+At minimum, verify `ai-usage --json`, `crew new --kimi`, `gate init --engine kimi`, and `bun test tests/agent-workflow.test.ts tests/ai-account.test.ts`.
+
 ## ai-account - Claude and Codex login profiles
 
 Import the account that is currently logged in, then log in to a second account:
@@ -162,9 +179,8 @@ constrained to that effect - auto-approve everything except an explicit deny-lis
 yolo mode: `opencode` via `--agent build --auto` plus a Crew-only global policy inherited by
 delegated subagents (auto-approves edits and routine commands, but still denies `git push`/`sudo`/
 hard-reset/`git clean`/dangerous `rm -rf`; `--auto` is required since headless `run` has no TTY),
-`claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, `codex`
-via the `workspace-write` sandbox (network off, so push is blocked), and Kimi Code via print
-mode's auto permission policy plus explicit local-only, non-destructive task guardrails. Amp uses
+`claude` via `--permission-mode acceptEdits` + a `git push`/`sudo`/hard-reset deny-list, and `codex`
+via the `workspace-write` sandbox (network off, so push is blocked). Amp uses
 minimal execute-mode settings plus the required `workflow-guardrails` plugin, which parses direct
 shell commands and rejects risky operations without false-blocking quoted text.
 Headless Claude runs use its realtime event stream to log concise agent updates and tool activity
@@ -181,7 +197,6 @@ only when you want to reuse or force a specific branch.
 crew new "add dark mode"             # standard profile: Terra / Sonnet / Terra
 crew new --profile fast "update README examples"
 crew new --profile deep --claude "fix transaction race" --attach
-crew new --profile fast --kimi "update shell completion docs"
 crew new --profile standard --amp "add API pagination"
 crew new --profile standard --commandcode "add a /health endpoint"
 crew new -b feat/dark "add toggle"   # force the branch name
@@ -196,16 +211,12 @@ crew stop feat/dark -D               # kill session (-D also removes worktree + 
 
 Profiles explicitly select the model for every engine rather than inheriting machine defaults:
 
-| Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp | CommandCode |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash |
-| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max |
+| Profile | Use for | OpenCode | Claude | Codex | Amp | CommandCode |
+| --- | --- | --- | --- | --- | --- | --- |
+| `fast` | Mechanical docs, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | low | DeepSeek V4 Flash |
+| `standard` (default) | Normal implementation and tests | Terra | Sonnet | Terra | medium | DeepSeek V4 Pro |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | high | Qwen3.7-Max |
 
-Kimi is opt-in with `--kimi`; OpenCode remains the default engine.
-Kimi tasks run headlessly on both tmux and Herdr because Kimi Code does not provide a documented
-way to seed a prompt into its interactive TUI.
-Interactive Kimi sessions are still available with `crew new -b <branch> --kimi`.
 Amp is opt-in with `--amp` and tasked Amp runs use execute mode on both backends, fixing the TUI
 remaining open after a Herdr crewmate finishes.
 Interactive Amp remains available with `crew new -b <branch> --amp`.
@@ -235,11 +246,10 @@ own worktree/background orchestration.
 
 `gate` validates a branch's committed work in a **disposable worktree**, then pushes and
 opens a PR only if the gate passes. Our own take on no-mistakes - no external binary,
-built on `git-wt` + `opencode`/`claude`/`codex`/`kimi`/`amp`/`commandcode` + `gh`.
+built on `git-wt` + `opencode`/`claude`/`codex`/`amp`/`commandcode` + `gh`.
 
 ```bash
 gate init                          # optional: seed OpenCode .gate.sh overrides
-gate init --engine kimi            # optional Kimi variant
 gate init --engine amp             # optional Amp variant; uses medium mode
 gate init --engine commandcode     # optional CommandCode variant; Qwen3.7-Max review, DeepSeek V4 Pro fixes
 gate status        # show the resolved config

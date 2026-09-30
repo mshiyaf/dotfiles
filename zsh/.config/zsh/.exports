@@ -110,8 +110,8 @@ export HSA_OVERRIDE_GFX_VERSION=10.3.0
 export ANDROID_HOME="$HOME/Android/Sdk"
 export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator"
 
-# new kimi code
-export PATH="$HOME/.kimi-code/bin:$PATH"
+# Kimi Code is no longer used.
+# export PATH="$HOME/.kimi-code/bin:$PATH"
 
 # dart pub
 export PATH="$PATH:$HOME/.pub-cache/bin"

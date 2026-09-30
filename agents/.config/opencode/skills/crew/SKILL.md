@@ -21,7 +21,7 @@ This is a local-runner workflow and must not be bootstrapped inside an Amp orb.
 In an orb, use the native delegation tools available to Amp for independent work, or create separate orb threads when each task needs its own checkout.
 
 ## Native subagents versus crew
-Use native subagents, including Kimi Code's `AgentSwarm` and Amp's `Task` tool, for parallel
+Use native subagents, including Amp's `Task` tool, for parallel
 read-only exploration, review, research, or tightly coordinated subtasks that contribute to one
 main-agent result.
 Use `crew` when each task should independently edit, test, and commit a shippable branch.
@@ -66,9 +66,8 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    # Or force a branch name:
    crew new -b <branch> "<self-contained task>"
    ```
-   OpenCode is the default engine. Add `--claude`, `--codex`, `--kimi`, `--amp`, `--commandcode`, or
-   `--antigravity` to select another engine. Kimi tasks use regular K2.7 for `fast` and `standard`, K3 for `deep`, and run
-   headlessly because Kimi has no documented seeded-prompt interactive launch mode. Amp uses
+   OpenCode is the default engine. Add `--claude`, `--codex`, `--amp`, `--commandcode`, or
+   `--antigravity` to select another engine. Amp uses
    `low` for `fast` and `medium` for both `standard` and `deep`; Crew never selects Amp's costly
    `high` or `ultra` modes. CommandCode uses DeepSeek V4 Flash for `fast`, DeepSeek V4 Pro for
    `standard`, and Qwen3.7-Max for `deep`; its headless (`-p`) mode cannot write without `--yolo`,

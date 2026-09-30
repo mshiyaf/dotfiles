@@ -29,7 +29,6 @@ agent_from_command() {
         opencode) printf 'opencode' ;;
         codex|codex-cli) printf 'codex' ;;
         amp) printf 'amp' ;;
-        kimi|kimi-cli) printf 'kimi' ;;
         *) return 1 ;;
     esac
 }
@@ -195,17 +194,6 @@ derive_status() {
             elif [[ "$text" =~ esc\ to\ interrupt|esc\ to\ cancel|working|thinking|running ]]; then
                 printf 'working'
             elif [[ "$text" =~ ctrl.o\ for\ commands ]] || [[ "$tail" =~ medium.*╮|\> ]]; then
-                printf 'idle'
-            else
-                printf 'unknown'
-            fi
-            ;;
-        kimi)
-            if [[ "$text" =~ approval|permission|allow|confirm|do\ you\ want\ to|\[y/n\] ]]; then
-                printf 'blocked'
-            elif [[ "$text" =~ esc\ to\ interrupt|esc\ to\ cancel|working|thinking|running ]]; then
-                printf 'working'
-            elif [[ "$tail" =~ \> ]]; then
                 printf 'idle'
             else
                 printf 'unknown'

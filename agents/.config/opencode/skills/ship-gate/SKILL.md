@@ -30,7 +30,7 @@ In an Amp orb, run repository-native review and validation instead, then use the
 ## Config - optional `.gate.sh` overrides (sourced bash, not YAML)
 `gate run` works without `.gate.sh`.
 Seed optional deterministic overrides with `gate init`.
-Use `gate init --engine opencode|claude|codex|kimi|amp|commandcode|antigravity` to select the agent commands written into
+Use `gate init --engine opencode|claude|codex|amp|commandcode|antigravity` to select the agent commands written into
 the file. The Amp variant uses `medium` mode and the shared bounded safety policy; it never selects
 Amp `high` or `ultra` modes. The CommandCode variant reviews with Qwen3.7-Max (read-only `-p`, no
 `--yolo`) and applies fixes with DeepSeek V4 Pro under `--yolo`, bounded by the required

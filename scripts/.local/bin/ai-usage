@@ -248,62 +248,6 @@ async function claudeRows(): Promise<Row[]> {
   return results.flat();
 }
 
-async function kimiRows(): Promise<Row[]> {
-  const file = path.join(home, ".kimi-code/credentials/kimi-code.json");
-  let auth = readJson(file);
-  if (!auth?.access_token) return [{ agent: "Kimi", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: "not logged in" }];
-  try {
-    if (auth.refresh_token && Number(auth.expires_at) * 1000 <= Date.now() + 60_000) {
-      const response = await fetch("https://auth.kimi.com/api/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: "17e5f671-d194-4dfb-9706-5516cb48c098",
-          grant_type: "refresh_token",
-          refresh_token: auth.refresh_token,
-        }),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      if (!response.ok) throw new Error(`token refresh HTTP ${response.status}`);
-      const refreshed: any = await response.json();
-      auth = {
-        ...auth,
-        ...refreshed,
-        refresh_token: refreshed.refresh_token ?? auth.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + Number(refreshed.expires_in ?? 0),
-      };
-      writeJson(file, auth);
-    }
-    const data = await getJson("https://api.kimi.com/coding/v1/usages", {
-      Authorization: `Bearer ${auth.access_token}`,
-      accept: "application/json",
-    });
-    const rows: Row[] = [];
-    const add = (label: string, value: any) => {
-      const used = Number(value?.used);
-      const cap = Number(value?.limit);
-      rows.push({
-        agent: "Kimi",
-        account: "default",
-        pool: "default",
-        limit: label,
-        used: Number.isFinite(used) && Number.isFinite(cap) && cap > 0 ? percent(used / cap * 100) : null,
-        resetAt: epoch(value?.resetTime ?? value?.reset_at),
-        note: data.user?.membership?.level?.replace(/^LEVEL_/, "").toLowerCase(),
-      });
-    };
-    if (data.usage) add("7d", data.usage);
-    for (const item of data.limits ?? []) {
-      const window = item.window ?? {};
-      const seconds = Number(window.duration) * (String(window.timeUnit).includes("MINUTE") ? 60 : String(window.timeUnit).includes("HOUR") ? 3600 : 86400);
-      add(windowLabel(seconds, "quota"), item.detail ?? item);
-    }
-    return rows.length ? rows : [{ agent: "Kimi", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: "no limits returned" }];
-  } catch (error) {
-    return [{ agent: "Kimi", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: `${(error as Error).message}; run kimi login` }];
-  }
-}
-
 async function commandCodeRows(): Promise<Row[]> {
   const auth = readJson(path.join(home, ".commandcode/auth.json"));
   if (!auth?.apiKey) return [{ agent: "CommandCode", account: "default", pool: "default", limit: "-", used: null, resetAt: null, note: "not logged in" }];
@@ -636,7 +580,7 @@ async function main() {
     console.log("Usage: ai-usage [--json]\n\nShow quota use for installed coding agents, ranked by which pool to spend first.");
     return;
   }
-  const rows = (await Promise.all([codexRows(), claudeRows(), kimiRows(), commandCodeRows(), ampRows(), antigravityRows()])).flat();
+  const rows = (await Promise.all([codexRows(), claudeRows(), commandCodeRows(), ampRows(), antigravityRows()])).flat();
   const pools = buildPools(rows);
   if (args.has("--json")) console.log(JSON.stringify(pools.map(({ rows: poolRows, ...pool }) => ({ ...pool, rows: poolRows })), null, 2));
   else console.log(`${suggestion(pools)}\n\n${render(pools)}`);

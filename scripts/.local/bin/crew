@@ -16,7 +16,7 @@
 #                                   No task -> interactive agent TUI in the worktree.
 #                                 Flags: -b/--branch <name> (reuse/force a branch instead
 #                                        of AI-naming; no task -> interactive agent),
-#                                        --attach (jump to it), --claude, --codex, --kimi, --amp,
+#                                        --attach (jump to it), --claude, --codex, --amp,
 #                                        --commandcode,
 #                                        --headless (accepted for compatibility; tasked runs
 #                                        are always bounded), --profile fast|standard|deep,
@@ -35,7 +35,7 @@
 # push. Review each ready branch (/review-diff) and ship it (/ship-gate).
 # Backend: auto-detected per crewmate at spawn - herdr inside herdr (HERDR_ENV), tmux inside
 # tmux, else tmux if installed; CREW_BACKEND=tmux|herdr forces one. Requires: tmux, or
-# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/kimi/amp/commandcode. Run from inside
+# herdr + jq. Also: git-wt + ai-branch-name (PATH), opencode/claude/codex/amp/commandcode. Run from inside
 # the target git repo.
 
 set -euo pipefail
@@ -90,10 +90,10 @@ crewmate_alive() {
 PREFIX="crew_"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/crew"
 TASK_SUFFIX="When done, commit your work on this branch with a Conventional-commit message. Do not push. If blocked, print BLOCKED: <reason> and stop."
-KIMI_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
-AMP_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
-COMMANDCODE_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
-ANTIGRAVITY_TASK_SUFFIX="$KIMI_TASK_SUFFIX"
+LOCAL_TASK_SUFFIX="Do not use sudo, rewrite Git history, delete the worktree, or perform any other destructive or outward-facing action."
+AMP_TASK_SUFFIX="$LOCAL_TASK_SUFFIX"
+COMMANDCODE_TASK_SUFFIX="$LOCAL_TASK_SUFFIX"
+ANTIGRAVITY_TASK_SUFFIX="$LOCAL_TASK_SUFFIX"
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 AMP_CREW_SETTINGS="${CREW_AMP_SETTINGS:-$SCRIPT_DIR/../share/agentic/amp-settings.json}"
 OPENCODE_CREW_SETTINGS="${CREW_OPENCODE_SETTINGS:-$SCRIPT_DIR/../share/agentic/opencode-crew-settings.json}"
@@ -111,7 +111,6 @@ ANTIGRAVITY_PRINT_TIMEOUT="${CREW_AGY_PRINT_TIMEOUT:-4h}"
 #   claude  : auto-accept edits, allow Bash, deny push / sudo / hard-reset.
 #   codex   : workspace-write sandbox plus --add-dir on the repo's common git dir, so a
 #             crewmate in a linked worktree can commit (network off, so push is blocked).
-#   kimi    : print mode's bounded auto permission policy plus explicit task guardrails.
 #   amp     : execute mode loads minimal commit settings; the required workflow-guardrails
 #             plugin rejects push / sudo / hard-reset / git clean / dangerous rm commands.
 #   commandcode : -p headless mode is read-only unless --yolo, so a tasked crewmate runs
@@ -204,7 +203,6 @@ claude_headless_command() {
 task_with_guardrails() {
 	local engine="$1" task="$2" full="$task. $TASK_SUFFIX"
 	case "$engine" in
-		kimi) full="$full $KIMI_TASK_SUFFIX" ;;
 		amp)  full="$full $AMP_TASK_SUFFIX" ;;
 		commandcode) full="$full $COMMANDCODE_TASK_SUFFIX" ;;
 		antigravity|agy) full="$full $ANTIGRAVITY_TASK_SUFFIX" ;;
@@ -293,9 +291,6 @@ resolve_profile() {
 		fast:codex)      printf '%s' 'gpt-5.6-luna' ;;
 		standard:codex)  printf '%s' 'gpt-5.6-terra' ;;
 		deep:codex)      printf '%s' 'gpt-5.6-sol' ;;
-		fast:kimi)       printf '%s' 'kimi-code/kimi-for-coding' ;;
-		standard:kimi)   printf '%s' 'kimi-code/kimi-for-coding' ;;
-		deep:kimi)       printf '%s' 'kimi-code/k3' ;;
 		fast:amp)         printf '%s' 'low' ;;
 		standard:amp)     printf '%s' 'medium' ;;
 		deep:amp)         printf '%s' 'high' ;;
@@ -397,7 +392,6 @@ herdr_spawn() {
 			claude)   launch=$(claude_headless_command "$model" "$full") ;;
 			codex)    launch=$(codex_headless_command "$model" "$profile" "$full") ;;
 			opencode) launch=$(opencode_headless_command "$model" "$full") ;;
-			kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 			amp)      launch=$(amp_headless_command "$model" "$full") ;;
 			commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
 			antigravity|agy) launch=$(antigravity_headless_command "$model" "$full") ;;
@@ -417,7 +411,6 @@ herdr_spawn() {
 	else
 		printf 'interactive\n' > "$sdir/status"
 		case "$engine" in
-			kimi) herdr pane run "$pane" "$(printf 'kimi --model %q' "$model")" >/dev/null ;;
 			amp)  herdr pane run "$pane" "$(amp_interactive_command "$model")" >/dev/null ;;
 			commandcode) herdr pane run "$pane" "$(commandcode_interactive_command "$model")" >/dev/null ;;
 			antigravity|agy) herdr pane run "$pane" "$(antigravity_interactive_command "$model")" >/dev/null ;;
@@ -435,7 +428,6 @@ cmd_new() {
 			--attach) attach=1 ;;
 			--claude) engine="claude" ;;
 			--codex) engine="codex" ;;
-			--kimi) engine="kimi" ;;
 			--amp) engine="amp" ;;
 			--commandcode) engine="commandcode" ;;
 			--antigravity|--agy) engine="antigravity" ;;
@@ -520,7 +512,6 @@ cmd_new() {
 					claude)   launch=$(claude_headless_command "$model" "$full") ;;
 					codex)    launch=$(codex_headless_command "$model" "$profile" "$full") ;;
 					opencode) launch=$(opencode_headless_command "$model" "$full") ;;
-					kimi)     launch=$(printf 'kimi --model %q -p %q' "$model" "$full") ;;
 					amp)      launch=$(amp_headless_command "$model" "$full") ;;
 					commandcode) launch=$(commandcode_headless_command "$model" "$full") ;;
 					antigravity|agy) launch=$(antigravity_headless_command "$model" "$full") ;;
@@ -534,7 +525,6 @@ cmd_new() {
 			else
 				printf 'interactive\n' > "$sdir/status"
 				case "$engine" in
-					kimi) tmux send-keys -t "$name" "$(printf 'kimi --model %q' "$model")" C-m ;;
 					amp)  tmux send-keys -t "$name" "$(amp_interactive_command "$model")" C-m ;;
 					commandcode) tmux send-keys -t "$name" "$(commandcode_interactive_command "$model")" C-m ;;
 					antigravity|agy) tmux send-keys -t "$name" "$(antigravity_interactive_command "$model")" C-m ;;

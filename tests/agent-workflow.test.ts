@@ -266,7 +266,7 @@ describe("Crew Amp execution", () => {
   });
 
   test("runs every tasked Herdr crewmate headlessly", () => {
-    for (const engine of ["amp", "opencode", "claude", "codex", "kimi", "commandcode", "antigravity"]) {
+    for (const engine of ["amp", "opencode", "claude", "codex", "commandcode", "antigravity"]) {
       expect(callCrewFunction(`should_run_headless task && printf ${engine}`)).toBe(engine);
     }
   });
