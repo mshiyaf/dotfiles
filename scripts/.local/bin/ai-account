@@ -67,6 +67,49 @@ function activeFile(provider: ProviderName): string {
   return path.join(providerDirectory(provider), ".active");
 }
 
+// Shared with the Noctalia agents plugin, which refreshes inactive profiles in the background.
+// A directory is created atomically, so it doubles as a cross-language lock.
+function withLock<T>(fn: () => T): T {
+  const lock = path.join(accountHome, ".lock");
+  fs.mkdirSync(accountHome, { recursive: true, mode: 0o700 });
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    try {
+      fs.mkdirSync(lock);
+      break;
+    } catch (error: any) {
+      if (error?.code !== "EEXIST") throw error;
+      const age = Date.now() - fs.statSync(lock, { throwIfNoEntry: false })?.mtimeMs!;
+      if (age > 30_000) {
+        fs.rmSync(lock, { recursive: true, force: true });
+        continue;
+      }
+      if (Date.now() > deadline) throw new Error(`Timed out waiting for ${lock}.`);
+      Bun.sleepSync(100);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    fs.rmSync(lock, { recursive: true, force: true });
+  }
+}
+
+// Codex CLI sessions share an app-server daemon that keeps the login in memory and writes
+// refreshed tokens back to auth.json. Stop it before swapping so the old account can't be
+// written back, then start it again so new sessions pick up the new login.
+function codexDaemon(action: "status" | "stop" | "start"): boolean {
+  if (!Bun.which("codex")) return false;
+  const args = action === "status" ? ["version"] : [action];
+  const result = Bun.spawnSync(["codex", "app-server", "daemon", ...args], { stdout: "pipe", stderr: "pipe" });
+  if (action !== "status") return result.exitCode === 0;
+  try {
+    return JSON.parse(result.stdout.toString()).status === "running";
+  } catch {
+    return false;
+  }
+}
+
 function readCredential(file: string, provider: Provider): Buffer {
   let raw: Buffer;
   let value: unknown;
@@ -115,8 +158,10 @@ function persistActive(providerName: ProviderName, provider: Provider) {
 }
 
 function save(providerName: ProviderName, provider: Provider, profile: string) {
-  writePrivate(profileFile(providerName, profile), readCredential(provider.credentialFile, provider));
-  writePrivate(activeFile(providerName), `${profile}\n`);
+  withLock(() => {
+    writePrivate(profileFile(providerName, profile), readCredential(provider.credentialFile, provider));
+    writePrivate(activeFile(providerName), `${profile}\n`);
+  });
   console.log(`Saved current ${providerName} login as "${profile}".`);
 }
 
@@ -137,12 +182,25 @@ function chooseProfile(provider: ProviderName): string {
 function switchProfile(providerName: ProviderName, provider: Provider, requested: string | undefined) {
   const profile = requested ? profileNamed(requested) : chooseProfile(providerName);
   const source = profileFile(providerName, profile);
-  const credential = readCredential(source, provider);
+  readCredential(source, provider);
+  if (activeProfile(providerName) === profile) {
+    console.log(`${providerName} is already using "${profile}".`);
+    return;
+  }
 
-  persistActive(providerName, provider);
-  writePrivate(provider.credentialFile, credential);
-  writePrivate(activeFile(providerName), `${profile}\n`);
-  console.log(`Switched ${providerName} to "${profile}". Start a new ${providerName} session to use it.`);
+  const restartDaemon = providerName === "codex" && codexDaemon("status");
+  if (restartDaemon && !codexDaemon("stop")) throw new Error("Could not stop the Codex app-server daemon.");
+  try {
+    withLock(() => {
+      persistActive(providerName, provider);
+      writePrivate(provider.credentialFile, readCredential(source, provider));
+      writePrivate(activeFile(providerName), `${profile}\n`);
+    });
+  } finally {
+    if (restartDaemon) codexDaemon("start");
+  }
+  const note = restartDaemon ? " The Codex daemon was restarted." : "";
+  console.log(`Switched ${providerName} to "${profile}". Start a new ${providerName} session to use it.${note}`);
 }
 
 async function main() {
@@ -177,7 +235,7 @@ async function main() {
   }
   if (command === "login") {
     const profile = profileNamed(profileArgument);
-    persistActive(providerName, provider);
+    withLock(() => persistActive(providerName, provider));
     console.log(`Opening the ${providerName} login flow for "${profile}"...`);
     const result = Bun.spawnSync(provider.loginCommand, { stdin: "inherit", stdout: "inherit", stderr: "inherit" });
     if (result.exitCode !== 0) throw new Error(`${provider.loginCommand.join(" ")} failed or was cancelled.`);
