@@ -2,7 +2,7 @@ binds {
     Mod+Shift+Slash                     { show-hotkey-overlay; }
 
     // ─── Applications ───
-    Mod+Return                          hotkey-overlay-title="Open Terminal" { spawn-sh "${TERMINAL:-alacritty}"; }
+    Mod+Return                          hotkey-overlay-title="Open Terminal" { spawn-sh "${TERMINAL:-kitty}"; }
     Mod+D                               hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+B                               hotkey-overlay-title="Open Browser: zen" { spawn "zen-browser"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn "noctalia" "msg" "session" "lock"; }
