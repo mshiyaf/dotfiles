@@ -14,7 +14,7 @@
 # Usage:
 #   update-apps                 Interactive picker (fzf, multi-select with Tab)
 #   update-apps t3code claude   Update specific apps/tools directly, no picker
-#   update-apps --all           Update every outdated app + run every tool updater
+#   update-apps --all           Update every outdated app and tool
 #
 # Installs under /opt and /usr need root; you'll be prompted for sudo per app as
 # needed. Requires: fzf, curl, python3, ar (binutils), tar.
@@ -115,59 +115,46 @@ update_claude_desktop() {
   ok "claude-desktop updated to $ver"
 }
 
+# Installs/updates any Craft app ($1 = app id) from its GitHub release: the
+# AppImage is verified against the release's SHA256SUMS.txt, then swapped in with
+# an atomic rename (safe while the app is running), and its bundled .desktop and
+# icon are installed with Exec pointed at the AppImage. Per-user, no sudo.
+update_craft() {
+  local app="$1" info_line ver url sums_url tmp file expected
+  info_line=$(craft_remote_info "$app") || true
+  [ -n "$info_line" ] || { err "$app: couldn't reach GitHub"; return 1; }
+  IFS=$'\t' read -r ver url sums_url <<<"$info_line"
+  file=$(basename "$url")
+  tmp=$(mktemp -d)
+  info "Downloading $file..."
+  curl -fL --progress-bar -o "$tmp/$file" "$url"
+  expected=$(curl -fsSL "$sums_url" | awk -v f="$file" '$2 == f || $2 == "*" f {print $1}')
+  if [ -z "$expected" ] || [ "$(sha256sum "$tmp/$file" | cut -d' ' -f1)" != "$expected" ]; then
+    rm -rf "$tmp"
+    err "$app: checksum missing or mismatched for $file - not installing"
+    return 1
+  fi
+  chmod +x "$tmp/$file"
+  (cd "$tmp" && "./$file" --appimage-extract "ai.storyteller.$app.desktop" >/dev/null &&
+    "./$file" --appimage-extract "ai.storyteller.$app.png" >/dev/null)
+  mkdir -p "$CRAFT_DIR"
+  install -m755 "$tmp/$file" "$CRAFT_DIR/.$app.AppImage.new"
+  mv -f "$CRAFT_DIR/.$app.AppImage.new" "$CRAFT_DIR/$app.AppImage"
+  install -Dm644 "$tmp/squashfs-root/ai.storyteller.$app.png" \
+    "$HOME/.local/share/icons/hicolor/256x256/apps/ai.storyteller.$app.png"
+  mkdir -p "$HOME/.local/share/applications"
+  sed -e "s|^Exec=[^ ]*|Exec=\"$CRAFT_DIR/$app.AppImage\"|" -e '/^TryExec=/d' \
+    "$tmp/squashfs-root/ai.storyteller.$app.desktop" \
+    > "$HOME/.local/share/applications/ai.storyteller.$app.desktop"
+  update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+  rm -rf "$tmp"
+  ok "$app updated to $ver"
+}
+
 # --- self-updating tools -----------------------------------------------------
 #
-# CLIs and toolchains that ship their own updater (all under $HOME, no sudo).
-# Most have no cheap upstream version lookup, so update-apps just runs the
-# updater, which is a no-op when already current. The picker shows the installed
-# version only, and --all always runs them.
-
-declare -A TOOL_LABEL=(
-  [claude]="Claude Code"
-  [codex]="Codex CLI"
-  [amp]="Amp CLI"
-  [agy]="Antigravity CLI"
-  [herdr]="herdr"
-  [opencode]="OpenCode"
-  [opencode2]="OpenCode 2 (beta)"
-  [mise]="mise runtimes + npm tools"
-  [rustup]="Rust (rustup)"
-  [uv]="uv + uv tools"
-)
-declare -A TOOL_UPDATE=(
-  [claude]="claude update"
-  [codex]="codex update"
-  [amp]="amp update"
-  [agy]="agy update"
-  [herdr]="herdr update"
-  [opencode]="opencode upgrade"
-  # bun's global dir resolves to ~ (~/package.json), shared with the Playwright
-  # the browser skill imports from ~/node_modules - `add -g` updates in place.
-  [opencode2]="bun add -g --trust @opencode-ai/cli@latest"
-  # Upgrades runtimes within the versions pinned in ~/.config/mise/config.toml,
-  # plus npm-backed tools there (firebase-tools). mise itself comes from pacman.
-  [mise]="mise upgrade"
-  [rustup]="rustup update"
-  [uv]="uv self update && uv tool upgrade --all"
-)
-declare -A TOOL_VERSION=(
-  [claude]="claude --version"
-  [codex]="codex --version"
-  [amp]="amp --version"
-  [agy]="agy --version"
-  [herdr]="herdr --version"
-  [opencode]="opencode --version"
-  [opencode2]="opencode2 --version"
-  [mise]="mise --version"
-  [rustup]="rustc --version"
-  [uv]="uv --version"
-)
-TOOL_ORDER=(claude codex amp agy herdr opencode opencode2 mise rustup uv)
-
-# The binary each tool's updater needs - the first word of its update command.
-tool_bin() { local cmd="${TOOL_UPDATE[$1]}"; echo "${cmd%% *}"; }
-
-tool_installed() { command -v "$(tool_bin "$1")" >/dev/null 2>&1; }
+# Defined in manual-apps.sh (TOOL_*, tool_status); update-apps runs each one's
+# own updater (all under $HOME, no sudo).
 
 update_tool() {
   local key="$1"
@@ -198,10 +185,19 @@ declare -A UPDATE_FN=(
 )
 ORDER=(t3code chatgpt command-code claude-desktop)
 
+# Craft apps share one set of functions, each taking the app id - which is why
+# every LOCAL_FN/REMOTE_FN/UPDATE_FN call below passes "$key" (the per-app
+# functions above simply ignore it).
+for app in "${CRAFT_APPS[@]}"; do
+  LABEL[$app]=${CRAFT_LABEL[$app]}
+  LOCAL_FN[$app]=craft_local REMOTE_FN[$app]=craft_remote UPDATE_FN[$app]=update_craft
+  ORDER+=("$app")
+done
+
 menu_line() {
   local key="$1" installed latest
-  installed=$("${LOCAL_FN[$key]}" 2>/dev/null || echo "?")
-  latest=$("${REMOTE_FN[$key]}" 2>/dev/null || echo "?")
+  installed=$("${LOCAL_FN[$key]}" "$key" 2>/dev/null || echo "?")
+  latest=$("${REMOTE_FN[$key]}" "$key" 2>/dev/null || echo "?")
   if [ "$installed" = "$latest" ]; then
     printf '%s\t%s  (%s, up to date)\n' "$key" "${LABEL[$key]}" "$installed"
   else
@@ -210,18 +206,27 @@ menu_line() {
 }
 
 tool_menu_line() {
-  local key="$1" installed
+  local key="$1" state installed detail
   tool_installed "$key" || return 0
-  installed=$(bash -c "${TOOL_VERSION[$key]}" 2>/dev/null | head -1)
-  printf '%s\t%s  (%s, self-updating: %s)\n' "$key" "${TOOL_LABEL[$key]}" \
-    "${installed:-?}" "${TOOL_UPDATE[$key]}"
+  IFS=$'\t' read -r state installed detail < <(tool_status "$key")
+  case "$state" in
+    current) printf '%s\t%s  (%s, up to date)\n' "$key" "${TOOL_LABEL[$key]}" "$installed" ;;
+    outdated)
+      if [ -n "${TOOL_OUTDATED[$key]+x}" ]; then
+        printf '%s\t%s  (%s)\n' "$key" "${TOOL_LABEL[$key]}" "$detail"
+      else
+        printf '%s\t%s  (%s -> %s)\n' "$key" "${TOOL_LABEL[$key]}" "$installed" "$detail"
+      fi
+      ;;
+    *) printf '%s\t%s  (%s, %s)\n' "$key" "${TOOL_LABEL[$key]}" "${installed:-?}" "$detail" ;;
+  esac
 }
 
 run_update() {
   local key="$1"
   if [ -n "${UPDATE_FN[$key]+x}" ]; then
     info "Updating ${LABEL[$key]}..."
-    "${UPDATE_FN[$key]}"
+    "${UPDATE_FN[$key]}" "$key"
   elif [ -n "${TOOL_UPDATE[$key]+x}" ]; then
     info "Updating ${TOOL_LABEL[$key]}..."
     update_tool "$key"
@@ -235,12 +240,15 @@ selected=()
 
 if [ "${1:-}" = "--all" ]; then
   for key in "${ORDER[@]}"; do
-    installed=$("${LOCAL_FN[$key]}" 2>/dev/null || echo "")
-    latest=$("${REMOTE_FN[$key]}" 2>/dev/null || echo "")
+    installed=$("${LOCAL_FN[$key]}" "$key" 2>/dev/null || echo "")
+    latest=$("${REMOTE_FN[$key]}" "$key" 2>/dev/null || echo "")
     [ -n "$installed" ] && [ -n "$latest" ] && [ "$installed" != "$latest" ] && selected+=("$key")
   done
+  # Outdated tools, plus those whose status can't be checked (their updater is
+  # a no-op when already current).
   for key in "${TOOL_ORDER[@]}"; do
-    tool_installed "$key" && selected+=("$key")
+    tool_installed "$key" || continue
+    [ "$(tool_status "$key" | cut -f1)" = current ] || selected+=("$key")
   done
   if [ "${#selected[@]}" -eq 0 ]; then
     ok "everything is already up to date"

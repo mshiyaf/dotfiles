@@ -9,7 +9,10 @@
 #
 # Usage:
 #   check-app-updates          Check all known apps
-#   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|claude-desktop)
+#   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|claude-desktop,
+#                              a Craft app: photocraft|pdfcraft|wordcraft|deckcraft|gridcraft,
+#                              or a self-updating tool: claude|codex|amp|agy|herdr|opencode|
+#                              opencode2|mise|rustup|uv)
 #
 # Exit: 0 if everything is current, 1 if anything is outdated or unknown.
 
@@ -29,8 +32,9 @@ check() {
   local name="$1" local_fn="$2" remote_fn="$3" hint="$4"
   local installed latest
 
-  installed=$("$local_fn" 2>/dev/null || true)
-  latest=$("$remote_fn" 2>/dev/null || true)
+  # The app name is passed through for the shared Craft app functions.
+  installed=$("$local_fn" "$name" 2>/dev/null || true)
+  latest=$("$remote_fn" "$name" 2>/dev/null || true)
 
   if [ -z "$installed" ]; then
     warn "$name: not installed (or version unreadable) - skipping"
@@ -50,8 +54,34 @@ check() {
   fi
 }
 
+# Self-updating tools: only reported here; `update-apps` runs their updaters.
+check_tool() {
+  local key="$1" state installed detail
+  if ! tool_installed "$key"; then
+    warn "$key: not installed - skipping"
+    return
+  fi
+  IFS=$'\t' read -r state installed detail < <(tool_status "$key")
+  case "$state" in
+    current) ok "$key: $installed (up to date)" ;;
+    outdated)
+      # Toolchains list their outdated components instead of one version.
+      if [ -n "${TOOL_OUTDATED[$key]+x}" ]; then
+        warn "$key: $detail (run: update-apps $key)"
+      else
+        warn "$key: $installed -> $detail (run: update-apps $key)"
+      fi
+      STATUS=1
+      ;;
+    *)
+      warn "$key: $installed ($detail)"
+      [ "$detail" = "no public version check" ] || STATUS=1
+      ;;
+  esac
+}
+
 apps=("${1:-all}")
-[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code claude-desktop)
+[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code claude-desktop "${CRAFT_APPS[@]}" "${TOOL_ORDER[@]}")
 
 for app in "${apps[@]}"; do
   case "$app" in
@@ -72,8 +102,15 @@ for app in "${apps[@]}"; do
         "download: https://code.claude.com/docs/en/desktop-linux (no AUR package - manual .deb only)"
       ;;
     *)
-      err "unknown app: $app (expected t3code|chatgpt|command-code|claude-desktop)"
-      exit 2
+      if is_craft_app "$app"; then
+        check "$app" craft_local craft_remote \
+          "download: https://github.com/storytold/$app/releases/latest"
+      elif [ -n "${TOOL_UPDATE[$app]+x}" ]; then
+        check_tool "$app"
+      else
+        err "unknown app: $app (expected t3code|chatgpt|command-code|claude-desktop|$(IFS='|'; echo "${CRAFT_APPS[*]}|${TOOL_ORDER[*]}"))"
+        exit 2
+      fi
       ;;
   esac
 done

@@ -10,6 +10,20 @@
 #   <app>_remote()          latest upstream version
 #   <app>_remote_info()     "<version>\t<download-url>" (install needs the URL too)
 
+# GitHub's API allows only 60 unauthenticated requests an hour, which a couple of
+# checks plus an update run can exhaust. Reuse the gh CLI's login when there is
+# one (5,000/hour); uv's own self-update check reads UV_GITHUB_TOKEN.
+GITHUB_TOKEN=${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}
+[ -n "$GITHUB_TOKEN" ] && export UV_GITHUB_TOKEN=${UV_GITHUB_TOKEN:-$GITHUB_TOKEN}
+
+github_api() {
+  if [ -n "$GITHUB_TOKEN" ]; then
+    curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/$1"
+  else
+    curl -fsSL "https://api.github.com/$1"
+  fi
+}
+
 # --- t3code --------------------------------------------------------------------
 
 t3code_local() {
@@ -19,7 +33,7 @@ t3code_local() {
 }
 
 t3code_remote_info() {
-  curl -fsSL "https://api.github.com/repos/pingdotgg/t3code/releases/latest" 2>/dev/null |
+  github_api "repos/pingdotgg/t3code/releases/latest" 2>/dev/null |
     python3 -c "
 import json, sys
 d = json.load(sys.stdin)
@@ -70,7 +84,7 @@ command_code_local() {
 }
 
 command_code_remote_info() {
-  curl -fsSL "https://api.github.com/repos/CommandCodeAI/desktop/releases/latest" 2>/dev/null |
+  github_api "repos/CommandCodeAI/desktop/releases/latest" 2>/dev/null |
     python3 -c "
 import json, sys
 d = json.load(sys.stdin)
@@ -111,3 +125,170 @@ print(f'{ver}\thttps://downloads.claude.ai/claude-desktop/apt/stable/{path}')
 }
 
 claude_desktop_remote() { claude_desktop_remote_info | cut -f1; }
+
+# --- craft apps (storytold's Craft App Suite) ----------------------------------
+#
+# Every Craft app publishes the same release layout on GitHub
+# (storytold/<app>: <app>-<ver>-linux-x86_64.AppImage + SHA256SUMS.txt), so one
+# generic handler covers all of them - adding an app is one line in CRAFT_LABEL.
+# Installed per-user in ~/Applications (no sudo), which is also where the
+# upstream ArtCraft Launcher looks for AppImages. The AppImage ships its own
+# ai.storyteller.<app>.desktop (with X-AppImage-Version) and icon; update-apps
+# installs both, so the installed version is read back from that .desktop.
+# These functions take the app id as $1.
+
+declare -A CRAFT_LABEL=(
+  [photocraft]="PhotoCraft"
+  [pdfcraft]="PdfCraft"
+  [wordcraft]="WordCraft"
+  [deckcraft]="DeckCraft"
+  [gridcraft]="GridCraft"
+)
+CRAFT_APPS=(photocraft pdfcraft wordcraft deckcraft gridcraft)
+CRAFT_DIR="$HOME/Applications"
+
+is_craft_app() { [ -n "${CRAFT_LABEL[$1]+x}" ]; }
+
+craft_local() {
+  local desktop="$HOME/.local/share/applications/ai.storyteller.$1.desktop"
+  [ -f "$desktop" ] || return 1
+  grep -oP '(?<=X-AppImage-Version=)\S+' "$desktop"
+}
+
+# Prints "<version>\t<appimage-url>\t<sha256sums-url>".
+craft_remote_info() {
+  github_api "repos/storytold/$1/releases/latest" 2>/dev/null |
+    python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+ver = d['tag_name'].lstrip('v')
+assets = {a['name']: a['browser_download_url'] for a in d['assets']}
+url = next(u for n, u in assets.items() if n.endswith('-linux-x86_64.AppImage'))
+print(f\"{ver}\t{url}\t{assets['SHA256SUMS.txt']}\")
+" 2>/dev/null
+}
+
+craft_remote() { craft_remote_info "$1" | cut -f1; }
+
+# --- self-updating tools ---------------------------------------------------------
+#
+# CLIs and toolchains outside pacman that ship their own updater (all under
+# $HOME, no sudo). update-apps runs TOOL_UPDATE; both scripts report status via
+# tool_status. A tool has either TOOL_LATEST (prints the newest upstream
+# version, compared with TOOL_VERSION) or, for toolchains managing several
+# components, a TOOL_OUTDATED function (prints one line per outdated component,
+# nothing when current, non-zero exit when the check itself failed). agy has
+# neither - its updater endpoint isn't public - so its status is "unknown".
+
+declare -A TOOL_LABEL=(
+  [claude]="Claude Code"
+  [codex]="Codex CLI"
+  [amp]="Amp CLI"
+  [agy]="Antigravity CLI"
+  [herdr]="herdr"
+  [opencode]="OpenCode"
+  [opencode2]="OpenCode 2 (beta)"
+  [mise]="mise runtimes + npm tools"
+  [rustup]="Rust (rustup)"
+  [uv]="uv + uv tools"
+)
+declare -A TOOL_UPDATE=(
+  [claude]="claude update"
+  [codex]="codex update"
+  [amp]="amp update"
+  [agy]="agy update"
+  [herdr]="herdr update"
+  [opencode]="opencode upgrade"
+  # bun's global dir resolves to ~ (~/package.json), shared with the Playwright
+  # the browser skill imports from ~/node_modules - `add -g` updates in place.
+  [opencode2]="bun add -g --trust @opencode-ai/cli@latest"
+  # Upgrades runtimes within the versions pinned in ~/.config/mise/config.toml,
+  # plus npm-backed tools there (firebase-tools). mise itself comes from pacman.
+  [mise]="mise upgrade"
+  [rustup]="rustup update"
+  [uv]="uv self update && uv tool upgrade --all"
+)
+# Installed version, normalised to match TOOL_LATEST's format.
+declare -A TOOL_VERSION=(
+  [claude]="claude --version | cut -d' ' -f1"
+  [codex]="codex --version | cut -d' ' -f2"
+  [amp]="amp --version | cut -d' ' -f1"
+  [agy]="agy --version"
+  [herdr]="herdr --version | cut -d' ' -f2"
+  [opencode]="opencode --version"
+  [opencode2]="opencode2 --version | cut -d' ' -f2 | sed 's/^v//'"
+  [mise]="mise --version | cut -d' ' -f1"
+  [rustup]="rustc --version | cut -d' ' -f2"
+  [uv]="uv --version | cut -d' ' -f2"
+)
+declare -A TOOL_LATEST=(
+  [claude]="npm view @anthropic-ai/claude-code version"
+  [codex]="npm view @openai/codex version"
+  [amp]="npm view @sourcegraph/amp version"
+  [opencode]="npm view opencode-ai version"
+  [opencode2]="npm view @opencode-ai/cli dist-tags.latest"
+  [herdr]="curl -fsSL https://herdr.dev/latest.json | python3 -c 'import json, sys; print(json.load(sys.stdin)[\"version\"])'"
+)
+declare -A TOOL_OUTDATED=(
+  [mise]=tool_outdated_mise
+  [rustup]=tool_outdated_rustup
+  [uv]=tool_outdated_uv
+)
+TOOL_ORDER=(claude codex amp agy herdr opencode opencode2 mise rustup uv)
+
+tool_outdated_mise() {
+  mise outdated --json 2>/dev/null | python3 -c "
+import json, sys
+for name, t in json.load(sys.stdin).items():
+    print(f\"{name} {t['current']} -> {t['latest']}\")
+"
+}
+
+tool_outdated_rustup() {
+  local out
+  out=$(rustup check 2>/dev/null) && [ -n "$out" ] || return 1
+  grep 'Update available' <<<"$out" |
+    sed -E 's/-x86_64-unknown-linux-gnu//; s/ - Update available : / /; s/ \([^)]*\)//g' || true
+}
+
+tool_outdated_uv() {
+  local self tools
+  self=$(uv self update --dry-run 2>&1) || return 1
+  tools=$(uv tool list --outdated 2>/dev/null) || return 1
+  grep -q 'Would update' <<<"$self" && echo "uv (self)"
+  grep -E '^\S+ v\S+ \[latest: ' <<<"$tools" |
+    sed -E 's/^(\S+) v(\S+) \[latest: ([^]]+)\]/\1 \2 -> \3/' || true
+}
+
+# The binary each tool's updater needs - the first word of its update command.
+tool_bin() { local cmd="${TOOL_UPDATE[$1]}"; echo "${cmd%% *}"; }
+
+tool_installed() { command -v "$(tool_bin "$1")" >/dev/null 2>&1; }
+
+# Prints "<state>\t<installed>\t<detail>"; state is current, outdated or unknown.
+tool_status() {
+  local key="$1" installed latest detail
+  installed=$(bash -c "${TOOL_VERSION[$key]}" 2>/dev/null | head -1)
+  if [ -n "${TOOL_LATEST[$key]+x}" ]; then
+    latest=$(bash -c "${TOOL_LATEST[$key]}" 2>/dev/null | head -1)
+    if [ -z "$latest" ]; then
+      printf 'unknown\t%s\tcouldn'\''t reach upstream\n' "$installed"
+    elif [ "$latest" = "$installed" ]; then
+      printf 'current\t%s\t\n' "$installed"
+    else
+      printf 'outdated\t%s\t%s\n' "$installed" "$latest"
+    fi
+  elif [ -n "${TOOL_OUTDATED[$key]+x}" ]; then
+    if detail=$("${TOOL_OUTDATED[$key]}"); then
+      if [ -z "$detail" ]; then
+        printf 'current\t%s\t\n' "$installed"
+      else
+        printf 'outdated\t%s\t%s\n' "$installed" "$(paste -sd ',' <<<"$detail" | sed 's/,/, /g')"
+      fi
+    else
+      printf 'unknown\t%s\tcheck failed\n' "$installed"
+    fi
+  else
+    printf 'unknown\t%s\tno public version check\n' "$installed"
+  fi
+}

@@ -317,11 +317,11 @@ per-app logic from `scripts/.local/share/manual-apps.sh`:
 
 ```bash
 check-app-updates              # check all known apps
-check-app-updates t3code       # check just one: t3code | chatgpt | command-code | claude-desktop
+check-app-updates t3code       # check just one: t3code | chatgpt | command-code | claude-desktop | <craft app>
 
 update-apps                    # interactive fzf picker (Tab = multi-select, Enter = update)
 update-apps t3code claude      # update specific apps/tools directly, no picker
-update-apps --all              # update every outdated app + run every tool updater
+update-apps --all              # update every outdated app and tool
 ```
 
 `update-apps` prompts for sudo per app as needed (installs live under `/opt` and `/usr`). Requires
@@ -346,22 +346,34 @@ Currently covers:
   hand instead, same as `chatgpt`; this leaves pacman's local db reporting the old version, which is
   cosmetic only (pacman just doesn't know about the manual reinstall - nothing depends on this
   package, so it's harmless).
+- Craft apps (`photocraft`, `pdfcraft`, `wordcraft`, `deckcraft`, `gridcraft` - storytold's Craft App
+  Suite) - one generic handler, since every app publishes the same release layout on GitHub
+  (`storytold/<app>`: `<app>-<ver>-linux-x86_64.AppImage` + `SHA256SUMS.txt`). Installed per-user
+  as `~/Applications/<app>.AppImage` (no sudo); the AppImage is verified against `SHA256SUMS.txt`
+  and swapped in with an atomic rename, and its bundled `ai.storyteller.<app>.desktop` and icon are
+  installed with `Exec` pointed at it. The installed version is that `.desktop`'s
+  `X-AppImage-Version`. To add or drop an app, edit `CRAFT_LABEL`/`CRAFT_APPS` in
+  `manual-apps.sh`; install a new one with `update-apps <app>` (`--all` only updates installed apps).
 
-Self-updating tools (`update-apps` only - `check-app-updates` skips them, since most have no cheap
-upstream version lookup). `update-apps` runs each one's own updater, which is a no-op when current:
+Self-updating tools - both scripts report their status, and `update-apps` runs each one's own
+updater (`--all` runs the outdated ones, plus `agy`, whose status can't be checked; its updater is
+a no-op when current):
 
-| Key | Runs |
-| --- | --- |
-| `claude` | `claude update` |
-| `codex` | `codex update` |
-| `amp` | `amp update` |
-| `agy` | `agy update` |
-| `herdr` | `herdr update` |
-| `opencode` | `opencode upgrade` |
-| `opencode2` | `bun add -g --trust @opencode-ai/cli@latest` |
-| `mise` | `mise upgrade` (runtimes + npm tools like `firebase-tools` in `~/.config/mise/config.toml`) |
-| `rustup` | `rustup update` |
-| `uv` | `uv self update && uv tool upgrade --all` |
+| Key | Runs | Latest version from |
+| --- | --- | --- |
+| `claude` | `claude update` | npm `@anthropic-ai/claude-code` |
+| `codex` | `codex update` | npm `@openai/codex` |
+| `amp` | `amp update` | npm `@sourcegraph/amp` |
+| `agy` | `agy update` | none - the updater endpoint isn't public, so it's reported as unknown |
+| `herdr` | `herdr update` | `https://herdr.dev/latest.json` |
+| `opencode` | `opencode upgrade` | npm `opencode-ai` |
+| `opencode2` | `bun add -g --trust @opencode-ai/cli@latest` | npm `@opencode-ai/cli` `latest` tag |
+| `mise` | `mise upgrade` (runtimes + npm tools like `firebase-tools` in `~/.config/mise/config.toml`) | `mise outdated` |
+| `rustup` | `rustup update` | `rustup check` |
+| `uv` | `uv self update && uv tool upgrade --all` | `uv self update --dry-run` + `uv tool list --outdated` |
+
+GitHub API lookups (release-based apps, `uv self update`) use the `gh` CLI's token when you're
+logged in, since unauthenticated requests are limited to 60 an hour.
 
 Bun's global install dir resolves to `~` here (`~/package.json`), which also holds the Playwright
 the browser skill imports from `~/node_modules` - don't delete it as clutter.
