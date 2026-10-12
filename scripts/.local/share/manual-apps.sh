@@ -10,33 +10,6 @@
 #   <app>_remote()          latest upstream version
 #   <app>_remote_info()     "<version>\t<download-url>" (install needs the URL too)
 
-# --- cursor ------------------------------------------------------------------
-
-cursor_local() {
-  local appimage="/opt/cursor/Cursor.AppImage"
-  [ -f "$appimage" ] || return 1
-  local tmp
-  tmp=$(mktemp -d)
-  (cd "$tmp" && "$appimage" --appimage-extract "usr/share/cursor/resources/app/product.json" >/dev/null 2>&1)
-  local ver
-  ver=$(python3 -c "import json; print(json.load(open('$tmp/squashfs-root/usr/share/cursor/resources/app/product.json'))['version'])" 2>/dev/null) || ver=""
-  rm -rf "$tmp"
-  [ -n "$ver" ] && echo "$ver"
-}
-
-cursor_remote_info() {
-  curl -fsSL "https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable" 2>/dev/null |
-    python3 -c "
-import json, sys, re
-d = json.load(sys.stdin)
-url = d['downloadUrl']
-ver = re.search(r'Cursor-([0-9.]+)-', url).group(1)
-print(f'{ver}\t{url}')
-" 2>/dev/null
-}
-
-cursor_remote() { cursor_remote_info | cut -f1; }
-
 # --- t3code --------------------------------------------------------------------
 
 t3code_local() {

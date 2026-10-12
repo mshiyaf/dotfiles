@@ -9,7 +9,7 @@
 #
 # Usage:
 #   check-app-updates          Check all known apps
-#   check-app-updates cursor   Check a single app (cursor|t3code|chatgpt|command-code|claude-desktop)
+#   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|claude-desktop)
 #
 # Exit: 0 if everything is current, 1 if anything is outdated or unknown.
 
@@ -51,14 +51,10 @@ check() {
 }
 
 apps=("${1:-all}")
-[ "${apps[0]}" = all ] && apps=(cursor t3code chatgpt command-code claude-desktop)
+[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code claude-desktop)
 
 for app in "${apps[@]}"; do
   case "$app" in
-    cursor)
-      check "cursor" cursor_local cursor_remote \
-        "download: https://cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
-      ;;
     t3code)
       check "t3code" t3code_local t3code_remote \
         "download: https://github.com/pingdotgg/t3code/releases/latest"
@@ -76,7 +72,7 @@ for app in "${apps[@]}"; do
         "download: https://code.claude.com/docs/en/desktop-linux (no AUR package - manual .deb only)"
       ;;
     *)
-      err "unknown app: $app (expected cursor|t3code|chatgpt|command-code|claude-desktop)"
+      err "unknown app: $app (expected t3code|chatgpt|command-code|claude-desktop)"
       exit 2
       ;;
   esac

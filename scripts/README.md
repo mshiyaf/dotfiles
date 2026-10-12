@@ -312,14 +312,16 @@ per-app logic from `scripts/.local/share/manual-apps.sh`:
   source and reports what's stale.
 - **`update-apps`** - actually updates them, the same way they were installed originally (AppImage
   replaced in place, `.deb` extracted by hand and merged onto `/` - never via `debtap`/pacman/paru).
+  It also runs the own updater of every self-updating CLI and toolchain outside pacman (see below),
+  so `paru -Syu` plus `update-apps --all` covers the whole system.
 
 ```bash
 check-app-updates              # check all known apps
-check-app-updates cursor       # check just one: cursor | t3code | chatgpt | command-code
+check-app-updates t3code       # check just one: t3code | chatgpt | command-code | claude-desktop
 
 update-apps                    # interactive fzf picker (Tab = multi-select, Enter = update)
-update-apps cursor t3code      # update specific apps directly, no picker
-update-apps --all              # update everything that's currently outdated
+update-apps t3code claude      # update specific apps/tools directly, no picker
+update-apps --all              # update every outdated app + run every tool updater
 ```
 
 `update-apps` prompts for sudo per app as needed (installs live under `/opt` and `/usr`). Requires
@@ -327,8 +329,6 @@ update-apps --all              # update everything that's currently outdated
 
 Currently covers:
 
-- `cursor` - installed version read from the AppImage's embedded `product.json` (via
-  `--appimage-extract`, no launch); latest + download URL from `cursor.com`'s own update-check API.
 - `t3code` - installed version from the `X-AppImage-Version` field in
   `~/.local/share/applications/t3code.desktop` (which `update-apps` rewrites after updating); latest
   + AppImage asset from the `pingdotgg/t3code` GitHub releases API.
@@ -346,6 +346,25 @@ Currently covers:
   hand instead, same as `chatgpt`; this leaves pacman's local db reporting the old version, which is
   cosmetic only (pacman just doesn't know about the manual reinstall - nothing depends on this
   package, so it's harmless).
+
+Self-updating tools (`update-apps` only - `check-app-updates` skips them, since most have no cheap
+upstream version lookup). `update-apps` runs each one's own updater, which is a no-op when current:
+
+| Key | Runs |
+| --- | --- |
+| `claude` | `claude update` |
+| `codex` | `codex update` |
+| `amp` | `amp update` |
+| `agy` | `agy update` |
+| `herdr` | `herdr update` |
+| `opencode` | `opencode upgrade` |
+| `opencode2` | `bun add -g --trust @opencode-ai/cli@latest` |
+| `mise` | `mise upgrade` (runtimes + npm tools like `firebase-tools` in `~/.config/mise/config.toml`) |
+| `rustup` | `rustup update` |
+| `uv` | `uv self update && uv tool upgrade --all` |
+
+Bun's global install dir resolves to `~` here (`~/package.json`), which also holds the Playwright
+the browser skill imports from `~/node_modules` - don't delete it as clutter.
 
 It's read-only - it reports, it doesn't reinstall. When it flags something outdated, redo whatever
 manual install step was used originally (re-download the `.deb`/AppImage, repeat the extraction).

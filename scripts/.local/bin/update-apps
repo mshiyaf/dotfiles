@@ -7,10 +7,14 @@
 # extracted by hand and copied onto the filesystem (never via debtap/pacman/paru -
 # that's the whole reason these need this script).
 #
+# It also drives the self-updating CLIs and toolchains that live outside pacman
+# (claude, codex, amp, agy, herdr, opencode, opencode2, mise, rustup, uv) by
+# running each one's own updater, so one command covers everything paru doesn't.
+#
 # Usage:
 #   update-apps                 Interactive picker (fzf, multi-select with Tab)
-#   update-apps cursor t3code   Update specific apps directly, no picker
-#   update-apps --all           Update everything that's outdated, no picker
+#   update-apps t3code claude   Update specific apps/tools directly, no picker
+#   update-apps --all           Update every outdated app + run every tool updater
 #
 # Installs under /opt and /usr need root; you'll be prompted for sudo per app as
 # needed. Requires: fzf, curl, python3, ar (binutils), tar.
@@ -29,7 +33,7 @@ err()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; }
 # --- shared install helpers -------------------------------------------------
 
 # Downloads an AppImage and installs it in place of an existing one (always sudo:
-# both cursor's and t3code's /opt dirs are root-owned).
+# t3code's /opt dir is root-owned).
 install_appimage() {
   local url="$1" dest="$2"
   local tmp
@@ -64,14 +68,6 @@ install_deb() {
 }
 
 # --- per-app update ----------------------------------------------------------
-
-update_cursor() {
-  local info_line ver url
-  info_line=$(cursor_remote_info) || { err "cursor: couldn't reach cursor.com"; return 1; }
-  ver=$(cut -f1 <<<"$info_line"); url=$(cut -f2 <<<"$info_line")
-  install_appimage "$url" "/opt/cursor/Cursor.AppImage"
-  ok "cursor updated to $ver"
-}
 
 update_t3code() {
   local info_line ver url
@@ -119,31 +115,88 @@ update_claude_desktop() {
   ok "claude-desktop updated to $ver"
 }
 
+# --- self-updating tools -----------------------------------------------------
+#
+# CLIs and toolchains that ship their own updater (all under $HOME, no sudo).
+# Most have no cheap upstream version lookup, so update-apps just runs the
+# updater, which is a no-op when already current. The picker shows the installed
+# version only, and --all always runs them.
+
+declare -A TOOL_LABEL=(
+  [claude]="Claude Code"
+  [codex]="Codex CLI"
+  [amp]="Amp CLI"
+  [agy]="Antigravity CLI"
+  [herdr]="herdr"
+  [opencode]="OpenCode"
+  [opencode2]="OpenCode 2 (beta)"
+  [mise]="mise runtimes + npm tools"
+  [rustup]="Rust (rustup)"
+  [uv]="uv + uv tools"
+)
+declare -A TOOL_UPDATE=(
+  [claude]="claude update"
+  [codex]="codex update"
+  [amp]="amp update"
+  [agy]="agy update"
+  [herdr]="herdr update"
+  [opencode]="opencode upgrade"
+  # bun's global dir resolves to ~ (~/package.json), shared with the Playwright
+  # the browser skill imports from ~/node_modules - `add -g` updates in place.
+  [opencode2]="bun add -g --trust @opencode-ai/cli@latest"
+  # Upgrades runtimes within the versions pinned in ~/.config/mise/config.toml,
+  # plus npm-backed tools there (firebase-tools). mise itself comes from pacman.
+  [mise]="mise upgrade"
+  [rustup]="rustup update"
+  [uv]="uv self update && uv tool upgrade --all"
+)
+declare -A TOOL_VERSION=(
+  [claude]="claude --version"
+  [codex]="codex --version"
+  [amp]="amp --version"
+  [agy]="agy --version"
+  [herdr]="herdr --version"
+  [opencode]="opencode --version"
+  [opencode2]="opencode2 --version"
+  [mise]="mise --version"
+  [rustup]="rustc --version"
+  [uv]="uv --version"
+)
+TOOL_ORDER=(claude codex amp agy herdr opencode opencode2 mise rustup uv)
+
+# The binary each tool's updater needs - the first word of its update command.
+tool_bin() { local cmd="${TOOL_UPDATE[$1]}"; echo "${cmd%% *}"; }
+
+tool_installed() { command -v "$(tool_bin "$1")" >/dev/null 2>&1; }
+
+update_tool() {
+  local key="$1"
+  tool_installed "$key" || { err "$key: $(tool_bin "$key") not found on PATH"; return 1; }
+  bash -c "${TOOL_UPDATE[$key]}"
+  ok "$key: $(bash -c "${TOOL_VERSION[$key]}" 2>/dev/null | head -1)"
+}
+
 # --- driver ------------------------------------------------------------------
 
 declare -A LABEL=(
-  [cursor]="Cursor"
   [t3code]="T3 Code"
   [chatgpt]="ChatGPT"
   [command-code]="Command Code"
   [claude-desktop]="Claude Desktop"
 )
 declare -A LOCAL_FN=(
-  [cursor]=cursor_local [t3code]=t3code_local
-  [chatgpt]=chatgpt_local [command-code]=command_code_local
-  [claude-desktop]=claude_desktop_local
+  [t3code]=t3code_local [chatgpt]=chatgpt_local
+  [command-code]=command_code_local [claude-desktop]=claude_desktop_local
 )
 declare -A REMOTE_FN=(
-  [cursor]=cursor_remote [t3code]=t3code_remote
-  [chatgpt]=chatgpt_remote [command-code]=command_code_remote
-  [claude-desktop]=claude_desktop_remote
+  [t3code]=t3code_remote [chatgpt]=chatgpt_remote
+  [command-code]=command_code_remote [claude-desktop]=claude_desktop_remote
 )
 declare -A UPDATE_FN=(
-  [cursor]=update_cursor [t3code]=update_t3code
-  [chatgpt]=update_chatgpt [command-code]=update_command_code
-  [claude-desktop]=update_claude_desktop
+  [t3code]=update_t3code [chatgpt]=update_chatgpt
+  [command-code]=update_command_code [claude-desktop]=update_claude_desktop
 )
-ORDER=(cursor t3code chatgpt command-code claude-desktop)
+ORDER=(t3code chatgpt command-code claude-desktop)
 
 menu_line() {
   local key="$1" installed latest
@@ -156,14 +209,26 @@ menu_line() {
   fi
 }
 
+tool_menu_line() {
+  local key="$1" installed
+  tool_installed "$key" || return 0
+  installed=$(bash -c "${TOOL_VERSION[$key]}" 2>/dev/null | head -1)
+  printf '%s\t%s  (%s, self-updating: %s)\n' "$key" "${TOOL_LABEL[$key]}" \
+    "${installed:-?}" "${TOOL_UPDATE[$key]}"
+}
+
 run_update() {
   local key="$1"
-  if [ -z "${UPDATE_FN[$key]+x}" ]; then
-    err "unknown app: $key (expected: ${ORDER[*]})"
+  if [ -n "${UPDATE_FN[$key]+x}" ]; then
+    info "Updating ${LABEL[$key]}..."
+    "${UPDATE_FN[$key]}"
+  elif [ -n "${TOOL_UPDATE[$key]+x}" ]; then
+    info "Updating ${TOOL_LABEL[$key]}..."
+    update_tool "$key"
+  else
+    err "unknown app: $key (expected: ${ORDER[*]} ${TOOL_ORDER[*]})"
     return 2
   fi
-  info "Updating ${LABEL[$key]}..."
-  "${UPDATE_FN[$key]}"
 }
 
 selected=()
@@ -173,6 +238,9 @@ if [ "${1:-}" = "--all" ]; then
     installed=$("${LOCAL_FN[$key]}" 2>/dev/null || echo "")
     latest=$("${REMOTE_FN[$key]}" 2>/dev/null || echo "")
     [ -n "$installed" ] && [ -n "$latest" ] && [ "$installed" != "$latest" ] && selected+=("$key")
+  done
+  for key in "${TOOL_ORDER[@]}"; do
+    tool_installed "$key" && selected+=("$key")
   done
   if [ "${#selected[@]}" -eq 0 ]; then
     ok "everything is already up to date"
@@ -184,7 +252,8 @@ else
   command -v fzf >/dev/null 2>&1 || { err "fzf not found - required for the interactive picker"; exit 1; }
   info "Checking current versions..."
   mapfile -t chosen < <(
-    for key in "${ORDER[@]}"; do menu_line "$key"; done |
+    { for key in "${ORDER[@]}"; do menu_line "$key"; done
+      for key in "${TOOL_ORDER[@]}"; do tool_menu_line "$key"; done; } |
       fzf --multi --delimiter='\t' --with-nth=2.. \
           --header='Tab: select multiple | Enter: update selected | Esc: cancel' |
       cut -f1
