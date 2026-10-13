@@ -32,7 +32,10 @@ from datetime import datetime
 from pathlib import Path
 
 HOME = Path.home()
-HTTP_TIMEOUT = 10
+# The shell kills this helper after 60 seconds. Several provider calls can run
+# in one refresh, so a short per-request deadline preserves cached data instead
+# of letting one unavailable API block the entire panel.
+HTTP_TIMEOUT = 5
 FIVE_HOURS = 5 * 3600
 SEVEN_DAYS = 7 * 86400
 REFRESH_BACKOFF = 3600

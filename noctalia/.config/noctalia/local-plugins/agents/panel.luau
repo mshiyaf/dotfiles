@@ -398,7 +398,6 @@ local function header(data)
       glyph = "refresh",
       variant = "ghost",
       controlSize = "sm",
-      enabled = not snapshot.refreshing,
       onClick = function()
         shared.requestRefresh(true)
       end,
