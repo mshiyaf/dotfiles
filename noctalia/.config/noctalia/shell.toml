@@ -9,4 +9,5 @@ polkit_placement = "attached"
 transparency_mode = "soft"
 
 [lockscreen]
+allow_empty_password = true
 transition_duration = 1000
