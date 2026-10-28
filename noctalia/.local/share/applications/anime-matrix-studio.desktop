@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AniMe Matrix Studio
+Comment=Design and control the ASUS ROG AniMe Matrix display
+Exec=/usr/bin/python3 -B /home/mshiyaf/.config/noctalia/local-plugins/anime-matrix/studio.py
+Terminal=false
+StartupNotify=true
+Categories=Settings;Utility;
+Keywords=ROG;ASUS;AniMe;Matrix;LED;

@@ -6,6 +6,7 @@ end = [
   "notifications",
   "clipboard",
   "mshiyaf/agents:status",
+  "mshiyaf/anime-matrix:control",
   "network",
   "davemhammer/tailscale:status",
   "bluetooth",

@@ -1,0 +1,25 @@
+id = "mshiyaf/privacy"
+name = "Desktop Privacy"
+version = "0.1.0"
+plugin_api = 24
+author = "mshiyaf"
+license = "MIT"
+icon = "shield-lock"
+description = "Pause clipboard history and hide currently-playing information in Noctalia."
+tags = ["privacy", "clipboard", "media", "shortcut"]
+dependencies = ["uv", "wl-copy"]
+
+[[setting]]
+key = "private_mode"
+type = "bool"
+label_key = "settings.private_mode.label"
+description_key = "settings.private_mode.description"
+default = false
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[shortcut]]
+id = "toggle"
+entry = "shortcut.luau"

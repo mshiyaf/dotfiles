@@ -1,5 +1,5 @@
 [plugins]
-enabled = ["davemhammer/tailscale", "mshiyaf/agents"]
+enabled = ["davemhammer/tailscale", "mshiyaf/agents", "mshiyaf/anime-matrix", "mshiyaf/privacy"]
 
 # Plugins tracked in this repo (stowed into ~/.config/noctalia/local-plugins).
 [[plugins.source]]

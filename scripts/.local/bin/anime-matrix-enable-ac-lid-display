@@ -1,0 +1,17 @@
+#!/bin/sh
+# Keep the laptop awake only when plugged in and its lid is closed.
+set -eu
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+cat >"$tmp" <<'EOF'
+[Login]
+HandleLidSwitch=suspend
+HandleLidSwitchExternalPower=ignore
+EOF
+
+pkexec install -D -m 0644 "$tmp" /etc/systemd/logind.conf.d/90-anime-matrix-ac-lid.conf
+asusctl anime --off-when-lid-closed false --off-when-unplugged true --off-when-suspended false
+
+printf '%s\n' 'The lid policy will take effect after your next reboot.'
+printf '%s\n' 'systemd-logind is intentionally not restarted because doing so ends active graphical sessions.'

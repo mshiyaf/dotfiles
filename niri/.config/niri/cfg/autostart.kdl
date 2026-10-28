@@ -2,5 +2,5 @@
 // https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
 
     spawn-at-startup "noctalia" "-d"
-    spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
+    // Noctalia owns clipboard history, including its private-mode toggle.
     spawn-at-startup "kdeconnect-indicator"

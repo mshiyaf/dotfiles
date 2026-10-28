@@ -22,10 +22,10 @@ binds {
     XF86AudioLowerVolume                allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
     XF86AudioMute                       allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }
     XF86AudioMicMute                    allow-when-locked=true { spawn "noctalia" "msg" "mic-mute"; }
-    XF86AudioNext                       allow-when-locked=true { spawn "noctalia" "msg" "media" "next"; }
-    XF86AudioPrev                       allow-when-locked=true { spawn "noctalia" "msg" "media" "previous"; }
-    XF86AudioPlay                       allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
-    XF86AudioPause                      allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
+    XF86AudioNext                       allow-when-locked=true { spawn-sh "\"$HOME/.local/bin/noctalia-media\" next"; }
+    XF86AudioPrev                       allow-when-locked=true { spawn-sh "\"$HOME/.local/bin/noctalia-media\" previous"; }
+    XF86AudioPlay                       allow-when-locked=true { spawn-sh "\"$HOME/.local/bin/noctalia-media\" toggle"; }
+    XF86AudioPause                      allow-when-locked=true { spawn-sh "\"$HOME/.local/bin/noctalia-media\" toggle"; }
 
     // ─── Brightness Controls ───
     XF86MonBrightnessUp                 allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }

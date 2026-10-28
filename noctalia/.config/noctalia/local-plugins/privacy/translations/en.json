@@ -1,0 +1,4 @@
+{
+  "settings.private_mode.label": "Private mode",
+  "settings.private_mode.description": "Pause new clipboard history and hide media information in Noctalia. Copy/paste and playback continue. Turning off discards the current private copy. Other apps can still see MPRIS media information."
+}

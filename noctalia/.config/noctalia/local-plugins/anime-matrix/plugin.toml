@@ -1,0 +1,31 @@
+id = "mshiyaf/anime-matrix"
+name = "AniMe Matrix"
+version = "0.1.0"
+plugin_api = 24
+author = "mshiyaf"
+license = "MIT"
+icon = "sparkles"
+description = "Control the ASUS AniMe Matrix display without Rog Control Center."
+tags = ["asus", "rog", "hardware", "bar", "panel"]
+dependencies = ["asusctl", "python3", "gtk-launch", "systemctl", "systemd-run"]
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[widget]]
+id = "control"
+entry = "widget.luau"
+
+  [widget.actions]
+  left = "panel-toggle mshiyaf/anime-matrix:panel"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 380
+height = 525
+placement = "floating"
+position = "auto"
+open_near_click = true
+dismiss_on_outside_click = true

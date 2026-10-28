@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+"""Keep media keys working while Noctalia hides MPRIS metadata."""
+
+import os
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+
+def main():
+    action = sys.argv[1]
+    state = (
+        Path(
+            os.environ.get("NOCTALIA_STATE_HOME")
+            or os.environ.get("XDG_STATE_HOME")
+            or Path.home() / ".local/state"
+        )
+        / "noctalia/settings.toml"
+    )
+    settings = tomllib.loads(state.read_text()) if state.exists() else {}
+    private = (
+        settings.get("plugin_settings", {})
+        .get("mshiyaf/privacy", {})
+        .get("private_mode", False)
+    )
+    if not private:
+        return subprocess.call(["noctalia", "msg", "media", action])
+
+    # Independent MPRIS transport: do not query, print, or persist track metadata.
+    import dbus
+
+    bus = dbus.SessionBus()
+    players = []
+    for name in sorted(bus.list_names()):
+        if not name.startswith("org.mpris.MediaPlayer2."):
+            continue
+        try:
+            player = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            status = player.Get(
+                "org.mpris.MediaPlayer2.Player",
+                "PlaybackStatus",
+                dbus_interface="org.freedesktop.DBus.Properties",
+            )
+            players.append((status != "Playing", name, player))
+        except dbus.DBusException:
+            continue
+    if players:
+        player = min(players, key=lambda item: item[:2])[2]
+        method = {"next": "Next", "previous": "Previous", "toggle": "PlayPause"}[action]
+        player.get_dbus_method(method, "org.mpris.MediaPlayer2.Player")()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
