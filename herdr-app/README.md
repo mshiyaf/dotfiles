@@ -22,13 +22,14 @@ These mods are this repo's own code with no install step, written from the behav
 
 | Keys | Mod | What it does |
 |---|---|---|
-| `Ctrl+B`, then a key | `prefix` | The TUI's prefix keys, with a hint popup. `?` lists them all and `Ctrl+B Ctrl+B` sends a literal `Ctrl+B` to the terminal. |
+| `Ctrl+B`, then a key | `keys.json` | The TUI's prefix keys as two-step bindings, with no popup. `Ctrl+B ?` lists them (`prefix` mod) and `Ctrl+B Ctrl+B` sends a literal `Ctrl+B`. |
 | `Ctrl+Shift+G` (or `Ctrl+B g`) | `git-graph` | A live `glola`. Read-only. Click a row or press `j`/`k` for details. |
 | `Ctrl+Shift+Space` | `float-space` | A floating window with its own terminals and shared notes. |
 | `Ctrl+Shift+R` | `agent-resume` | Brings back agents that a reboot or core restart took from their terminals. |
 
-- `prefix` takes `Ctrl+B` away from terminal programs, so press it twice for tmux or Claude Code's "run in background".
-  Last pane is `Ctrl+B ;` because the window takes `Tab` before any mod sees it.
+- `Ctrl+B` waits for a second key, so press it twice for tmux or Claude Code's "run in background".
+- `Ctrl+B ;` (`last-pane` mod) jumps between the panes you press it in, since Herdr has no last-pane command.
+  The first press in a new pair of panes only remembers where you are.
 - `float-space` opens with the keyboard in its header: `c` new terminal, `n`/`p` switch, `x` end, `z` size, `m` notes, `Esc` hide.
   Click a terminal to type in it, because commands can't focus a terminal in an overlay.
 - `agent-resume` learns sessions from hooks.
