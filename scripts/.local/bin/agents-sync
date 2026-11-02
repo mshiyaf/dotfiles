@@ -94,7 +94,7 @@ function syncCodexSkillLinks(sourceDir: string, targetDir: string) {
   const expected = new Map(
     fs
       .readdirSync(sourceDir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "synced")
       .map((entry) => [entry.name, path.relative(targetDir, path.join(sourceDir, entry.name))]),
   );
 
@@ -172,6 +172,19 @@ if (!check) {
     path.join(repo, "agents", ".codex", "skills"),
   );
   syncCodexSkillLinks(sharedSkillsDir, path.join(home, ".agents", "skills"));
+
+  // Antigravity rewrites this file with machine-local trust state, so it is seeded, not stowed.
+  const antigravitySettings = path.join(home, ".gemini", "antigravity-cli", "settings.json");
+  ensureDir(path.dirname(antigravitySettings));
+  try {
+    fs.copyFileSync(
+      path.join(repo, "antigravity", ".gemini", "antigravity-cli", "settings.json"),
+      antigravitySettings,
+      fs.constants.COPYFILE_EXCL,
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
 }
 
 process.exit(ok ? 0 : 1);

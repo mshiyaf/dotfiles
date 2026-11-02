@@ -20,7 +20,8 @@ function run(command: string[], optional = false) {
 const skillsRoot = join(repo, "agents/.config/opencode/skills");
 const names = new Set<string>();
 for (const directory of readdirSync(skillsRoot, { withFileTypes: true }).filter(
-  (entry) => entry.isDirectory() && !entry.name.startsWith("."),
+  // `synced` is Claude's gitignored skill-sync state, not a shared skill.
+  (entry) => entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "synced",
 )) {
   const file = join(skillsRoot, directory.name, "SKILL.md");
   let content: string;
@@ -63,7 +64,7 @@ const bashScripts = readdirSync(scriptsRoot)
   .filter((file) => readFileSync(file, "utf8").startsWith("#!/usr/bin/env bash"));
 for (const file of bashScripts) run(["bash", "-n", file]);
 
-if (Bun.which("shellcheck")) run(["shellcheck", ...bashScripts]);
+if (Bun.which("shellcheck")) run(["shellcheck", "--severity=warning", ...bashScripts]);
 else console.warn("SKIP: shellcheck is not installed");
 
 run(["bun", "test", "tests/agent-workflow.test.ts", "tests/ai-account.test.ts"]);

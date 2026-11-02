@@ -1,0 +1,3 @@
+# Completion caches zsh regenerates per machine. Stale ignored copies in the
+# package would otherwise conflict with the real files in $ZDOTDIR.
+\.zcompdump.*

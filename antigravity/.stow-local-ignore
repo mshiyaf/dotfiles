@@ -1,0 +1,3 @@
+# agy replaces settings.json and stores machine-local trust state in it, so the
+# file here is only a seed: agents-sync copies it when the live file is missing.
+settings\.json

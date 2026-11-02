@@ -6,7 +6,7 @@ import path from "node:path";
 
 type RepositoryKind = "skills" | "plugins";
 
-const LOCAL_ONLY_SKILLS = new Set(["crew", "ship-gate"]);
+const LOCAL_ONLY_SKILLS = new Set(["crew", "ship-gate", "synced"]);
 const SKILLS_MANIFEST = ".dotfiles-managed-skills";
 const PLUGINS_MANIFEST = ".dotfiles-managed-plugins";
 

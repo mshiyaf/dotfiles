@@ -602,6 +602,7 @@ Full usage: [`scripts/README.md`](../scripts/README.md).
 | `~/.config/amp/plugins/workflow-guardrails.ts` | Amp | Approval gate for risky shell commands plus Herdr agent-state reporting |
 | Amp Crew/Gate settings | Amp Crew/Gate | Minimal commit attribution settings for execute mode |
 | `~/.commandcode/settings.json` | CommandCode | Registers the `CREW_MANAGED`-gated PreToolUse guard hook (no-op for interactive use) |
+| `~/.gemini/antigravity-cli/settings.json` | Antigravity | Machine-local trust state; seeded once by `agents-sync`, not stowed |
 | `~/.commandcode/hooks/crew-guard.sh` | CommandCode | Fail-closed deny-list for bounded Crew/Gate `--yolo` runs (push/sudo/hard-reset/clean/rm) |
 | `.gate.sh` (per repo, optional) | `gate` | Deterministic ship-gate overrides; empty test/lint uses auto-detection |
 | `.worktrees-setup` (per repo) | `git wt` | Post-create hook run inside each new worktree |
