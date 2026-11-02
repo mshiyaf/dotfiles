@@ -9,7 +9,7 @@
 #
 # Usage:
 #   check-app-updates          Check all known apps
-#   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|claude-desktop,
+#   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|herdr-app|claude-desktop,
 #                              a Craft app: photocraft|pdfcraft|wordcraft|deckcraft|gridcraft,
 #                              or a self-updating tool: claude|codex|amp|agy|herdr|opencode|
 #                              opencode2|mise|rustup|uv)
@@ -81,7 +81,7 @@ check_tool() {
 }
 
 apps=("${1:-all}")
-[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code claude-desktop "${CRAFT_APPS[@]}" "${TOOL_ORDER[@]}")
+[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code herdr-app claude-desktop "${CRAFT_APPS[@]}" "${TOOL_ORDER[@]}")
 
 for app in "${apps[@]}"; do
   case "$app" in
@@ -97,6 +97,10 @@ for app in "${apps[@]}"; do
       check "command-code" command_code_local command_code_remote \
         "download: https://commandcode.ai/desktop (do NOT 'paru -S command-code' - see manual-apps.sh)"
       ;;
+    herdr-app)
+      check "herdr-app" herdr_app_local herdr_app_remote \
+        "download: https://herdr.dev (managed by update-apps, not paru)"
+      ;;
     claude-desktop)
       check "claude-desktop" claude_desktop_local claude_desktop_remote \
         "download: https://code.claude.com/docs/en/desktop-linux (no AUR package - manual .deb only)"
@@ -108,7 +112,7 @@ for app in "${apps[@]}"; do
       elif [ -n "${TOOL_UPDATE[$app]+x}" ]; then
         check_tool "$app"
       else
-        err "unknown app: $app (expected t3code|chatgpt|command-code|claude-desktop|$(IFS='|'; echo "${CRAFT_APPS[*]}|${TOOL_ORDER[*]}"))"
+        err "unknown app: $app (expected t3code|chatgpt|command-code|herdr-app|claude-desktop|$(IFS='|'; echo "${CRAFT_APPS[*]}|${TOOL_ORDER[*]}"))"
         exit 2
       fi
       ;;

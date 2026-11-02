@@ -96,6 +96,23 @@ print(f'{ver}\t{url}')
 
 command_code_remote() { command_code_remote_info | cut -f1; }
 
+# --- herdr-app ---------------------------------------------------------------
+#
+# The native Herdr GUI is distributed through its official per-user installer,
+# not pacman/AUR. The installer verifies the release checksum, installs the GUI
+# under ~/.local/share/herdr-app, and leaves the separate Herdr TUI untouched.
+
+HERDR_APP_INSTALL_URL="https://releases.herdr.dev/app/install.sh"
+
+herdr_app_local() {
+  "$HOME/.local/bin/herdr-app" --version 2>/dev/null | awk '{print $NF}'
+}
+
+herdr_app_remote() {
+  curl -fsSL "https://releases.herdr.dev/app/latest.json" 2>/dev/null |
+    python3 -c "import json, sys; print(json.load(sys.stdin)['version'])" 2>/dev/null
+}
+
 # --- claude-desktop --------------------------------------------------------------
 #
 # Official Anthropic apt repo (Debian/Ubuntu only - see

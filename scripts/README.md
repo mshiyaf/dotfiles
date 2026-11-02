@@ -317,7 +317,7 @@ per-app logic from `scripts/.local/share/manual-apps.sh`:
 
 ```bash
 check-app-updates              # check all known apps
-check-app-updates t3code       # check just one: t3code | chatgpt | command-code | claude-desktop | <craft app>
+check-app-updates t3code       # check just one: t3code | chatgpt | command-code | herdr-app | claude-desktop | <craft app>
 
 update-apps                    # interactive fzf picker (Tab = multi-select, Enter = update)
 update-apps t3code claude      # update specific apps/tools directly, no picker
@@ -346,6 +346,9 @@ Currently covers:
   hand instead, same as `chatgpt`; this leaves pacman's local db reporting the old version, which is
   cosmetic only (pacman just doesn't know about the manual reinstall - nothing depends on this
   package, so it's harmless).
+- `herdr-app` - native Herdr GUI, installed per-user at `~/.local/share/herdr-app` by its official
+  checksum-verifying installer. `update-apps herdr-app` reruns that installer. It is separate from
+  the Herdr TUI and does not replace its server or sessions.
 - Craft apps (`photocraft`, `pdfcraft`, `wordcraft`, `deckcraft`, `gridcraft` - storytold's Craft App
   Suite) - one generic handler, since every app publishes the same release layout on GitHub
   (`storytold/<app>`: `<app>-<ver>-linux-x86_64.AppImage` + `SHA256SUMS.txt`). Installed per-user

@@ -98,6 +98,12 @@ update_command_code() {
   warn "note: pacman's local db still shows the old version (see manual-apps.sh) - cosmetic only, harmless."
 }
 
+update_herdr_app() {
+  info "Installing Herdr GUI from its official release channel..."
+  curl -fsSL "$HERDR_APP_INSTALL_URL" | sh
+  ok "herdr-app updated to $(herdr_app_local)"
+}
+
 update_claude_desktop() {
   local info_line ver url
   info_line=$(claude_desktop_remote_info) || { err "claude-desktop: couldn't reach downloads.claude.ai"; return 1; }
@@ -169,21 +175,25 @@ declare -A LABEL=(
   [t3code]="T3 Code"
   [chatgpt]="ChatGPT"
   [command-code]="Command Code"
+  [herdr-app]="Herdr GUI"
   [claude-desktop]="Claude Desktop"
 )
 declare -A LOCAL_FN=(
   [t3code]=t3code_local [chatgpt]=chatgpt_local
-  [command-code]=command_code_local [claude-desktop]=claude_desktop_local
+  [command-code]=command_code_local [herdr-app]=herdr_app_local
+  [claude-desktop]=claude_desktop_local
 )
 declare -A REMOTE_FN=(
   [t3code]=t3code_remote [chatgpt]=chatgpt_remote
-  [command-code]=command_code_remote [claude-desktop]=claude_desktop_remote
+  [command-code]=command_code_remote [herdr-app]=herdr_app_remote
+  [claude-desktop]=claude_desktop_remote
 )
 declare -A UPDATE_FN=(
   [t3code]=update_t3code [chatgpt]=update_chatgpt
-  [command-code]=update_command_code [claude-desktop]=update_claude_desktop
+  [command-code]=update_command_code [herdr-app]=update_herdr_app
+  [claude-desktop]=update_claude_desktop
 )
-ORDER=(t3code chatgpt command-code claude-desktop)
+ORDER=(t3code chatgpt command-code herdr-app claude-desktop)
 
 # Craft apps share one set of functions, each taking the app id - which is why
 # every LOCAL_FN/REMOTE_FN/UPDATE_FN call below passes "$key" (the per-app
