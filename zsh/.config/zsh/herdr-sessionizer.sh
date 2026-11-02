@@ -5,7 +5,9 @@
 # ideas from andrewchng/herdr-sessionizer and thanhdat77/herdr-navigator:
 # open workspaces and running agents are jump targets, projects open as
 # new workspaces, GitHub search is behind an explicit ctrl-g.
+# Inside the Herdr GUI it drives spaces through herdr-app and hc instead.
 
+# shellcheck disable=SC1010  # "herdr-app do" is a subcommand, not a loop keyword.
 set -euo pipefail
 shopt -s nullglob
 
@@ -14,6 +16,20 @@ shopt -s nullglob
 if [[ -n "${HERDR_BIN_PATH:-}" ]]; then
     PATH="$(dirname "$HERDR_BIN_PATH"):$PATH"
     export PATH
+fi
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# The GUI's terminals carry HC_TERMINAL_ID; the TUI's carry HERDR_ENV.
+gui=0
+[[ -n "${HC_TERMINAL_ID:-}" && -z "${HERDR_ENV:-}" ]] && gui=1
+
+# Set by the GUI's sessionizer mod. Its tab closes when this script exits, so go
+# back to this pane unless the pick already moved focus somewhere else.
+return_pane=""
+if [[ "${1:-}" == "--return-pane" ]]; then
+    return_pane="${2:-}"
+    shift 2
 fi
 
 script_path="${BASH_SOURCE[0]}"
@@ -35,6 +51,9 @@ c_dim=$'\033[2m'
 
 cleanup() {
     rm -f "$force_github_flag"
+    if [[ -n "$return_pane" ]]; then
+        herdr-app do pane.focus --pane "$return_pane" >/dev/null 2>&1 || true
+    fi
 }
 
 trap cleanup EXIT
@@ -60,7 +79,12 @@ if [[ "${1:-}" == "--github-source" ]]; then
     exit 0
 fi
 
-if ! herdr workspace list >/dev/null 2>&1; then
+if [[ "$gui" == 1 ]]; then
+    if ! herdr-app status >/dev/null 2>&1; then
+        echo "Herdr window not reachable." >&2
+        exit 1
+    fi
+elif ! herdr workspace list >/dev/null 2>&1; then
     echo "herdr server not reachable; start herdr first." >&2
     exit 1
 fi
@@ -74,6 +98,8 @@ workspace_label() {
     local repo="${dir##*/}"
     local parent="${dir%/*}"
     local name="${parent##*/}/$repo"
+    # GUI spaces are named after their folder, so match that name.
+    [[ "$gui" == 1 ]] && name="$repo"
     name="${name//\//_}"
     name="${name//./_}"
     name="${name//:/_}"
@@ -81,16 +107,31 @@ workspace_label() {
 }
 
 herdr_workspaces_tsv() {
+    if [[ "$gui" == 1 ]]; then
+        herdr-app ls 2>/dev/null \
+            | jq -r '.spaces[] | [.id, (.name // ""), (.tabs | length), ([.tabs[].terminals[]] | length)] | @tsv'
+        return
+    fi
     herdr workspace list 2>/dev/null \
         | jq -r '.result.workspaces[] | [.workspace_id, (.label // ""), (.tab_count // 0), (.pane_count // 0)] | @tsv'
 }
 
 herdr_pane_cwds_tsv() {
+    if [[ "$gui" == 1 ]]; then
+        herdr-app ls 2>/dev/null | jq -r '.spaces[] | [.id, (.folder // "")] | @tsv'
+        return
+    fi
     herdr pane list 2>/dev/null \
         | jq -r '.result.panes[] | [.workspace_id, (.foreground_cwd // .cwd // "")] | @tsv'
 }
 
 herdr_agents_tsv() {
+    if [[ "$gui" == 1 ]]; then
+        herdr-app ls 2>/dev/null \
+            | jq -r '.spaces[] | .id as $space | .tabs[].terminals[] | select(.app != null)
+                | [.terminal, .app, (.status // "unknown"), $space, (.name // "")] | @tsv'
+        return
+    fi
     herdr agent list 2>/dev/null \
         | jq -r '.result.agents[] | [.terminal_id, (.agent // "agent"), (.agent_status // "unknown"), .workspace_id, (.terminal_title_stripped // "")] | @tsv'
 }
@@ -115,6 +156,44 @@ find_workspace_id() {
 
     return 1
 }
+
+# Selecting the current space keeps showing this script's tab, so only another
+# space counts as having moved focus.
+gui_select_space() {
+    local id="$1"
+    if [[ "$(herdr-app status 2>/dev/null | jq -r .space)" != "$id" ]]; then
+        return_pane=""
+    fi
+    herdr-app do space.select --id "$id" >/dev/null
+}
+
+show_preview() {
+    local target="$1"
+    case "$target" in
+        agent:*)
+            if [[ "$gui" == 1 ]]; then
+                hc read "${target#agent:}" --lines 60 2>/dev/null || echo "(no agent output)"
+            else
+                herdr agent read "${target#agent:}" --lines 60 2>/dev/null | jq -r ".result.read.text // \"(no agent output)\""
+            fi
+            ;;
+        ws:*)
+            if [[ "$gui" == 1 ]]; then
+                herdr-app ls 2>/dev/null | jq -C --arg id "${target#ws:}" '.spaces[] | select(.id == $id)'
+            else
+                herdr workspace get "${target#ws:}" 2>/dev/null | jq -C .result.workspace
+            fi
+            ;;
+        *)
+            if [[ -d "$target" ]]; then eza --icons --git -l "$target"; fi
+            ;;
+    esac
+}
+
+if [[ "${1:-}" == "--preview" ]]; then
+    show_preview "${2:-}"
+    exit 0
+fi
 
 collect_local_dirs() {
     local dirs=()
@@ -167,6 +246,7 @@ build_entries() {
         rest="${dir%/*}"
         owner="${rest##*/}"
         label="${owner}_${repo}"
+        [[ "$gui" == 1 ]] && label="$repo"
         label="${label//./_}"
         label="${label//:/_}"
         wsid="${open_labels[$label]:-${open_cwds[$dir]:-}}"
@@ -255,11 +335,7 @@ pick_target() {
         --print-query \
         --prompt="jump > " \
         --header="enter jump · owner/repo clones · ctrl-g github" \
-        --preview='t={4}; case "$t" in
-            agent:*) herdr agent read "${t#agent:}" --lines 60 2>/dev/null | jq -r ".result.read.text // \"(no agent output)\"";;
-            ws:*) herdr workspace get "${t#ws:}" 2>/dev/null | jq -C .result.workspace;;
-            *) [ -d "$t" ] && eza --icons --git -l "$t";;
-        esac' \
+        --preview="$(printf '%q' "$script_path") --preview {4}" \
         --preview-window=right:40% \
     )
     status=$?
@@ -318,11 +394,20 @@ fi
 
 case "$selected" in
     agent:*)
-        herdr agent focus "${selected#agent:}" >/dev/null
+        if [[ "$gui" == 1 ]]; then
+            return_pane=""
+            herdr-app do agent.focus --terminal "${selected#agent:}" >/dev/null
+        else
+            herdr agent focus "${selected#agent:}" >/dev/null
+        fi
         exit 0
         ;;
     ws:*)
-        herdr workspace focus "${selected#ws:}" >/dev/null
+        if [[ "$gui" == 1 ]]; then
+            gui_select_space "${selected#ws:}"
+        else
+            herdr workspace focus "${selected#ws:}" >/dev/null
+        fi
         exit 0
         ;;
 esac
@@ -330,7 +415,14 @@ esac
 selected="${selected%/}"
 label=$(workspace_label "$selected")
 
-if ws_id=$(find_workspace_id "$label" "$selected"); then
+if [[ "$gui" == 1 ]]; then
+    if ws_id=$(find_workspace_id "$label" "$selected"); then
+        gui_select_space "$ws_id"
+    else
+        return_pane=""
+        herdr-app do space.new --name "$label" --folder "$selected" >/dev/null
+    fi
+elif ws_id=$(find_workspace_id "$label" "$selected"); then
     herdr workspace focus "$ws_id" >/dev/null
 else
     herdr workspace create --cwd "$selected" --label "$label" --focus >/dev/null

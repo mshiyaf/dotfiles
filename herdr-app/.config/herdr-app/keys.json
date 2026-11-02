@@ -57,7 +57,12 @@
     "ctrl-shift-z": "pane.zoom",
     "ctrl-shift-l": "layout.switch",
     "f2": "tab.rename",
-    "shift-f2": "space.rename"
+    "shift-f2": "space.rename",
+    "ctrl-alt-p": "agent.prev",
+    "ctrl-alt-n": "agent.next",
+    "ctrl-alt-,": "space.prev",
+    "ctrl-alt-.": "space.next",
+    "ctrl-shift-f": "mod.open:sessionizer"
   },
   "terminal": {
     "ctrl-backspace": "send:\u0017",
