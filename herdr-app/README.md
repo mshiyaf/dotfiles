@@ -16,6 +16,28 @@ Everything else in `~/.config/herdr-app` is written by the app, so it stays out 
 That includes shipped mods and layouts, which the app restores on start if edited.
 To customize one, clone it with `herdr-app do layout.clone` or `herdr-app do mod.clone`, then move the clone in here and restow.
 
+## Keys added by the mods
+
+These mods are this repo's own code with no install step, written from the behaviour in public Herdr recipes.
+
+| Keys | Mod | What it does |
+|---|---|---|
+| `Ctrl+B`, then a key | `prefix` | The TUI's prefix keys, with a hint popup. `?` lists them all and `Ctrl+B Ctrl+B` sends a literal `Ctrl+B` to the terminal. |
+| `Ctrl+Shift+G` (or `Ctrl+B g`) | `git-graph` | A live `glola`. Read-only. Click a row or press `j`/`k` for details. |
+| `Ctrl+Shift+Space` | `float-space` | A floating window with its own terminals and shared notes. |
+| `Ctrl+Shift+R` | `agent-resume` | Brings back agents that a reboot or core restart took from their terminals. |
+
+- `prefix` takes `Ctrl+B` away from terminal programs, so press it twice for tmux or Claude Code's "run in background".
+  Last pane is `Ctrl+B ;` because the window takes `Tab` before any mod sees it.
+- `float-space` opens with the keyboard in its header: `c` new terminal, `n`/`p` switch, `x` end, `z` size, `m` notes, `Esc` hide.
+  Click a terminal to type in it, because commands can't focus a terminal in an overlay.
+- `agent-resume` learns sessions from hooks.
+  Claude's hook is in `agents/.claude/settings.json`.
+  Codex and Antigravity keep theirs in machine-local files, so add them with `python3 ~/.config/herdr-app/mods/agent-resume/agent_resume.py install-hooks`.
+  It resumes without the original launch flags, so a permission bypass is never turned back on.
+
+## Stow notes
+
 The app writes through these symlinks, so changing zoom in the GUI shows up as a change in this repo.
 Hand edits to these files are not reliably picked up live through the symlink (seen on 0.1.11), so restart the window after editing them.
 If the live file is a real file, such as after the first launch on a new machine, `make stow` reports a conflict.

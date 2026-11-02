@@ -55,3 +55,7 @@ opencode/.opencode/bun.lock*
 .opencode/package-lock.json
 .opencode/bun.lock*
 /.commandcode/taste
+
+# written by the Herdr app next to each mod
+herdr-app/.config/herdr-app/mods/*/jsconfig.json
+herdr-app/.config/herdr-app/mods/*/*.d.ts
