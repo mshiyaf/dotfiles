@@ -423,22 +423,26 @@ describe("Crew Antigravity execution", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  test("keeps the task when guardrails are added without a caller-scoped task", () => {
+    expect(callCrewFunction("task_with_guardrails claude 'fix login'")).toStartWith("fix login. When done");
+  });
+
   test("maps Antigravity profiles to Gemini model tiers", () => {
-    expect(callCrewFunction("resolve_profile fast antigravity")).toBe("gemini-3.6-flash-low");
-    expect(callCrewFunction("resolve_profile standard antigravity")).toBe("gemini-3.6-flash-high");
-    expect(callCrewFunction("resolve_profile deep antigravity")).toBe("gemini-3.1-pro-high");
+    expect(callCrewFunction("resolve_profile fast antigravity")).toBe("gemini-3.8-flash-low");
+    expect(callCrewFunction("resolve_profile standard antigravity")).toBe("gemini-3.8-flash-high");
+    expect(callCrewFunction("resolve_profile deep antigravity")).toBe("gemini-3.8-flash-high");
   });
 
   test("launches headless Antigravity bounded by CREW_MANAGED + --dangerously-skip-permissions", () => {
-    const command = callCrewFunction("antigravity_headless_command gemini-3.6-flash-high 'finish task'");
+    const command = callCrewFunction("antigravity_headless_command gemini-3.8-flash-high 'finish task'");
     expect(command).toContain("CREW_MANAGED=1 agy -p");
-    expect(command).toContain("--model gemini-3.6-flash-high");
+    expect(command).toContain("--model gemini-3.8-flash-high");
     expect(command).toContain("--dangerously-skip-permissions");
   });
 
   test("launches interactive Antigravity without print or permission flags", () => {
-    const command = callCrewFunction("antigravity_interactive_command gemini-3.6-flash-high");
-    expect(command).toBe("agy --model gemini-3.6-flash-high");
+    const command = callCrewFunction("antigravity_interactive_command gemini-3.8-flash-high");
+    expect(command).toBe("agy --model gemini-3.8-flash-high");
     expect(command).not.toContain("-p");
     expect(command).not.toContain("--dangerously-skip-permissions");
   });

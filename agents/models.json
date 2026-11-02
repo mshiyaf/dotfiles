@@ -3,31 +3,31 @@
     "opencode": "gpt-5.6-terra",
     "claude": "opus",
     "codex": "gpt-5.6-sol",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "security-reviewer": {
     "opencode": "gpt-5.6-sol-pro",
     "claude": "opus",
     "codex": "gpt-5.6-sol-pro",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "critic": {
     "opencode": "gpt-5.6-sol-pro",
     "claude": "opus",
     "codex": "gpt-5.6-sol-pro",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "architect": {
     "opencode": "gpt-5.6-sol",
     "claude": "opus",
     "codex": "gpt-5.6-sol",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "refactor-planner": {
     "opencode": "gpt-5.6-sol",
     "claude": "opus",
     "codex": "gpt-5.6-sol",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "researcher": {
     "opencode": "gpt-5.6-sol-low",
@@ -36,19 +36,19 @@
       "model": "gpt-5.6-sol",
       "reasoning_effort": "low"
     },
-    "antigravity": "gemini-3.6-flash-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "debugger": {
     "opencode": "gpt-5.6-sol",
     "claude": "sonnet",
     "codex": "gpt-5.6-sol",
-    "antigravity": "gemini-3.1-pro-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "tester": {
     "opencode": "gpt-5.6-terra",
     "claude": "sonnet",
     "codex": "gpt-5.6-terra",
-    "antigravity": "gemini-3.6-flash-high"
+    "antigravity": "gemini-3.8-flash-high"
   },
   "docs-writer": {
     "opencode": "gpt-5.6-luna-low",
@@ -57,7 +57,7 @@
       "model": "gpt-5.6-luna",
       "reasoning_effort": "low"
     },
-    "antigravity": "gemini-3.6-flash-low"
+    "antigravity": "gemini-3.8-flash-low"
   },
   "pr-writer": {
     "opencode": "gpt-5.6-luna-low",
@@ -66,6 +66,6 @@
       "model": "gpt-5.6-luna",
       "reasoning_effort": "low"
     },
-    "antigravity": "gemini-3.6-flash-low"
+    "antigravity": "gemini-3.8-flash-low"
   }
 }

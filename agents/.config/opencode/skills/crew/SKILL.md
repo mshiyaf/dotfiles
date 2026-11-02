@@ -73,8 +73,8 @@ isolation. Do not dispatch concurrent editing subagents that may touch the same 
    `standard`, and Qwen3.7-Max for `deep`; its headless (`-p`) mode cannot write without `--yolo`,
    so tasked crewmates run `--yolo` bounded by the required `CREW_MANAGED`-gated guard hook
    (`crew-guard.sh`), which denies push/sudo/hard-reset/clean/rm. Crew refuses to launch a
-   CommandCode crewmate if that hook is missing. Antigravity uses `gemini-3.6-flash-low` for `fast`,
-   `gemini-3.6-flash-high` for `standard`, and `gemini-3.1-pro-high` for `deep` under bounded
+   CommandCode crewmate if that hook is missing. Antigravity uses `gemini-3.8-flash-low` for `fast`,
+   `gemini-3.8-flash-high` for `standard` and `deep` under bounded
    `--dangerously-skip-permissions`. Codex uses `gpt-5.6-luna` with reasoning effort `low` for
    `fast`, `gpt-5.6-terra` for `standard`, and `gpt-5.6-sol` for `deep`; reasoning effort is a
    separate Codex setting and must not be appended to the model slug.

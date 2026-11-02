@@ -323,9 +323,9 @@ Crew profiles select explicit models for every engine rather than inheriting mac
 
 | Profile | Use for | OpenCode | Claude | Codex | Kimi Code | Amp | CommandCode | Antigravity |
 |---|---|---|---|---|---|---|---|---|
-| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash | Gemini 3.6 Flash Low |
-| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro | Gemini 3.6 Flash High |
-| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max | Gemini 3.1 Pro High |
+| `fast` | Mechanical documentation, formatting, boilerplate | Luna Fast | Haiku | Luna Fast | K2.7 Code | low | DeepSeek V4 Flash | Gemini 3.8 Flash Low |
+| `standard` | Normal implementation and tests | Terra | Sonnet | Terra | K2.7 Code | medium | DeepSeek V4 Pro | Gemini 3.8 Flash High |
+| `deep` | Architecture-sensitive work, concurrency, security, difficult debugging | Sol | Opus | Sol | K3 | high | Qwen3.7-Max | Gemini 3.8 Flash High |
 
 The captain assigns profiles explicitly: `fast` for mechanical tasks, `standard` for normal work,
 and `deep` only when stronger reasoning is justified.

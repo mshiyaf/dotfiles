@@ -14,7 +14,7 @@
 #   claude   -> claude -p ... (haiku, for speed)
 #   codex    -> codex exec ...
 #   amp      -> amp -m low -x ...
-#   antigravity -> agy --model gemini-3.6-flash-high -p ...
+#   antigravity -> agy --model gemini-3.8-flash-high -p ...
 #
 # Robustness: the model call is wrapped in `timeout`. If the engine is missing,
 # errors, times out, or returns nothing usable, we fall back to a deterministic
@@ -104,7 +104,7 @@ ask_engine() {
 			local bin="agy"
 			command -v agy >/dev/null 2>&1 || bin="antigravity"
 			command -v "$bin" >/dev/null 2>&1 || return 1
-			timeout "$AI_TIMEOUT" "$bin" --model gemini-3.6-flash-high -p "$PROMPT" 2>/dev/null
+			timeout "$AI_TIMEOUT" "$bin" --model gemini-3.8-flash-high -p "$PROMPT" 2>/dev/null
 			;;
 		*) return 1 ;;
 	esac

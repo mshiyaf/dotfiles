@@ -376,7 +376,7 @@ use sudo, rewrite Git history, delete the worktree, or perform outward-facing ac
 gate_review_antigravity() {
 	local bin="agy"
 	command -v agy >/dev/null 2>&1 || bin="antigravity"
-	"$bin" -p "$(gate_review_prompt)" --model gemini-3.1-pro-high --dangerously-skip-permissions 2>/dev/null
+	"$bin" -p "$(gate_review_prompt)" --model gemini-3.8-flash-high --dangerously-skip-permissions 2>/dev/null
 }
 
 gate_fix_antigravity() {
@@ -386,7 +386,7 @@ gate_fix_antigravity() {
 
 Work only in the current disposable worktree. Do not push, open or modify pull requests,
 use sudo, rewrite Git history, delete the worktree, or perform outward-facing actions." \
-		--model gemini-3.6-flash-high --dangerously-skip-permissions
+		--model gemini-3.8-flash-high --dangerously-skip-permissions
 }
 
 run_review() {

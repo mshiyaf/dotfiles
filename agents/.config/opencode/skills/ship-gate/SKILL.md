@@ -35,7 +35,7 @@ the file. The Amp variant uses `medium` mode and the shared bounded safety polic
 Amp `high` or `ultra` modes. The CommandCode variant reviews with Qwen3.7-Max (read-only `-p`, no
 `--yolo`) and applies fixes with DeepSeek V4 Pro under `--yolo`, bounded by the required
 `CREW_MANAGED`-gated guard hook (`crew-guard.sh`); it fails closed if the hook is missing. The
-Antigravity variant reviews with `gemini-3.1-pro-high` and applies fixes with `gemini-3.6-flash-high` under
+Antigravity variant reviews and applies fixes with `gemini-3.8-flash-high` under
 bounded `--dangerously-skip-permissions`.
 Fields: `GATE_TEST`, `GATE_DOCS`, `GATE_LINT`, `GATE_REVIEW_CMD` (structured JSON review; empty = skip),
 `GATE_REVIEW_APPROVE` (1 = gate `ask_user` findings, 0 = informational), `GATE_FIX_CMD` (`%s` = fix prompt),

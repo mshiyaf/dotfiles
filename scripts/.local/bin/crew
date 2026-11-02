@@ -201,7 +201,8 @@ claude_headless_command() {
 }
 
 task_with_guardrails() {
-	local engine="$1" task="$2" full="$task. $TASK_SUFFIX"
+	local engine="$1" task="$2"
+	local full="$task. $TASK_SUFFIX"
 	case "$engine" in
 		amp)  full="$full $AMP_TASK_SUFFIX" ;;
 		commandcode) full="$full $COMMANDCODE_TASK_SUFFIX" ;;
@@ -297,9 +298,9 @@ resolve_profile() {
 		fast:commandcode)     printf '%s' 'deepseek/deepseek-v4-flash' ;;
 		standard:commandcode) printf '%s' 'deepseek/deepseek-v4-pro' ;;
 		deep:commandcode)     printf '%s' 'Qwen/Qwen3.7-Max' ;;
-		fast:antigravity|fast:agy)         printf '%s' 'gemini-3.7-flash-low' ;;
-		standard:antigravity|standard:agy) printf '%s' 'gemini-3.7-flash-high' ;;
-		deep:antigravity|deep:agy)         printf '%s' 'gemini-3.1-pro-high' ;;
+		fast:antigravity|fast:agy)         printf '%s' 'gemini-3.8-flash-low' ;;
+		standard:antigravity|standard:agy) printf '%s' 'gemini-3.8-flash-high' ;;
+		deep:antigravity|deep:agy)         printf '%s' 'gemini-3.8-flash-high' ;;
 		*) die "unknown crew profile '$profile' (use fast, standard, or deep)" ;;
 	esac
 }
