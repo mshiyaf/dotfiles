@@ -10,6 +10,8 @@ Only files that belong to you are tracked:
 - `themes/noctalia-tui.json` - the TUI's colors from `herdr/.config/herdr/config.toml`, on kitty's Noctalia background and ANSI palette.
   It is a snapshot, so it does not follow later Noctalia theme changes.
 - `mods/sessionizer/` - opens `zsh/.config/zsh/herdr-sessionizer.sh` in a popup on `ctrl-shift-f` or `Ctrl+B f`, the GUI's version of the TUI's `prefix+f`.
+- `layouts/workspace.json` - a clone of the shipped `main` layout with `worktree-support` as the spaces list.
+  Switch with `ctrl-shift-l`.
 
 Everything else in `~/.config/herdr-app` is written by the app, so it stays out of this package.
 That includes shipped mods and layouts, which the app restores on start if edited.
@@ -17,7 +19,8 @@ To customize one, clone it with `herdr-app do layout.clone` or `herdr-app do mod
 
 ## Keys added by the mods
 
-These mods are this repo's own code with no install step, written from the behaviour in public Herdr recipes.
+These mods have no install step.
+Most are this repo's own code, written from the behaviour in public Herdr recipes, and [Vendored mods](#vendored-mods) lists the ones copied from other repos.
 
 | Keys | Mod | What it does |
 |---|---|---|
@@ -25,6 +28,7 @@ These mods are this repo's own code with no install step, written from the behav
 | `Ctrl+Shift+G` (or `Ctrl+B g`) | `git-graph` | A live `glola`. Read-only. Click a row or press `j`/`k` for details. |
 | `Ctrl+Shift+Space` | `float-space` | A floating window with its own terminals and shared notes. |
 | `Ctrl+Shift+R` | `agent-resume` | Brings back agents that a reboot or core restart took from their terminals. |
+| `Ctrl+Shift+D` (or `Ctrl+B o`) | `agent-deck-overview` | A full-window board of agents by state, plus every terminal with its last lines. |
 
 - `Ctrl+B` waits for a second key, so press it twice for tmux or Claude Code's "run in background".
 - `Ctrl+B ;` (`last-pane` mod) jumps between the panes you press it in, since Herdr has no last-pane command.
@@ -35,6 +39,23 @@ These mods are this repo's own code with no install step, written from the behav
   Claude's hook is in `agents/.claude/settings.json`.
   Codex and Antigravity keep theirs in machine-local files, so add them with `python3 ~/.config/herdr-app/mods/agent-resume/agent_resume.py install-hooks`.
   It resumes without the original launch flags, so a permission bypass is never turned back on.
+
+## Vendored mods
+
+These were read in full, then copied at a pinned commit with their licenses.
+They do not update on their own, so take a new version by copying it over and reading the diff.
+
+| Mod | Source | Commit | License | Local changes |
+|---|---|---|---|---|
+| `agent-deck-overview` | [zztalker/herdr-agent-deck](https://github.com/zztalker/herdr-agent-deck) | `eb7b7d4` | Apache-2.0 | Redesigned layout and cards, keyboard navigation |
+| `worktree-support` | [natelandau/herdr-worktree-support](https://github.com/natelandau/herdr-worktree-support) | `711e079` | MIT | None |
+| `worktree-actions` | [natelandau/herdr-worktree-support](https://github.com/natelandau/herdr-worktree-support) | `711e079` | MIT | "Reveal in Finder" is now "Open folder", using `xdg-open` |
+
+- `agent-deck-overview` opens on the most urgent agent: arrows or `hjkl` move, `Enter` goes to it, `T` switches tab and `Esc` closes.
+- `agent-deck-overview` runs `hc machine ls` and, on its Terminals tab, `hc read` on non-agent terminals every 8 seconds.
+- `worktree-support` runs read-only `git` in your repos, and `gh pr list` at most once a minute per GitHub repo.
+- `worktree-actions` runs your editor or `xdg-open` when you pick those items.
+  If a repo sets `git config herdr.worktreeRemove`, its "Remove worktree" runs that command with `sh -c`, after a confirm that shows it.
 
 ## Stow notes
 
