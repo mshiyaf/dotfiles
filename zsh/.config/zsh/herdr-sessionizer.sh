@@ -24,14 +24,6 @@ export PATH="$HOME/.local/bin:$PATH"
 gui=0
 [[ -n "${HC_TERMINAL_ID:-}" && -z "${HERDR_ENV:-}" ]] && gui=1
 
-# Set by the GUI's sessionizer mod. Its tab closes when this script exits, so go
-# back to this pane unless the pick already moved focus somewhere else.
-return_pane=""
-if [[ "${1:-}" == "--return-pane" ]]; then
-    return_pane="${2:-}"
-    shift 2
-fi
-
 script_path="${BASH_SOURCE[0]}"
 base_dir="$HOME/dev/github.com"
 gh_search_repo_jq='.[] | [.fullName, (if .isPrivate then "private" else "public" end), (.description // "")] | @tsv'
@@ -51,9 +43,6 @@ c_dim=$'\033[2m'
 
 cleanup() {
     rm -f "$force_github_flag"
-    if [[ -n "$return_pane" ]]; then
-        herdr-app do pane.focus --pane "$return_pane" >/dev/null 2>&1 || true
-    fi
 }
 
 trap cleanup EXIT
@@ -155,16 +144,6 @@ find_workspace_id() {
     done < <(herdr_pane_cwds_tsv)
 
     return 1
-}
-
-# Selecting the current space keeps showing this script's tab, so only another
-# space counts as having moved focus.
-gui_select_space() {
-    local id="$1"
-    if [[ "$(herdr-app status 2>/dev/null | jq -r .space)" != "$id" ]]; then
-        return_pane=""
-    fi
-    herdr-app do space.select --id "$id" >/dev/null
 }
 
 show_preview() {
@@ -395,7 +374,6 @@ fi
 case "$selected" in
     agent:*)
         if [[ "$gui" == 1 ]]; then
-            return_pane=""
             herdr-app do agent.focus --terminal "${selected#agent:}" >/dev/null
         else
             herdr agent focus "${selected#agent:}" >/dev/null
@@ -404,7 +382,7 @@ case "$selected" in
         ;;
     ws:*)
         if [[ "$gui" == 1 ]]; then
-            gui_select_space "${selected#ws:}"
+            herdr-app do space.select --id "${selected#ws:}" >/dev/null
         else
             herdr workspace focus "${selected#ws:}" >/dev/null
         fi
@@ -417,9 +395,8 @@ label=$(workspace_label "$selected")
 
 if [[ "$gui" == 1 ]]; then
     if ws_id=$(find_workspace_id "$label" "$selected"); then
-        gui_select_space "$ws_id"
+        herdr-app do space.select --id "$ws_id" >/dev/null
     else
-        return_pane=""
         herdr-app do space.new --name "$label" --folder "$selected" >/dev/null
     fi
 elif ws_id=$(find_workspace_id "$label" "$selected"); then

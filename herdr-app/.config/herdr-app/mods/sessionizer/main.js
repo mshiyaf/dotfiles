@@ -1,21 +1,20 @@
-// Opens zsh/herdr-sessionizer.sh in its own tab, the GUI's version of the TUI's prefix+f popup.
-// A tab rather than a peek or dialog: only a pane can be given the keyboard from a command.
-// The tab closes when the script exits; this overlay only launches it.
+// Opens zsh/herdr-sessionizer.sh in a popup, like the TUI's prefix+f.
+// A dialog hands the keyboard to its terminal as it opens, but closing any overlay gives
+// the keyboard back to the top dialog's frame. So this launcher must close before the
+// dialog opens, or the terminal loses it. The dialog closes when the script exits.
 
 import { View, div } from "gpui-kit";
-import { appHome, closeOverlay, focused, hc, notify, props, run, terminals } from "herdr";
+import { appHome, closeOverlay, hc, notify, openOverlay, props, terminals } from "herdr";
 
 const NAME = "sessionizer";
 
 async function launch() {
-  // A tab closed mid-pick can leave the old run behind, and names are unique.
+  // A popup dismissed mid-pick can leave the old run behind, and names are unique.
   await hc(["kill", NAME]).catch(() => null);
   await hc(["rm", NAME]).catch(() => null);
 
   const script = `${appHome()}/../zsh/herdr-sessionizer.sh`;
-  const pane = focused()?.pane;
-  const back = pane ? ["--return-pane", pane] : [];
-  const started = await hc(["run", "--bg", "--json", "--no-parent", "--rm", "--name", NAME, "--", script, ...back]);
+  const started = await hc(["run", "--bg", "--json", "--no-parent", "--rm", "--name", NAME, "--", script]);
   if (started.code !== 0) throw new Error(started.stderr || `hc run exited ${started.code}`);
   return JSON.parse(started.stdout).address;
 }
@@ -35,8 +34,15 @@ export default class Sessionizer extends View {
   // The window learns about a new terminal a moment after hc starts it.
   openWhenKnown(address, tries, cx) {
     if (terminals().some((t) => t.address === address)) {
-      run("terminal.keep", { terminal: address, place: "tab" });
       this.finish();
+      openOverlay({
+        kind: "dialog",
+        key: NAME,
+        modal: true,
+        width: 0.85,
+        height: 0.75,
+        layout: { type: "column", children: [{ type: "block", content: { terminal: address } }] },
+      });
     } else if (tries < 50) {
       cx.timer.after(100, (cx) => this.openWhenKnown(address, tries + 1, cx));
     } else {
