@@ -3,7 +3,9 @@
   "model": "openai/gpt-5.6-terra",
   "small_model": "openai/gpt-5.6-luna-low",
   "default_agent": "build",
-  "enabled_providers": ["openai"],
+  "enabled_providers": [
+    "openai"
+  ],
   "permission": {
     "edit": "ask",
     "bash": {
@@ -709,5 +711,17 @@
       }
     }
   },
-  "plugin": []
+  "plugin": [],
+  "mcp": {
+    "aws-mcp": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "mcp-proxy-for-aws@latest",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--metadata",
+        "INSTALL_SOURCE=aws-cli"
+      ]
+    }
+  }
 }
