@@ -85,6 +85,16 @@ function M.formatClock(ts)
   return noctalia.formatTime(sameDay and "{:%-I:%M %p}" or "{:%a %-I:%M %p}", ts)
 end
 
+-- A completed refresh timestamp for explaining when a failed provider request
+-- has left the panel showing its last known quota rather than live data.
+function M.formatSnapshotTime(ts)
+  ts = tonumber(ts)
+  if not ts or ts <= 0 then
+    return nil
+  end
+  return noctalia.formatTime("{:%b %-d, %-I:%M %p}", ts)
+end
+
 function M.titleCase(s)
   s = tostring(s or "")
   return (s:gsub("^%l", string.upper))

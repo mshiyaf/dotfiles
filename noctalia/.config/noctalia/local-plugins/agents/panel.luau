@@ -37,6 +37,19 @@ local function statusLabel(status)
   return ui.label({ text = text, color = "error", fontSize = 12, maxLines = 1 })
 end
 
+-- A failed provider request preserves the last successful quota so the panel
+-- remains useful. Make that provenance explicit instead of presenting it as live.
+local function cachedQuotaNote(entry)
+  if not entry.status or entry.status == "ok" then
+    return nil
+  end
+  local fetchedAt = shared.formatSnapshotTime(entry.fetchedAt)
+  if fetchedAt then
+    return `Showing cached quota from {fetchedAt}.`
+  end
+  return "No cached quota is available."
+end
+
 -- ── Quota windows ────────────────────────────────────────────────────────────
 
 local function windowRows(key, w, detailed)
@@ -181,6 +194,10 @@ local function accountSection(provider, section)
         table.insert(line, action)
       end
       table.insert(rows, ui.row({ key = key, gap = 6, align = "center" }, line))
+      local cacheNote = cachedQuotaNote(acct)
+      if cacheNote then
+        table.insert(rows, muted(cacheNote, { key = key .. "-cached", fontSize = 11, maxLines = 1 }))
+      end
       if provider == "codex" and armed == `codex:{acct.profile}` and noctalia.nowMs() < armedUntil then
         table.insert(rows, muted("Restarts the Codex daemon: running Codex CLI sessions are interrupted.", {
           key = key .. "-warn",

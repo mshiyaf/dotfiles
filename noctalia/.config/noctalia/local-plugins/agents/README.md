@@ -8,6 +8,7 @@ It shows quota usage for Claude Code, Codex, Amp, and Command Code, switches sav
 - Bar: tiny session meters for the live Claude and Codex accounts (or a single robot icon), with a summary tooltip.
 - Quota bars with a pace tick at the elapsed share of the window.
   The line under each live bar gives the percentage used, how far ahead of or under pace you are, and either a forecast ("limit in ~2d 0h") or the reset time.
+- When a provider refresh fails, its status identifies the failure and the panel labels any retained quota with the time of its last successful fetch.
 - Notifications when a live window crosses 75%, 90%, or its limit, and when a window you pushed past 75% resets.
 - Accounts from the `ai-account` store: the live one is marked ACTIVE, others offer Use (click twice to confirm) or Sign in.
 - Codex free reset credits and their next expiry.
