@@ -88,6 +88,21 @@ alias codex-account="ai-account switch codex"
 alias claude-account-login="ai-account login claude"
 alias codex-account-login-native="ai-account login codex"
 
+# In Herdr terminals, run the Codex TUI without its shared background server.
+# That server runs hooks with the environment of whichever terminal started it,
+# so herdr-app's agent-resume would save every session on that one terminal.
+codex() {
+  if [[ -z "${HC_TERMINAL_ID:-}" ]]; then
+    command codex "$@"
+  elif [[ $# -eq 0 || "$1" == -* ]]; then
+    command codex --no-daemon "$@"
+  elif [[ "$1" == resume || "$1" == fork ]]; then
+    command codex "$1" --no-daemon "${@:2}"
+  else
+    command codex "$@"
+  fi
+}
+
 # Ollama (local LLM)
 alias ai-start="sudo systemctl start ollama.service"
 alias ai-stop="sudo systemctl stop ollama.service"
