@@ -1,8 +1,10 @@
 # Elsewhen: a world clock, ported from Omarchy's Elsewhen bar panel.
 #
 # The headless service probes every zone's UTC offset with `date` (Luau has no
-# time zone database) and owns the city list; the bar widget and the panel tick
-# the clocks locally against those offsets.
+# time zone database), owns the city list, and fetches weather and sunrise/sunset
+# (weather.py, keyless Open-Meteo); the bar widget and the panel tick the clocks
+# locally against those offsets. 12/24-hour, offset style and units are toggled
+# by clicking them in the panel and saved to prefs.json in the plugin data dir.
 
 id = "mshiyaf/elsewhen"
 name = "Elsewhen"
@@ -14,25 +16,7 @@ license = "MIT"
 icon = "world"
 description = "A world clock: the time in several cities at once, with each city's day and daylight."
 tags = ["time", "clock", "bar", "panel", "service"]
-dependencies = ["bash", "date", "timedatectl"]
-
-[[setting]]
-key = "hour24"
-type = "bool"
-label_key = "settings.hour24.label"
-description_key = "settings.hour24.description"
-default = false
-
-[[setting]]
-key = "offset_mode"
-type = "select"
-label_key = "settings.offset_mode.label"
-description_key = "settings.offset_mode.description"
-default = "home"
-options = [
-  { value = "home", label_key = "settings.offset_mode.options.home" },
-  { value = "utc", label_key = "settings.offset_mode.options.utc" },
-]
+dependencies = ["bash", "date", "timedatectl", "python3"]
 
 [[service]]
 id = "service"

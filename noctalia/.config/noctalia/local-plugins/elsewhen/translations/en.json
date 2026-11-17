@@ -1,10 +1,4 @@
 {
-  "settings.hour24.label": "24-hour time",
-  "settings.hour24.description": "Show 14:05 instead of 2:05 PM in the bar, tooltip, and panel.",
-  "settings.offset_mode.label": "Row offsets",
-  "settings.offset_mode.description": "Show each city's distance from your clock (+3.5h) or its UTC offset (UTC+9).",
-  "settings.offset_mode.options.home": "From my time",
-  "settings.offset_mode.options.utc": "From UTC",
   "settings.show_city.label": "Show a city in the bar",
   "settings.show_city.description": "Show the time of the first city in your list that isn't home next to the globe."
 }

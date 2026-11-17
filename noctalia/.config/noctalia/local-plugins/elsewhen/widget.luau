@@ -6,13 +6,12 @@ local shared = require("./shared.luau")
 
 local snapshot = noctalia.state.get(shared.STATE_KEY)
 local cities = noctalia.state.get(shared.CITIES_KEY) or {}
+local prefs = noctalia.state.get(shared.PREFS_KEY) or {}
 
 local function rows()
-  local hour24 = noctalia.getConfig("hour24") == true
-  local mode = noctalia.getConfig("offset_mode") or "home"
   local out = {}
   for _, city in ipairs(cities) do
-    local row = shared.rowFor(city, snapshot, noctalia.nowMs(), hour24, mode)
+    local row = shared.rowFor(city, snapshot, noctalia.nowMs(), prefs)
     if row then
       table.insert(out, row)
     end
@@ -55,6 +54,13 @@ end
 noctalia.state.watch(shared.STATE_KEY, function(value)
   if type(value) == "table" then
     snapshot = value
+    render()
+  end
+end)
+
+noctalia.state.watch(shared.PREFS_KEY, function(value)
+  if type(value) == "table" then
+    prefs = value
     render()
   end
 end)

@@ -9,6 +9,8 @@ M.STATE_KEY = "elsewhen_snapshot"
 M.CITIES_KEY = "elsewhen_cities"
 M.COMMAND_KEY = "elsewhen_command"
 M.SEARCH_KEY = "elsewhen_search"
+M.WEATHER_KEY = "elsewhen_weather"
+M.PREFS_KEY = "elsewhen_prefs"
 M.PANEL_ID = "mshiyaf/elsewhen:panel"
 
 local DAY_START, DAY_END = 6, 18
@@ -22,11 +24,11 @@ end
 -- ── The date probe ───────────────────────────────────────────────────────────
 
 -- argv for one `date` per zone, printing "Asia/Tokyo|JST|+0900", preceded by
--- "LOCAL|<zone>" and the local zone's own line. Without ids it probes every zone
--- the system knows (about 600 `date` calls, well under a second).
+-- "LOCAL|<zone>" and the local zone's own line. Only the zones asked for: parsing
+-- all ~600 in one callback exceeds Noctalia's per-callback CPU budget.
 function M.probeCommand(ids)
   local script = "tz=$(timedatectl show -p Timezone --value); printf 'LOCAL|%s\\n' \"$tz\"; "
-    .. 'if [ $# -eq 0 ]; then set -- $(timedatectl list-timezones); fi; set -- "$tz" "$@"; '
+    .. 'set -- "$tz" "$@"; '
     .. 'for z in "$@"; do TZ="$z" date "+$z|%Z|%z"; done'
   local argv = { "/usr/bin/bash", "-c", script, "bash" }
   for _, id in ipairs(ids or {}) do
@@ -141,7 +143,9 @@ function M.relativeLabel(offset, homeOffset)
 end
 
 -- Everything a row needs; nil until the zone has been probed.
-function M.rowFor(city, snapshot, nowMs, hour24, offsetMode)
+function M.rowFor(city, snapshot, nowMs, prefs)
+  local hour24 = prefs and prefs.hour24 == true
+  local offsetMode = prefs and prefs.offsetMode or "home"
   local offsets = snapshot and snapshot.offsets
   local info = offsets and offsets[city.id]
   local home = offsets and offsets[snapshot.localZone]
@@ -158,6 +162,8 @@ function M.rowFor(city, snapshot, nowMs, hour24, offsetMode)
     time = time,
     meridiem = meridiem,
     hour = parts.hour,
+    minute = parts.minute,
+    offset = info.offset,
     date = M.formatDate(parts),
     dayLabel = M.dayLabel(parts.days - here.days),
     daytime = parts.hour >= DAY_START and parts.hour < DAY_END,
@@ -214,6 +220,10 @@ local DEFAULT_CITIES = {
   { label = "New York", id = "America/New_York" },
   { label = "London", id = "Europe/London" },
 }
+
+function M.defaultCities()
+  return table.clone(DEFAULT_CITIES)
+end
 
 function M.seedCities(localZone, cat)
   local out = {}
@@ -295,11 +305,107 @@ function M.search(query, index, cities, limit)
   return out
 end
 
--- ── Persistence (cities.json in the plugin's data dir) ──────────────────────
+-- ── Weather and daylight ─────────────────────────────────────────────────────
+
+function M.weatherKey(city)
+  return `{city.label}|{city.id}`
+end
+
+-- Today's lit span in the city's own clock, as minutes from midnight. A city the
+-- weather lookup has not placed yet gets Elsewhen's fixed 06:00-18:00 band.
+function M.daylight(fact, offset)
+  if fact and fact.sunrise and fact.sunset then
+    local function minutesOf(unix)
+      return math.floor(((unix + offset * 60) % 86400) / 60)
+    end
+    return minutesOf(fact.sunrise), minutesOf(fact.sunset)
+  end
+  return DAY_START * 60, DAY_END * 60
+end
+
+function M.isLit(minute, rise, set)
+  if rise <= set then
+    return minute >= rise and minute < set
+  end
+  return minute >= rise or minute < set -- a day that wraps past midnight
+end
+
+-- Elsewhen's five weather kinds, from WMO present-weather codes.
+function M.weatherGlyph(code, lit)
+  code = tonumber(code)
+  if code == nil then
+    return nil
+  elseif code <= 1 then
+    return lit and "sun" or "moon"
+  elseif code == 2 then
+    return "cloud-sun"
+  elseif (code >= 71 and code <= 77) or code == 85 or code == 86 then
+    return "snowflake"
+  elseif code >= 51 then
+    return "cloud-rain"
+  end
+  return "cloud"
+end
+
+function M.formatTemp(celsius, units)
+  if celsius == nil then
+    return ""
+  end
+  if units == "F" then
+    return `{math.round(celsius * 9 / 5 + 32)}°F`
+  end
+  return `{math.round(celsius)}°C`
+end
+
+-- ── Greetings (greetings.json, baked from Elsewhen's Greetings.js) ─────────
+
+local greetings = nil
+
+-- { text, roman } said in a zone at a local hour, or nil.
+function M.greeting(zone, hour)
+  if greetings == nil then
+    local raw = noctalia.readFile(`{noctalia.pluginDir()}/greetings.json`)
+    greetings = (raw and noctalia.json.decode(raw)) or { languages = {}, zones = {} }
+  end
+  local bands = greetings.languages[greetings.zones[zone] or "en"]
+  if not bands then
+    return nil
+  end
+  local band = bands[1]
+  for _, b in ipairs(bands) do
+    if b[1] <= hour then
+      band = b
+    end
+  end
+  return { text = band[2], roman = band[3] }
+end
+
+-- ── Persistence (the plugin's data dir) ──────────────────────────────────────
+
+local function dataFile(name)
+  local dir = noctalia.pluginDataDir() or noctalia.expandPath("~/.local/state/noctalia/elsewhen")
+  return `{dir}/{name}`
+end
 
 local function citiesFile()
-  local dir = noctalia.pluginDataDir() or noctalia.expandPath("~/.local/state/noctalia/elsewhen")
-  return `{dir}/cities.json`
+  return dataFile("cities.json")
+end
+
+-- Notation toggled by clicking the values themselves, shared by every entry.
+function M.loadPrefs()
+  local raw = noctalia.readFile(dataFile("prefs.json"))
+  local decoded = raw and noctalia.json.decode(raw)
+  local prefs = type(decoded) == "table" and decoded or {}
+  return {
+    hour24 = prefs.hour24 == true,
+    offsetMode = prefs.offsetMode == "utc" and "utc" or "home",
+    units = prefs.units == "F" and "F" or "C",
+  }
+end
+
+function M.savePrefs(prefs)
+  noctalia.writeFile(dataFile("prefs.json"), noctalia.json.encode(prefs))
+  noctalia.state.set(M.PREFS_KEY, prefs)
 end
 
 -- nil when nothing has been saved yet (the first run seeds a list).
