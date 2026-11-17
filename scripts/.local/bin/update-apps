@@ -5,7 +5,9 @@
 # manual-apps.sh). Downloads the real upstream artifact and installs it the same
 # way it was installed originally: AppImages replaced in place, .deb packages
 # extracted by hand and copied onto the filesystem (never via debtap/pacman/paru -
-# that's the whole reason these need this script).
+# that's the whole reason these need this script). Apps packaged by Omarchy's
+# own recipes (hype, disktree-bin) are built with makepkg and installed with
+# pacman -U.
 #
 # It also drives the self-updating CLIs and toolchains that live outside pacman
 # (claude, codex, amp, agy, herdr, opencode, opencode2, mise, rustup, uv) by
@@ -157,6 +159,28 @@ update_craft() {
   ok "$app updated to $ver"
 }
 
+# Builds an Omarchy recipe ($1 = package name) with makepkg from its published
+# files and installs the result with pacman. makepkg verifies the upstream
+# source against the recipe's sha256sums.
+update_opr() {
+  local pkg="$1" tmp file
+  tmp=$(mktemp -d)
+  info "Fetching the $pkg recipe from omacom/omarchy-pkgs..."
+  github_api "repos/omacom/omarchy-pkgs/contents/pkgbuilds/$pkg" |
+    python3 -c "import json, sys; print('\n'.join(f['name'] for f in json.load(sys.stdin) if f['type'] == 'file'))" |
+    while read -r file; do
+      curl -fsSL -o "$tmp/$file" "$OPR_RAW/$pkg/$file"
+    done
+  [ -f "$tmp/PKGBUILD" ] || { rm -rf "$tmp"; err "$pkg: couldn't fetch its PKGBUILD"; return 1; }
+  info "Building $pkg..."
+  (cd "$tmp" && makepkg -f --syncdeps --noconfirm) || { rm -rf "$tmp"; err "$pkg: build failed"; return 1; }
+  sudo pacman -U --noconfirm "$tmp"/"$pkg"-*.pkg.tar.zst
+  rm -rf "$tmp"
+  pacman-conf IgnorePkg | grep -qxF "$pkg" ||
+    warn "$pkg isn't in IgnorePkg in /etc/pacman.conf - paru -Syu may replace it from the AUR"
+  ok "$pkg updated to $(opr_local "$pkg")"
+}
+
 # --- self-updating tools -----------------------------------------------------
 #
 # Defined in manual-apps.sh (TOOL_*, tool_status); update-apps runs each one's
@@ -201,6 +225,11 @@ ORDER=(t3code chatgpt command-code herdr-app claude-desktop)
 for app in "${CRAFT_APPS[@]}"; do
   LABEL[$app]=${CRAFT_LABEL[$app]}
   LOCAL_FN[$app]=craft_local REMOTE_FN[$app]=craft_remote UPDATE_FN[$app]=update_craft
+  ORDER+=("$app")
+done
+for app in "${OPR_APPS[@]}"; do
+  LABEL[$app]=${OPR_LABEL[$app]}
+  LOCAL_FN[$app]=opr_local REMOTE_FN[$app]=opr_remote UPDATE_FN[$app]=update_opr
   ORDER+=("$app")
 done
 

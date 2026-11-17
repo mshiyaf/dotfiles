@@ -357,6 +357,15 @@ Currently covers:
   installed with `Exec` pointed at it. The installed version is that `.desktop`'s
   `X-AppImage-Version`. To add or drop an app, edit `CRAFT_LABEL`/`CRAFT_APPS` in
   `manual-apps.sh`; install a new one with `update-apps <app>` (`--all` only updates installed apps).
+- Omarchy recipes (`hype`, `disktree-bin`) - apps whose authentic packaging is Omarchy's own
+  recipe in `omacom/omarchy-pkgs`, written by the apps' authors.
+  The Omarchy repo itself is not added to pacman.
+  `update-apps <app>` fetches the recipe, builds it with `makepkg` (which checks the upstream
+  source against the recipe's sha256), and installs the result with `pacman -U`.
+  Installed version from `pacman -Q`; latest from the recipe's `pkgver`/`pkgrel`.
+  Both must be listed in `IgnorePkg` in `/etc/pacman.conf`: the AUR's `hype` is an unrelated
+  Twitch app with a higher version, and `paru -Syu` would otherwise replace these from the AUR.
+  To add one, edit `OPR_LABEL`/`OPR_APPS` in `manual-apps.sh` and add it to `IgnorePkg`.
 
 Self-updating tools - both scripts report their status, and `update-apps` runs each one's own
 updater (`--all` runs the outdated ones, plus `agy`, whose status can't be checked; its updater is

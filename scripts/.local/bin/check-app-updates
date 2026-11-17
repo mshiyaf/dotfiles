@@ -11,6 +11,7 @@
 #   check-app-updates          Check all known apps
 #   check-app-updates t3code   Check a single app (t3code|chatgpt|command-code|herdr-app|claude-desktop,
 #                              a Craft app: photocraft|pdfcraft|wordcraft|deckcraft|gridcraft,
+#                              an Omarchy recipe: hype|disktree-bin,
 #                              or a self-updating tool: claude|codex|amp|agy|herdr|opencode|
 #                              opencode2|mise|rustup|uv)
 #
@@ -81,7 +82,7 @@ check_tool() {
 }
 
 apps=("${1:-all}")
-[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code herdr-app claude-desktop "${CRAFT_APPS[@]}" "${TOOL_ORDER[@]}")
+[ "${apps[0]}" = all ] && apps=(t3code chatgpt command-code herdr-app claude-desktop "${CRAFT_APPS[@]}" "${OPR_APPS[@]}" "${TOOL_ORDER[@]}")
 
 for app in "${apps[@]}"; do
   case "$app" in
@@ -109,6 +110,9 @@ for app in "${apps[@]}"; do
       if is_craft_app "$app"; then
         check "$app" craft_local craft_remote \
           "download: https://github.com/storytold/$app/releases/latest"
+      elif is_opr_app "$app"; then
+        check "$app" opr_local opr_remote \
+          "recipe: https://github.com/omacom/omarchy-pkgs/tree/master/pkgbuilds/$app (not the AUR)"
       elif [ -n "${TOOL_UPDATE[$app]+x}" ]; then
         check_tool "$app"
       else

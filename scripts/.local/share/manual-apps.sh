@@ -187,6 +187,40 @@ print(f\"{ver}\t{url}\t{assets['SHA256SUMS.txt']}\")
 
 craft_remote() { craft_remote_info "$1" | cut -f1; }
 
+# --- Omarchy package recipes (omacom/omarchy-pkgs) -------------------------------
+#
+# Apps whose authentic packaging is Omarchy's own recipe (written by the app's
+# authors), built here with makepkg and installed as normal pacman packages. The
+# AUR either has no trustworthy copy or, for `hype`, an unrelated Twitch app with
+# the same name and a higher version - so these must be in IgnorePkg in
+# /etc/pacman.conf, or `paru -Syu` would "upgrade" them from the AUR. Recipes
+# fetch upstream sources by tag and pin their sha256. These functions take the
+# package name as $1. To add one, extend OPR_LABEL/OPR_APPS and IgnorePkg.
+
+declare -A OPR_LABEL=(
+  [hype]="Hype"
+  [disktree-bin]="Disktree"
+)
+OPR_APPS=(hype disktree-bin)
+OPR_RAW="https://raw.githubusercontent.com/omacom/omarchy-pkgs/master/pkgbuilds"
+
+is_opr_app() { [ -n "${OPR_LABEL[$1]+x}" ]; }
+
+opr_local() { pacman -Q "$1" 2>/dev/null | cut -d' ' -f2; }
+
+# Prints the recipe's full version ([epoch:]pkgver-pkgrel), as pacman -Q shows it.
+opr_remote() {
+  curl -fsSL "$OPR_RAW/$1/PKGBUILD" 2>/dev/null | python3 -c "
+import re, sys
+text = sys.stdin.read()
+get = lambda k: (re.search(rf'^{k}=[\"\']?([^\"\'\s]+)', text, re.M) or [None, None])[1]
+ver, rel, epoch = get('pkgver'), get('pkgrel'), get('epoch')
+if not ver or not rel:
+    sys.exit(1)
+print(f'{epoch + \":\" if epoch else \"\"}{ver}-{rel}')
+"
+}
+
 # --- self-updating tools ---------------------------------------------------------
 #
 # CLIs and toolchains outside pacman that ship their own updater (all under
