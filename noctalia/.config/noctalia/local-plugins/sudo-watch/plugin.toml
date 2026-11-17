@@ -1,0 +1,30 @@
+# Sudo Watch: a bar icon that turns red while sudo runs without a password,
+# modeled on Omarchy's PasswordlessSudo indicator.
+#
+# Read-only: it never grants or revokes anything. The probe is sudo's own
+# noninteractive policy listing (`sudo -n -l -l`), which never prompts but logs
+# a "password is required" line whenever access is off - so it runs only at
+# startup, on click, and when /etc/sudoers or /etc/sudoers.d changes (their
+# mtimes are readable without root), never on a timer.
+
+id = "mshiyaf/sudo-watch"
+name = "Sudo Watch"
+version = "0.1.0"
+plugin_api = 24
+author = "mshiyaf"
+license = "MIT"
+icon = "shield-lock"
+description = "Turns red while sudo works without a password."
+tags = ["security", "indicator", "bar"]
+dependencies = ["sudo"]
+
+[[widget]]
+id = "indicator"
+entry = "widget.luau"
+
+  [[widget.setting]]
+  key = "hide_when_inactive"
+  type = "bool"
+  label_key = "settings.hide_when_inactive.label"
+  description_key = "settings.hide_when_inactive.description"
+  default = false

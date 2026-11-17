@@ -1,0 +1,4 @@
+{
+  "settings.hide_when_inactive.label": "Hide when a password is required",
+  "settings.hide_when_inactive.description": "Show the icon only while sudo runs without a password."
+}

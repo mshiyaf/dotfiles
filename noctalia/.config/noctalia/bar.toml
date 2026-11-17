@@ -1,12 +1,17 @@
 [bar.default]
 start = ["launcher", "workspaces", "sysmon", "ram", "temp", "active_window"]
-center = ["clock", "mshiyaf/elsewhen:clock", "media"]
-end = [
-  "tray",
+center = [
   "notifications",
   "clipboard",
+  "mshiyaf/sudo-watch:indicator",
+  "clock",
+  "mshiyaf/elsewhen:clock",
+  "media",
+]
+end = [
+  "tray",
+  "noctalia/screen_recorder:recorder",
   "mshiyaf/agents:status",
-  "mshiyaf/anime-matrix:control",
   "network",
   "davemhammer/tailscale:status",
   "bluetooth",
