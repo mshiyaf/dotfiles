@@ -1,6 +1,6 @@
 [bar.default]
 start = ["launcher", "workspaces", "sysmon", "ram", "temp", "active_window"]
-center = ["clock", "media"]
+center = ["clock", "mshiyaf/elsewhen:clock", "media"]
 end = [
   "tray",
   "notifications",
