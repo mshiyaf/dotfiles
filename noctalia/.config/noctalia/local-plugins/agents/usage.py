@@ -40,7 +40,11 @@ FIVE_HOURS = 5 * 3600
 SEVEN_DAYS = 7 * 86400
 REFRESH_BACKOFF = 3600
 
-CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+# at_wall=1 adds the reset blocks (cedar_ember, juniper_tide); skip_spend=1 drops the spend block.
+CLAUDE_USAGE_URL = "https://api.anthropic.com/api/oauth/usage?at_wall=1&skip_spend=1"
+# Reset offers are gated on the client surface, which the server reads from the
+# User-Agent; any other agent string gets ineligible_reason "surface".
+CLAUDE_CLI_VERSION_FALLBACK = "2.1.326"
 CLAUDE_TOKEN_URL = "https://platform.claude.com/v1/oauth/token"
 CLAUDE_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage"
@@ -301,6 +305,37 @@ def claude_plan(oauth: dict) -> str:
     return str(oauth.get("subscriptionType") or "").capitalize()
 
 
+def claude_user_agent() -> str:
+    """Claude Code's own User-Agent, versioned from the installed CLI when it can be found."""
+    version = CLAUDE_CLI_VERSION_FALLBACK
+    binary = shutil.which("claude")
+    if binary:
+        name = Path(binary).resolve().name
+        if re.fullmatch(r"\d+\.\d+\.\d+", name):
+            version = name
+    return f"claude-cli/{version} (external, cli)"
+
+
+def claude_resets(data: dict) -> dict | None:
+    """Unused limit resets: cedar_ember grants plus an offered 5-hour (juniper_tide) reset."""
+    available, expiries = 0, []
+    cedar = data.get("cedar_ember")
+    if isinstance(cedar, dict) and cedar.get("eligible"):
+        for grant in cedar.get("grants") or []:
+            left = int(grant.get("resets_left") or 0) if isinstance(grant, dict) else 0
+            if left > 0:
+                available += left
+                ends = parse_time(grant.get("ends_at"))
+                if ends:
+                    expiries.append(ends)
+    juniper = data.get("juniper_tide")
+    if isinstance(juniper, dict) and juniper.get("available"):
+        available += 1
+    if not isinstance(cedar, dict) and not isinstance(juniper, dict):
+        return None
+    return {"available": available, "nextExpiresAt": min(expiries) if expiries else None}
+
+
 def claude_windows(data: dict) -> list:
     out = []
     for key, wid, label, duration in (
@@ -320,7 +355,7 @@ def claude_windows(data: dict) -> list:
 
 def claude_account(ctx, acct: dict) -> dict:
     result = {"profile": acct["profile"], "label": acct["label"], "active": acct["active"],
-              "plan": "", "status": "ok", "windows": [], "fetchedAt": None}
+              "plan": "", "status": "ok", "windows": [], "resets": None, "fetchedAt": None}
     cache_key = f"claude:{acct['profile'] or 'default'}"
     creds = read_json(acct["file"])
     oauth = creds.get("claudeAiOauth") if isinstance(creds, dict) else None
@@ -333,6 +368,7 @@ def claude_account(ctx, acct: dict) -> dict:
         cached = ctx.cache.last(cache_key)
         if isinstance(cached, dict):
             result["windows"], result["fetchedAt"] = cached.get("windows", []), cached.get("fetchedAt")
+            result["resets"] = cached.get("resets")
         result["status"] = status
         return result
 
@@ -351,11 +387,12 @@ def claude_account(ctx, acct: dict) -> dict:
         "Authorization": f"Bearer {oauth['accessToken']}",
         "anthropic-beta": "oauth-2025-04-20",
         "Accept": "application/json",
-        "User-Agent": "noctalia-agents",
+        "User-Agent": claude_user_agent(),
     })
     if code == 200 and isinstance(data, dict):
         result["windows"], result["fetchedAt"] = claude_windows(data), now()
-        ctx.cache.put(cache_key, {"windows": result["windows"], "fetchedAt": result["fetchedAt"]})
+        result["resets"] = claude_resets(data)
+        ctx.cache.put(cache_key, {k: result[k] for k in ("windows", "resets", "fetchedAt")})
         return result
     return from_cache(status_for(code))
 

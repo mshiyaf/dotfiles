@@ -11,7 +11,7 @@ It shows quota usage for Claude Code, Codex, Amp, and Command Code, switches sav
 - When a provider refresh fails, its status identifies the failure and the panel labels any retained quota with the time of its last successful fetch.
 - Notifications when a live window crosses 75%, 90%, or its limit, and when a window you pushed past 75% resets.
 - Accounts from the `ai-account` store: the live one is marked ACTIVE, others offer Use (click twice to confirm) or Sign in.
-- Codex free reset credits and their next expiry.
+- Claude and Codex free limit resets and their next expiry.
 - Amp plan budget and credits, and Command Code windows, credits, and renewal.
 - Amp model routing: each linked ChatGPT subscription with its Codex usage, and buttons to hand GPT models to Amp's own plan or back.
   With auto-failover on, a used-up link is deactivated and restored when its window resets; a manual choice pauses that until then.
@@ -23,7 +23,7 @@ It shows quota usage for Claude Code, Codex, Amp, and Command Code, switches sav
 
 `usage.py` (stdlib only, run with the system `python3`) prints one JSON snapshot:
 
-- Claude limits from `api.anthropic.com/api/oauth/usage`; Codex limits and reset credits from `chatgpt.com/backend-api/wham/*`.
+- Claude limits and limit resets from `api.anthropic.com/api/oauth/usage` (sent with Claude Code's User-Agent, since reset offers are gated on it); Codex limits and reset credits from `chatgpt.com/backend-api/wham/*`.
 - Amp from `amp usage`; Command Code from `api.commandcode.ai/alpha/billing/*`.
 - Tokens today from `~/.claude/projects` and `~/.codex/sessions`, with a per-file cache.
 - Sessions from `herdr agent list`.

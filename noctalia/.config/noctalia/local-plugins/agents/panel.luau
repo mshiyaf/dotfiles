@@ -146,7 +146,7 @@ local function accountAction(provider, acct)
   })
 end
 
-local function codexExtras(rows, key, acct)
+local function accountExtras(rows, key, acct)
   local notes = {}
   local resets = acct.resets
   local available = type(resets) == "table" and (tonumber(resets.available) or 0) or 0
@@ -209,8 +209,8 @@ local function accountSection(provider, section)
     end
     -- Full detail for the live account; inactive ones stay compact.
     addWindows(rows, key, acct, acct.active)
-    if provider == "codex" then
-      codexExtras(rows, key, acct)
+    if provider == "codex" or provider == "claude" then
+      accountExtras(rows, key, acct)
     end
     if #(acct.windows or {}) == 0 and acct.status == "missing" and not managed then
       table.insert(rows, muted(`Run {provider} to sign in.`))
