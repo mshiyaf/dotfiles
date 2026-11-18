@@ -1,6 +1,8 @@
 # Dotfiles management via GNU Stow
 #
 # Quick start:
+#   make bootstrap                 # new machine: guided setup (docs/NEW-MACHINE.md)
+#   make check                     # report linked packages and missing apps
 #   make list                      # show all available packages
 #   make agents-sync && make stow  # install default packages into $HOME
 #   make stow PKG="opencode nvim"  # stow only the named packages
@@ -33,7 +35,7 @@ DEFAULT_PACKAGES := agents alacritty amp antigravity commandcode fastfetch git h
 #   make stow PKG="opencode nvim tmux"
 PKG ?= $(DEFAULT_PACKAGES)
 
-.PHONY: help list stow restow unstow agents-sync amp-global-sync verify-agent-workflow
+.PHONY: help list stow restow unstow bootstrap check agents-sync amp-global-sync verify-agent-workflow
 
 help:
 	@echo "Targets:"
@@ -41,6 +43,8 @@ help:
 	@echo "  make stow   [PKG=\"a b c\"]       Install default packages, or only PKG"
 	@echo "  make restow [PKG=\"a b c\"]       Refresh default packages, or only PKG"
 	@echo "  make unstow [PKG=\"a b c\"]       Remove package symlinks"
+	@echo "  make bootstrap                  Guided new-machine setup (see docs/NEW-MACHINE.md)"
+	@echo "  make check                      Report linked packages and missing apps"
 	@echo "  make agents-sync                Regenerate Claude/Codex subagents and Codex skill links"
 	@echo "  make amp-global-sync            Sync orb-safe skills/plugins to local Personal repo checkouts"
 	@echo "  make verify-agent-workflow      Validate agent config, scripts, and safety tests"
@@ -49,7 +53,7 @@ help:
 	@echo "  make restow-<pkg>             Restow a single package"
 	@echo ""
 	@echo "Standard flows:"
-	@echo "  New machine:      make agents-sync && make stow"
+	@echo "  New machine:      make bootstrap"
 	@echo "  Existing machine: make agents-sync && make restow"
 	@echo ""
 	@echo "Variables:"
@@ -63,14 +67,38 @@ list:
 	@echo "Other packages (install explicitly):"
 	@for p in $(filter-out $(DEFAULT_PACKAGES),$(ALL_PACKAGES)); do echo "  $$p"; done
 
+# Packages stowed with directory folding instead of --no-folding.
+# voxtype saves config.toml by writing a temp file and renaming it, which
+# replaces a file symlink, so ~/.config/voxtype must be one directory link.
+# systemd ignores a symlinked drop-in directory, so that one is created first
+# and stays a real directory.
+FOLDED_PACKAGES := voxtype
+VOXTYPE_DROPIN  := $(TARGET)/.config/systemd/user/voxtype.service.d
+
+# $(call run_stow,<-S|-R|-D>,<packages>)
+define run_stow
+	$(if $(filter voxtype,$(2)),$(if $(filter-out -D,$(1)),mkdir -p $(VOXTYPE_DROPIN)))
+	$(if $(filter-out $(FOLDED_PACKAGES),$(2)),$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) $(1) $(filter-out $(FOLDED_PACKAGES),$(2)))
+	$(if $(filter $(FOLDED_PACKAGES),$(2)),$(STOW) -d $(DIR) -t $(TARGET) $(filter-out --no-folding,$(STOW_FLAGS)) $(1) $(filter $(FOLDED_PACKAGES),$(2)))
+endef
+
 stow:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -S $(PKG)
+	$(call run_stow,-S,$(PKG))
 
 restow:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -R $(PKG)
+	$(call run_stow,-R,$(PKG))
 
 unstow:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -D $(PKG)
+	$(call run_stow,-D,$(PKG))
+
+# Guided setup for a new machine: Arch check, desktop detection, backup of
+# conflicting files, dependency install (with confirmation), then stow.
+bootstrap:
+	./bootstrap.sh
+
+# Read-only report: which packages are linked and which apps they still need.
+check:
+	./bootstrap.sh --check
 
 agents-sync:
 	./scripts/.local/bin/agents-sync
@@ -81,21 +109,12 @@ amp-global-sync:
 verify-agent-workflow:
 	./scripts/.local/bin/verify-agent-workflow
 
-# voxtype saves config.toml by writing a temp file and renaming it, which
-# replaces a file symlink. Fold its directories so those writes land in the repo.
-# systemd ignores a symlinked drop-in directory, so that one stays a real directory.
-VOXTYPE_DROPIN := $(TARGET)/.config/systemd/user/voxtype.service.d
-stow-voxtype unstow-voxtype restow-voxtype: STOW_FLAGS := -v
-stow-voxtype restow-voxtype: | $(VOXTYPE_DROPIN)
-$(VOXTYPE_DROPIN):
-	mkdir -p $@
-
 # Per-package convenience targets: make stow-opencode / unstow-nvim / restow-tmux
 stow-%:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -S $*
+	$(call run_stow,-S,$*)
 
 unstow-%:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -D $*
+	$(call run_stow,-D,$*)
 
 restow-%:
-	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -R $*
+	$(call run_stow,-R,$*)
