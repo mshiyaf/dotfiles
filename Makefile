@@ -81,6 +81,15 @@ amp-global-sync:
 verify-agent-workflow:
 	./scripts/.local/bin/verify-agent-workflow
 
+# voxtype saves config.toml by writing a temp file and renaming it, which
+# replaces a file symlink. Fold its directories so those writes land in the repo.
+# systemd ignores a symlinked drop-in directory, so that one stays a real directory.
+VOXTYPE_DROPIN := $(TARGET)/.config/systemd/user/voxtype.service.d
+stow-voxtype unstow-voxtype restow-voxtype: STOW_FLAGS := -v
+stow-voxtype restow-voxtype: | $(VOXTYPE_DROPIN)
+$(VOXTYPE_DROPIN):
+	mkdir -p $@
+
 # Per-package convenience targets: make stow-opencode / unstow-nvim / restow-tmux
 stow-%:
 	$(STOW) -d $(DIR) -t $(TARGET) $(STOW_FLAGS) -S $*

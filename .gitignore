@@ -59,3 +59,7 @@ opencode/.opencode/bun.lock*
 # written by the Herdr app next to each mod
 herdr-app/.config/herdr-app/mods/*/jsconfig.json
 herdr-app/.config/herdr-app/mods/*/*.d.ts
+
+# voxtype config editor backups and temp files
+voxtype/.config/voxtype/*.bak
+voxtype/.config/voxtype/*.tmp
