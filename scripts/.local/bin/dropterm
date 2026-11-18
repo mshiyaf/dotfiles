@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Toggle a floating drop-down terminal on niri (bound to Super + Grave).
+# The terminal runs the "dropterm" herdr session, so hiding it closes only the
+# window and the session, with any agent in it, keeps running for next time.
+set -euo pipefail
+
+# niri spawns with a system PATH that lacks ~/.local/bin, where herdr lives.
+export PATH="$HOME/.local/bin:$PATH"
+
+app_id=dropterm
+
+window=$(niri msg --json windows | jq -c --arg id "$app_id" 'first(.[] | select(.app_id == $id)) // empty')
+
+if [[ -n $window ]]; then
+  niri msg action close-window --id "$(jq -r .id <<<"$window")"
+  # Focused means the user wants it hidden; otherwise reopen it here.
+  [[ $(jq -r .is_focused <<<"$window") == true ]] && exit 0
+fi
+
+exec kitty --class "$app_id" herdr --session "$app_id"

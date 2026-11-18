@@ -11,6 +11,7 @@ binds {
         release { spawn "voxtype" "record" "stop"; }
     }
     Alt+Space                           repeat=false hotkey-overlay-title="Dictation: voxtype" { spawn "voxtype" "record" "toggle"; }
+    Mod+Grave                           repeat=false hotkey-overlay-title="Drop-down Terminal" { spawn-sh "\"$HOME/.local/bin/dropterm\""; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn "noctalia" "msg" "session" "lock"; }
     Mod+Shift+Q                         hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn "noctalia" "msg" "panel-toggle" "session"; }
 	  Mod+Shift+C                         hotkey-overlay-title="Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
