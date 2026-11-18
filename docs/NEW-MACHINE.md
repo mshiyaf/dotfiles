@@ -60,7 +60,7 @@ Bootstrap handles that by backing the file up first.
      The rest are listed with their AUR links and installed with `paru` or `yay` only after a separate confirmation.
    - Vendor-installed tools (Claude Code, Amp, OpenCode, herdr, ...) are printed for you to run; bootstrap never pipes an installer into a shell.
 5. **Stow.** Runs `agents-sync` (only for a real install into `$HOME`), shows the paths that will be replaced, asks, removes them and runs `make stow` for the chosen packages.
-6. **System files.** Offers the keyd Caps Lock mapping and the USB notify udev rule (both need sudo), skipping ones already installed.
+6. **System files.** Offers the keyd Caps Lock mapping, the USB notify udev rule, and TCP BBR (all need sudo), skipping ones already installed.
 7. **Next steps.** Prints what is left (see below).
 
 ## Flags

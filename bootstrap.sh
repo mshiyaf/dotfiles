@@ -13,7 +13,7 @@
 #      missing ones: official repos with pacman, AUR only after a separate
 #      confirmation, vendor installers printed for you to run.
 #   5. Stow the packages (via make, so voxtype keeps its folded layout).
-#   6. Offer the optional system files (keyd, udev) and print what is left.
+#   6. Offer the optional system files (keyd, udev, sysctl) and print what is left.
 #
 # Usage:
 #   ./bootstrap.sh                      Guided setup (asks before every change)
@@ -375,6 +375,7 @@ system_extras() {
     install_system_file "USB notify script" udev/usb-notify.sh /usr/local/bin/usb-notify.sh 755
     install_system_file "USB notify udev rule" udev/99-usb-notify.rules /etc/udev/rules.d/99-usb-notify.rules 644 udevadm control --reload-rules
   fi
+  install_system_file "TCP BBR congestion control" sysctl/99-bbr.conf /etc/sysctl.d/99-bbr.conf 644 sysctl --system
   info "sddm/ (HiDPI login screen) is tuned to one laptop panel; see docs/NEW-MACHINE.md"
 }
 
@@ -382,7 +383,7 @@ next_steps() {
   step "Left for you"
   [ "$(getent passwd "$USER" | cut -d: -f7)" = "$(command -v zsh || echo zsh)" ] || info "make zsh your login shell: chsh -s \"\$(command -v zsh)\""
   if [[ " ${PKGS[*]} " == *" voxtype "* ]] && command -v voxtype >/dev/null; then
-    info "dictation: voxtype setup model (pick small.en), then voxtype setup systemd"
+    info "dictation: voxtype setup model (pick small.en), voxtype setup vad, then voxtype setup systemd"
     info "           and systemctl --user enable --now voxtype; check gpu_device with voxtype setup gpu"
   fi
   if [[ " ${PKGS[*]} " == *" scripts "* ]]; then
