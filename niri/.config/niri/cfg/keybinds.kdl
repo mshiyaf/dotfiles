@@ -5,6 +5,8 @@ binds {
     Mod+Return                          hotkey-overlay-title="Open Terminal" { spawn-sh "${TERMINAL:-kitty}"; }
     Mod+D                               hotkey-overlay-title="Open App Launcher: noctalia launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+B                               hotkey-overlay-title="Open Browser: zen" { spawn "zen-browser"; }
+    // niri has no key-release binds, so dictation toggles instead of hold-to-talk.
+    Alt+Space                           repeat=false hotkey-overlay-title="Dictation: voxtype" { spawn "voxtype" "record" "toggle"; }
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn "noctalia" "msg" "session" "lock"; }
     Mod+Shift+Q                         hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn "noctalia" "msg" "panel-toggle" "session"; }
 	  Mod+Shift+C                         hotkey-overlay-title="Clipboard History" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }

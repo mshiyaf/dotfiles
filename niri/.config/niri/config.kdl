@@ -14,3 +14,6 @@ include "./cfg/misc.kdl"
 
 include "./noctalia.kdl"
 
+
+// Written by the voice-glow Noctalia plugin while dictating (not tracked).
+include optional=true "./voice-glow.kdl"

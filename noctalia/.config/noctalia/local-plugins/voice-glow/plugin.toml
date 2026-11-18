@@ -1,0 +1,23 @@
+# Voice Glow: the focused window glows while Voxtype dictates, like the edge
+# glow Omarchy's dictation backends draw.
+#
+# The service watches Voxtype's state file ($XDG_RUNTIME_DIR/voxtype/state, one
+# word: idle / recording / transcribing) and writes a niri window rule to
+# ~/.config/niri/voice-glow.kdl (optionally included by config.kdl, untracked):
+# a focus ring and shadow in the theme's primary color while recording, and in
+# its secondary color while transcribing. niri reloads the file on its own.
+
+id = "mshiyaf/voice-glow"
+name = "Voice Glow"
+version = "0.2.0"
+plugin_api = 24
+author = "mshiyaf"
+license = "MIT"
+icon = "microphone"
+description = "The focused window glows while Voxtype is recording or transcribing (niri)."
+tags = ["dictation", "niri", "service"]
+dependencies = ["voxtype", "niri"]
+
+[[service]]
+id = "service"
+entry = "service.luau"
