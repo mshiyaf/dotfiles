@@ -33,9 +33,11 @@ binds {
     XF86MonBrightnessUp                 allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }
     XF86MonBrightnessDown               allow-when-locked=true { spawn "noctalia" "msg" "brightness-down"; }
 
-    // ─── Keyboard Brightness (ASUS ROG) ───
-    XF86KbdBrightnessUp                 allow-when-locked=true { spawn "brightnessctl" "-d" "asus::kbd_backlight" "s" "+1"; }
-    XF86KbdBrightnessDown               allow-when-locked=true { spawn "brightnessctl" "-d" "asus::kbd_backlight" "s" "1-"; }
+    // ─── Keyboard Brightness ───
+    // Only for laptops that pass these keys to the desktop. On ASUS (asus-wmi) and
+    // many others the kernel or firmware changes the backlight and these never fire.
+    XF86KbdBrightnessUp                 allow-when-locked=true { spawn "brightnessctl" "-d" "*::kbd_backlight" "set" "+1"; }
+    XF86KbdBrightnessDown               allow-when-locked=true { spawn "brightnessctl" "-d" "*::kbd_backlight" "set" "1-"; }
 
     // ─── Window Movement and Focus ───
     Mod+Q                               { close-window; }
